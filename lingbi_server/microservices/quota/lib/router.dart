@@ -5,16 +5,19 @@ import '../lib/quota_service.dart';
 import '../routes/status.dart';
 import '../routes/consume.dart';
 import '../routes/reset.dart';
+import '../routes/health.dart';
 
 export '../lib/quota_service.dart';
 export '../routes/status.dart';
 export '../routes/consume.dart';
 export '../routes/reset.dart';
+export '../routes/health.dart';
 
-// Re-export the app
-export '../main.dart';
-
-// Handler constructors for dependency injection
-StatusHandler statusHandler(QuotaService service) => StatusHandler(service);
-ConsumeHandler consumeHandler(QuotaService service) => ConsumeHandler(service);
-ResetHandler resetHandler(QuotaService service) => ResetHandler(service);
+/// Build a shelf Router with all quota routes registered.
+Router buildRouter(QuotaService quotaService) {
+  return Router()
+    ..get('/health', healthHandler())
+    ..get('/status', statusHandler(quotaService))
+    ..post('/consume', consumeHandler(quotaService))
+    ..post('/reset', resetHandler(quotaService));
+}

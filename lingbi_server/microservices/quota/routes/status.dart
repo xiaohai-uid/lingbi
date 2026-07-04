@@ -1,16 +1,21 @@
+import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
 import '../lib/quota_service.dart';
 
-import 'router.g.dart';
-
-class StatusHandler {
-  final QuotaService quotaService;
-
-  StatusHandler(this.quotaService);
-
-  Future<Response> get(RouterContext context) async {
-    final status = quotaService.getStatus();
-    return Response(200, body: jsonEncode(status));
-  }
+/// GET /status — Get current quota status
+Handler statusHandler(QuotaService quotaService) {
+  return (Request request) async {
+    try {
+      final status = quotaService.getStatus();
+      return Response.ok(
+        jsonEncode(status),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': e.toString()}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  };
 }

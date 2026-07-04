@@ -1,14 +1,21 @@
+import 'dart:convert';
 import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
 import '../lib/quota_service.dart';
 
-class ResetHandler {
-  final QuotaService quotaService;
-
-  ResetHandler(this.quotaService);
-
-  Future<Response> put(RouterContext context) async {
-    final result = quotaService.reset();
-    return Response(200, body: jsonEncode(result));
-  }
+/// POST /reset — Reset quota to full capacity
+Handler resetHandler(QuotaService quotaService) {
+  return (Request request) async {
+    try {
+      final result = quotaService.reset();
+      return Response.ok(
+        jsonEncode(result),
+        headers: {'Content-Type': 'application/json'},
+      );
+    } catch (e) {
+      return Response.internalServerError(
+        body: jsonEncode({'error': e.toString()}),
+        headers: {'Content-Type': 'application/json'},
+      );
+    }
+  };
 }
