@@ -1,0 +1,29 @@
+{
+  "name": "lingbi-canvas-service",
+  "version": "1.0.0",
+  "description": "Canvas microservice for Lingbi - supports nodes, edges, and layout algorithms",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "canvas",
+    "nodes",
+    "edges",
+    "layout",
+    "force-directed",
+    "microservice"
+  ],
+  "author": "Lingbi",
+  "license": "MIT"
+}
