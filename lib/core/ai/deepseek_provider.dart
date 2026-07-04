@@ -4,9 +4,12 @@ import 'ai_provider.dart';
 
 class DeepSeekProvider implements AIProvider {
   String? _apiKey;
+  final String? _modelOverride;
   static const String _baseUrl = 'https://api.deepseek.com/chat/completions';
 
-  DeepSeekProvider({String? apiKey}) : _apiKey = apiKey;
+  DeepSeekProvider({String? apiKey, String? modelOverride})
+      : _apiKey = apiKey,
+        _modelOverride = modelOverride;
 
   set apiKey(String? key) => _apiKey = key;
 
@@ -18,6 +21,8 @@ class DeepSeekProvider implements AIProvider {
 
   @override
   bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
+
+  String get _modelId => _modelOverride ?? 'deepseek-chat';
 
   @override
   Stream<String> chat({
@@ -31,7 +36,7 @@ class DeepSeekProvider implements AIProvider {
     }
 
     final body = jsonEncode({
-      'model': 'deepseek-chat',
+      'model': _modelId,
       'messages': messages.map((m) => m.toJson()).toList(),
       'temperature': temperature,
       'max_tokens': maxTokens,
@@ -82,7 +87,7 @@ class DeepSeekProvider implements AIProvider {
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'deepseek-chat',
+          'model': _modelId,
           'messages': messages.map((m) => m.toJson()).toList(),
           'temperature': temperature,
           'max_tokens': maxTokens,
@@ -101,8 +106,6 @@ class DeepSeekProvider implements AIProvider {
 
   @override
   Future<List<double>> embed(String text) async {
-    // DeepSeek does not provide embedding API; use OpenAI-compatible endpoint if configured
-    // For now, return zeros. Configure OpenAI provider for embeddings instead.
     return List.filled(768, 0.0);
   }
 

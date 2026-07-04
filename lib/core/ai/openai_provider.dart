@@ -6,8 +6,11 @@ import 'ai_provider.dart';
 class OpenAIProvider implements AIProvider {
   String? _apiKey;
   String _baseUrl = 'https://api.openai.com/v1/chat/completions';
+  final String? _modelOverride;
 
-  OpenAIProvider({String? apiKey}) : _apiKey = apiKey;
+  OpenAIProvider({String? apiKey, String? modelOverride})
+      : _apiKey = apiKey,
+        _modelOverride = modelOverride;
 
   set apiKey(String? key) => _apiKey = key;
   set baseUrl(String url) => _baseUrl = url;
@@ -21,6 +24,8 @@ class OpenAIProvider implements AIProvider {
   @override
   bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
 
+  String get _modelId => _modelOverride ?? 'gpt-4o-mini';
+
   @override
   Stream<String> chat({
     required List<ChatMessage> messages,
@@ -32,7 +37,7 @@ class OpenAIProvider implements AIProvider {
       return;
     }
     final body = jsonEncode({
-      'model': 'gpt-4o-mini',
+      'model': _modelId,
       'messages': messages.map((m) => m.toJson()).toList(),
       'temperature': temperature,
       'max_tokens': maxTokens,
@@ -80,7 +85,7 @@ class OpenAIProvider implements AIProvider {
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gpt-4o-mini',
+          'model': _modelId,
           'messages': messages.map((m) => m.toJson()).toList(),
           'temperature': temperature,
           'max_tokens': maxTokens,
