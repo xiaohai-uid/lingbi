@@ -1,0 +1,1 @@
+export 'package:project/lib/project_service.dart';

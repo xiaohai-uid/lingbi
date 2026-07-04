@@ -1,0 +1,27 @@
+{
+  "name": "lingbi-settings-service",
+  "version": "1.0.0",
+  "description": "Settings Service microservice for Lingbi",
+  "main": "service.js",
+  "scripts": {
+    "start": "node service.js",
+    "dev": "nodemon service.js"
+  },
+  "keywords": [
+    "lingbi",
+    "settings",
+    "microservice"
+  ],
+  "author": "Lingbi Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
