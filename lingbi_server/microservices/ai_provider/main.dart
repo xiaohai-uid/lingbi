@@ -2,14 +2,18 @@ import 'dart:convert';
 
 import 'package:dart_frog/dart_frog.dart';
 
-import 'package:ai_provider/lib/litellm_client.dart';
-import 'package:ai_provider/lib/model_config.dart';
+import 'package:ai_provider/litellm_client.dart';
+import 'package:ai_provider/model_config.dart';
+import 'package:ai_provider/services/chat_service.dart';
 
 /// Global model configuration service, initialized on startup.
 late ModelConfigService modelConfigService;
 
 /// Global LiteLLM client, reused across requests.
 late LiteLLMClient litellmClient;
+
+/// Global chat service with dialog management and context window.
+late ChatService chatService;
 
 void main() async {
   // Load model configurations
@@ -29,6 +33,12 @@ void main() async {
   litellmClient = LiteLLMClient(
     baseUrl: firstModel.baseUrl,
     headers: firstModel.headers,
+  );
+
+  // Initialize ChatService
+  chatService = ChatService(
+    client: litellmClient,
+    modelConfigService: modelConfigService,
   );
 
   // Start the server

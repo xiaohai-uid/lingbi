@@ -2,31 +2,34 @@ import 'dart:convert';
 
 import 'package:dart_frog/dart_frog.dart';
 
-import 'package:ai_provider/lib/litellm_client.dart';
-import 'package:ai_provider/lib/model_config.dart';
+import 'package:ai_provider/litellm_client.dart';
+import 'package:ai_provider/model_config.dart';
 import 'package:ai_provider/main.dart';
 
 /// Handles POST /embedding - gets embeddings for input text.
 Response onRequest(RequestContext context) async {
+  if (context.request.method != HttpMethod.post) {
+    return Response(
+      statusCode: 405,
+      body: jsonEncode({'error': 'Method not allowed'}),
+    );
+  }
+
   try {
     final body = await context.request.json as Map<String, dynamic>;
     final input = body['input'] as String? ?? '';
     final modelId = body['model'] as String? ?? '';
 
-    final modelConfig = modelId.isNotEmpty
-        ? modelConfigService.getModel(modelId)
-        : modelConfigService.listModels().firstOrNull;
-
-    if (modelConfig == null) {
+    if (input.isEmpty) {
       return Response(
         statusCode: 400,
-        body: jsonEncode({'error': 'No model configured'}),
+        body: jsonEncode({'error': 'input is required'}),
       );
     }
 
-    final embeddings = await litellmClient.embed(
-      model: modelConfig.model,
-      input: input,
+    final embeddings = await chatService.getEmbedding(
+      text: input,
+      modelId: modelId.isNotEmpty ? modelId : null,
     );
 
     return Response(
@@ -39,7 +42,7 @@ Response onRequest(RequestContext context) async {
             'embedding': embeddings,
           }
         ],
-        'model': modelConfig.model,
+        'model': modelId,
         'usage': {
           'prompt_tokens': -1,
           'total_tokens': -1,
