@@ -1,0 +1,14 @@
+name: export
+description: Export Service microservice for Lingbi
+version: 1.0.0
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  dart_frog: ^1.0.0
+  http: ^1.1.0
+  path: ^1.8.0
+
+dev_dependencies:
+  test: ^1.24.0
