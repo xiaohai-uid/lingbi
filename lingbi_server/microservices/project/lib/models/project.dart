@@ -1,63 +1,82 @@
-import 'package:sqlite3/sqlite3.dart';
+import 'dart:convert';
 
 /// Project model representing a Lingbi project.
 class Project {
-  final int? id;
-  final String name;
-  final String description;
-  final String directoryPath;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final String id;
+  String name;
+  String description;
+  DateTime createdAt;
+  DateTime updatedAt;
+  int documentCount;
+  Map<String, List<String>> treeStructure; // folderId -> [docId]
 
   Project({
-    this.id,
+    required this.id,
     required this.name,
-    required this.description,
-    required this.directoryPath,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    this.description = '',
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.documentCount = 0,
+    Map<String, List<String>>? treeStructure,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now(),
+        treeStructure = treeStructure ?? {};
 
-  /// Create a Project from a database row.
-  factory Project.fromRow(Row row) {
+  /// Create a Project from a JSON map.
+  factory Project.fromJson(Map<String, dynamic> json) {
     return Project(
-      id: row.read<int?>('id'),
-      name: row.read<String>('name'),
-      description: row.read<String>('description'),
-      directoryPath: row.read<String>('directory_path'),
-      createdAt: DateTime.parse(row.read<String>('created_at')),
-      updatedAt: DateTime.parse(row.read<String>('updated_at')),
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String? ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      documentCount: json['document_count'] as int? ?? 0,
+      treeStructure: (json['tree_structure'] as Map<String, dynamic>?)
+              ?.map((k, v) => MapEntry(k, List<String>.from(v as List))) ??
+          {},
     );
   }
 
-  /// Convert Project to a map for JSON serialization.
+  /// Convert Project to a JSON-compatible map.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'description': description,
-      'directoryPath': directoryPath,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'document_count': documentCount,
+      'tree_structure': treeStructure.map((k, v) => MapEntry(k, v)),
     };
   }
 
   /// Create a copy of this Project with updated fields.
   Project copyWith({
-    int? id,
     String? name,
     String? description,
-    String? directoryPath,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? documentCount,
+    Map<String, List<String>>? treeStructure,
   }) {
     return Project(
-      id: id ?? this.id,
+      id: id,
       name: name ?? this.name,
       description: description ?? this.description,
-      directoryPath: directoryPath ?? this.directoryPath,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      documentCount: documentCount ?? this.documentCount,
+      treeStructure: treeStructure ?? Map.from(this.treeStructure),
     );
   }
+
+  @override
+  String toString() => 'Project(id: $id, name: $name)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Project && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
