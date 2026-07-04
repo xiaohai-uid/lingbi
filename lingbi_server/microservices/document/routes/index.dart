@@ -1,18 +1,35 @@
 import 'dart:convert';
 
 import 'package:dart_frog/dart_frog.dart';
+import 'package:uuid/uuid.dart';
 
-import 'package:document/lib/database_service.dart';
-import 'package:document/lib/document.dart';
+import 'package:document/database_service.dart';
+import 'package:document/document.dart';
 import 'package:document/main.dart';
 
 /// Handles POST / - Creates a new document.
+/// Also handles OPTIONS for CORS preflight.
 Response onRequest(RequestContext context) async {
+  if (context.request.method == HttpMethod.options) {
+    return Response(statusCode: 204);
+  }
+
+  if (context.request.method != HttpMethod.post) {
+    return Response(
+      statusCode: 405,
+      body: jsonEncode({'error': 'Method not allowed'}),
+    );
+  }
+
+  return _handlePost(context);
+}
+
+Future<Response> _handlePost(RequestContext context) async {
   try {
-    final body = await context.request.json as Map<String, dynamic>;
-    final title = body['title'] as String;
-    final filePath = body['file_path'] as String;
-    final wordCount = body['word_count'] as int? ?? 0;
+    final body = await context.request.json() as Map<String, dynamic>;
+    final title = (body['title'] as String?)?.trim() ?? '';
+    final content = (body['content'] as String?) ?? '';
+    final projectId = body['project_id'] as String? ?? 'default';
 
     if (title.isEmpty) {
       return Response(
@@ -21,18 +38,13 @@ Response onRequest(RequestContext context) async {
       );
     }
 
-    if (filePath.isEmpty) {
-      return Response(
-        statusCode: 400,
-        body: jsonEncode({'error': 'File path is required'}),
-      );
-    }
-
     final now = DateTime.now();
+    final wordCount = Document.calculateWordCount(content);
     final document = Document(
-      id: now.millisecondsSinceEpoch.toString(),
+      id: const Uuid().v4(),
+      projectId: projectId,
       title: title,
-      filePath: filePath,
+      content: content,
       wordCount: wordCount,
       createdAt: now,
       updatedAt: now,

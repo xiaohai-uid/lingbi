@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:dart_frog/dart_frog.dart';
 
-import 'package:document/lib/database_service.dart';
-import 'package:document/lib/document.dart';
+import 'package:document/database_service.dart';
+import 'package:document/document.dart';
 
 /// Global database service, initialized on startup.
 late DatabaseService databaseService;
