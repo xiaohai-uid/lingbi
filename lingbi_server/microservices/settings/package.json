@@ -5,7 +5,8 @@
   "main": "service.js",
   "scripts": {
     "start": "node service.js",
-    "dev": "nodemon service.js"
+    "dev": "nodemon service.js",
+    "test": "jest --forceExit --detectOpenHandles"
   },
   "keywords": [
     "lingbi",
@@ -15,11 +16,13 @@
   "author": "Lingbi Team",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "jest": "^30.4.2",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
