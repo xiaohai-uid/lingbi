@@ -1,0 +1,21 @@
+name: lingbi_novel_engine
+description: Novel Engine microservice - 3-layer AI generation pipeline
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  dart_frog: ^1.0.0
+  http: ^1.1.0
+  json_annotation: ^4.8.0
+  yaml: ^3.1.0
+  crypto: ^3.0.0
+
+dev_dependencies:
+  dart_frog_lint: ^0.1.0
+  mocktail: ^1.0.0
+  test: ^1.24.0
+  json_serializable: ^6.7.0
+  build_runner: ^2.4.0
