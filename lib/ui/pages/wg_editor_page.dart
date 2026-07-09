@@ -8,6 +8,8 @@ import 'package:lingbi/data/database/world_database.dart' as db_model;
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/data/database/world_database.dart' as db;
 import 'package:lingbi/services/identity/identity_detector.dart';
+import 'package:lingbi/services/butterfly_analyzer.dart';
+import 'package:lingbi/ui/components/butterfly_analysis_dialog.dart';
 
 /// WgEditorPage — 精确匹配 Open Design editor.html
 /// 已集成 flutter_quill 真实编辑器
@@ -42,6 +44,8 @@ class _WgEditorPageState extends State<WgEditorPage> {
   List<db.Character> _characters = [];
   final Set<String> _confirmedIdentityIds = {};
   final IdentityDetector _identityDetector = IdentityDetector();
+  final ButterflyAnalyzer _butterflyAnalyzer =
+      ButterflyAnalyzer(timelineRepo: ServiceLocator.instance.timelineRepository);
 
   @override
   void initState() {
@@ -58,6 +62,35 @@ class _WgEditorPageState extends State<WgEditorPage> {
           await ServiceLocator.instance.canonService.getCharacters(widget.world.id);
       if (mounted) setState(() {});
     } catch (_) {}
+  }
+
+  Future<void> _openButterflyDialog() async {
+    List<ButterflySelectableEvent> events = [];
+    try {
+      final evts = await ServiceLocator.instance.timelineRepository
+          .getEvents(widget.world.id);
+      events = evts
+          .map((e) => ButterflySelectableEvent(id: e.id, title: e.title))
+          .toList();
+    } catch (_) {}
+    if (!mounted) return;
+    final result = await showDialog<ButterflyAnalysisResult>(
+      context: context,
+      builder: (ctx) => ButterflyAnalysisDialog(
+        events: events,
+        worldName: widget.world.name,
+        onAnalyze: (eventId, change) => _butterflyAnalyzer.analyze(
+          worldId: widget.world.id,
+          eventId: eventId,
+          changeDescription: change,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('蝴蝶效应分析完成（${result.impacts.length} 项角色影响）')),
+      );
+    }
   }
 
   Future<void> _loadChapters() async {
@@ -342,6 +375,20 @@ class _WgEditorPageState extends State<WgEditorPage> {
               Text('AI 生成',
                   style: TextStyle(fontSize: 12, color: Color(0xFF3D3529))),
             ]),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Tooltip(
+          message: '蝴蝶效应分析',
+          child: InkWell(
+            onTap: _openButterflyDialog,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              child: const Text('🦋', style: TextStyle(fontSize: 14)),
+            ),
           ),
         ),
         const SizedBox(width: 8),
