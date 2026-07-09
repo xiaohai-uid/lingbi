@@ -6,6 +6,8 @@ import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/core/models/world.dart';
 import 'package:lingbi/data/database/world_database.dart' as db_model;
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
+import 'package:lingbi/data/database/world_database.dart' as db;
+import 'package:lingbi/services/identity/identity_detector.dart';
 
 /// WgEditorPage — 精确匹配 Open Design editor.html
 /// 已集成 flutter_quill 真实编辑器
@@ -37,6 +39,9 @@ class _WgEditorPageState extends State<WgEditorPage> {
 
   List<db_model.Chapter> _chapters = [];
   bool _loadingChapters = true;
+  List<db.Character> _characters = [];
+  final Set<String> _confirmedIdentityIds = {};
+  final IdentityDetector _identityDetector = IdentityDetector();
 
   @override
   void initState() {
@@ -44,6 +49,15 @@ class _WgEditorPageState extends State<WgEditorPage> {
     _isDark = _settings.themeMode == ThemeMode.dark;
     _loadDocument();
     _loadChapters();
+    _loadCharacters();
+  }
+
+  Future<void> _loadCharacters() async {
+    try {
+      _characters =
+          await ServiceLocator.instance.canonService.getCharacters(widget.world.id);
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   Future<void> _loadChapters() async {
@@ -146,6 +160,19 @@ class _WgEditorPageState extends State<WgEditorPage> {
                                     .title
                                 : '第一章'),
                         onSave: _saveDocument,
+                        identityDetector: _identityDetector,
+                        worldId: widget.world.id,
+                        sceneId: _currentDocument?.id,
+                        characters: _characters,
+                        onConfirmIdentity: (c) {
+                          _confirmedIdentityIds.add(c.characterId);
+                          _identityDetector.invalidateScene(
+                              _currentDocument?.id ?? '');
+                        },
+                        onIgnoreAllIdentities: () {
+                          _identityDetector.invalidateScene(
+                              _currentDocument?.id ?? '');
+                        },
                       ),
                     ),
                     _buildSaveIndicator(isDark, fg3),
