@@ -2,6 +2,10 @@ import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/ui/theme/wg_components.dart';
+import 'package:lingbi/ui/components/character_graph_view.dart';
+import 'package:lingbi/ui/components/faction_view.dart';
+import 'package:lingbi/ui/components/timeline_view.dart';
+import 'package:lingbi/core/models/character_edge.dart';
 import '../../data/database/world_database.dart';
 
 /// 世界正典页 — Canon 知识库
@@ -31,6 +35,9 @@ class _CanonPageState extends State<CanonPage>
   List<Location> _locations = [];
   List<Lore> _lores = [];
   List<WorldRule> _rules = [];
+  List<Faction> _factions = [];
+  List<TimelineEvent> _timelineEvents = [];
+  List<CharacterEdge> _edges = [];
   bool _loading = true;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -38,7 +45,7 @@ class _CanonPageState extends State<CanonPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _loadData();
   }
 
@@ -63,6 +70,13 @@ class _CanonPageState extends State<CanonPage>
         _locations = results[1] as List<Location>;
         _lores = results[2] as List<Lore>;
         _rules = results[3] as List<WorldRule>;
+        final more = await Future.wait([
+          ServiceLocator.instance.factionRepository.getFactions(widget.worldId),
+          ServiceLocator.instance.worldService.timelineRepository
+              .getEvents(widget.worldId),
+        ]);
+        _factions = more[0] as List<Faction>;
+        _timelineEvents = more[1] as List<TimelineEvent>;
         _loading = false;
       }
     } catch (_) {
@@ -375,6 +389,179 @@ class _CanonPageState extends State<CanonPage>
     );
   }
 
+  // ─── 势力表单 ───
+
+  void _showFactionForm([Faction? existing]) {
+    final nameCtrl = TextEditingController(text: existing?.name ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    var type = existing?.type ?? 'sect';
+    final powerCtrl =
+        TextEditingController(text: (existing?.power ?? 50).toString());
+    final terrCtrl = TextEditingController(text: existing?.territory ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          title: Text(existing != null ? '编辑势力' : '新建势力'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: '名称'),
+                    autofocus: true),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: type,
+                  items: const [
+                    DropdownMenuItem(value: 'sect', child: Text('宗门')),
+                    DropdownMenuItem(value: 'nation', child: Text('国家')),
+                    DropdownMenuItem(value: 'clan', child: Text('家族')),
+                    DropdownMenuItem(value: 'organization', child: Text('组织')),
+                  ],
+                  onChanged: (v) => setSt(() => type = v ?? 'sect'),
+                  decoration: const InputDecoration(labelText: '类型'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: powerCtrl,
+                    decoration: const InputDecoration(labelText: '实力 (1-100)'),
+                    keyboardType: TextInputType.number),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: terrCtrl,
+                    decoration: const InputDecoration(labelText: '领地')),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: descCtrl,
+                    decoration: const InputDecoration(labelText: '描述'),
+                    maxLines: 3),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            FilledButton(
+              onPressed: () async {
+                if (nameCtrl.text.trim().isEmpty) return;
+                final repo = ServiceLocator.instance.factionRepository;
+                final now = DateTime.now();
+                if (existing != null) {
+                  await repo.updateFaction(
+                    existing.id,
+                    FactionsCompanion.insert(
+                      id: existing.id,
+                      worldId: existing.id,
+                      name: nameCtrl.text.trim(),
+                      description: descCtrl.text.trim(),
+                      type: type,
+                      power: int.tryParse(powerCtrl.text) ?? 50,
+                      territory: terrCtrl.text.trim(),
+                      createdAt: now,
+                      updatedAt: now,
+                    ),
+                  );
+                } else {
+                  await repo.createFaction(
+                    widget.worldId,
+                    FactionsCompanion.insert(
+                      id: 'fac-' + nameCtrl.text.trim().hashCode.toRadixString(16),
+                      worldId: widget.worldId,
+                      name: nameCtrl.text.trim(),
+                      description: descCtrl.text.trim(),
+                      type: type,
+                      power: int.tryParse(powerCtrl.text) ?? 50,
+                      territory: terrCtrl.text.trim(),
+                      createdAt: now,
+                      updatedAt: now,
+                    ),
+                  );
+                }
+                if (ctx.mounted) Navigator.pop(ctx);
+                _loadData();
+              },
+              child: Text(existing != null ? '保存' : '创建'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteFaction(Faction f) async {
+    final confirm = await _showConfirm('确定要删除势力「${f.name}」吗？');
+    if (confirm == true) {
+      await ServiceLocator.instance.factionRepository
+          .deleteFaction(f.id, worldId: widget.worldId);
+      _loadData();
+    }
+  }
+
+  Future<void> _deleteTimelineEvent(TimelineEvent e) async {
+    final confirm = await _showConfirm('确定要删除事件「${e.title}」吗？');
+    if (confirm == true) {
+      final db = await ServiceLocator.instance.databaseManager
+          .getDatabase(widget.worldId);
+      await (db.delete(db.timelineEvents)..where((t) => t.id.equals(e.id)))
+          .go();
+      _loadData();
+    }
+  }
+
+  // ─── 时间线表单 ───
+
+  void _showTimelineForm([TimelineEvent? existing]) {
+    final titleCtrl = TextEditingController(text: existing?.title ?? '');
+    final descCtrl = TextEditingController(text: existing?.description ?? '');
+    final chapterCtrl =
+        TextEditingController(text: existing?.chapterAnchor ?? '');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(existing != null ? '编辑事件' : '新增事件'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+                controller: titleCtrl,
+                decoration: const InputDecoration(labelText: '标题'),
+                autofocus: true),
+            const SizedBox(height: 8),
+            TextField(
+                controller: chapterCtrl,
+                decoration: const InputDecoration(labelText: '章节'),
+                keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(labelText: '描述'),
+                maxLines: 3),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          FilledButton(
+            onPressed: () async {
+              if (titleCtrl.text.trim().isEmpty) return;
+              await ServiceLocator.instance.worldService.timelineRepository
+                  .insertBetween(
+                worldId: widget.worldId,
+                title: titleCtrl.text.trim(),
+                description: descCtrl.text.trim(),
+              );
+              if (ctx.mounted) Navigator.pop(ctx);
+              _loadData();
+            },
+            child: const Text('创建'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── 删除确认 ───
 
   Future<void> _deleteCharacter(Character c) async {
@@ -680,6 +867,9 @@ class _CanonPageState extends State<CanonPage>
                 unselectedLabelColor: isDark ? WgTokens.darkFg3 : WgTokens.fg3,
                 tabs: const [
                   Tab(icon: Icon(Icons.person, size: 18), text: '角色'),
+                  Tab(icon: Icon(Icons.hub, size: 18), text: '关系图谱'),
+                  Tab(icon: Icon(Icons.flag, size: 18), text: '势力'),
+                  Tab(icon: Icon(Icons.timeline, size: 18), text: '时间线'),
                   Tab(icon: Icon(Icons.place, size: 18), text: '地点'),
                   Tab(icon: Icon(Icons.auto_stories, size: 18), text: '传说'),
                   Tab(icon: Icon(Icons.gavel, size: 18), text: '规则'),
@@ -698,6 +888,27 @@ class _CanonPageState extends State<CanonPage>
               children: [
                 _buildEntryList(
                     _filteredCharacters().map(_buildCharacterCard).toList()),
+                CharacterGraphView(
+                  characters: _characters
+                      .map((c) => CharacterLike(id: c.id, name: c.name, role: c.role))
+                      .toList(),
+                  edges: _edges,
+                  onAddEdge: (s, t, type) =>
+                      setState(() => _edges.add(CharacterEdge(
+                          sourceId: s, targetId: t, type: type))),
+                ),
+                FactionView(
+                  factions: _factions,
+                  onAdd: () => _showFactionForm(),
+                  onEdit: (f) => _showFactionForm(f),
+                  onDelete: _deleteFaction,
+                ),
+                TimelineView(
+                  events: _timelineEvents,
+                  onAdd: () => _showTimelineForm(),
+                  onEdit: (e) => _showTimelineForm(e),
+                  onDelete: _deleteTimelineEvent,
+                ),
                 _buildEntryList(
                     _filteredLocations().map(_buildLocationCard).toList()),
                 _buildEntryList(_filteredLores().map(_buildLoreCard).toList()),
@@ -725,12 +936,18 @@ class _CanonPageState extends State<CanonPage>
                 _showCharacterForm();
                 break;
               case 1:
-                _showLocationForm();
+                _showFactionForm();
                 break;
               case 2:
-                _showLoreForm();
+                _showTimelineForm();
                 break;
               case 3:
+                _showLocationForm();
+                break;
+              case 4:
+                _showLoreForm();
+                break;
+              case 5:
                 _showRuleForm();
                 break;
             }
