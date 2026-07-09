@@ -1,0 +1,99 @@
+{
+  "name": "mind-map",
+  "description": "A radial mind map template with central topic and branches",
+  "category": "structure",
+  "structure": {
+    "nodes": [
+      {
+        "id": 1,
+        "type": "title",
+        "position_x": 400,
+        "position_y": 400,
+        "width": 200,
+        "height": 100,
+        "content": "Central Topic",
+        "metadata": {
+          "style": "center"
+        }
+      },
+      {
+        "id": 2,
+        "type": "text",
+        "position_x": 100,
+        "position_y": 200,
+        "width": 180,
+        "height": 80,
+        "content": "Branch 1",
+        "metadata": {
+          "style": "branch"
+        }
+      },
+      {
+        "id": 3,
+        "type": "text",
+        "position_x": 700,
+        "position_y": 200,
+        "width": 180,
+        "height": 80,
+        "content": "Branch 2",
+        "metadata": {
+          "style": "branch"
+        }
+      },
+      {
+        "id": 4,
+        "type": "text",
+        "position_x": 100,
+        "position_y": 600,
+        "width": 180,
+        "height": 80,
+        "content": "Branch 3",
+        "metadata": {
+          "style": "branch"
+        }
+      },
+      {
+        "id": 5,
+        "type": "text",
+        "position_x": 700,
+        "position_y": 600,
+        "width": 180,
+        "height": 80,
+        "content": "Branch 4",
+        "metadata": {
+          "style": "branch"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": 1,
+        "source_node_id": 2,
+        "target_node_id": 1,
+        "type": "line",
+        "label": ""
+      },
+      {
+        "id": 2,
+        "source_node_id": 3,
+        "target_node_id": 1,
+        "type": "line",
+        "label": ""
+      },
+      {
+        "id": 3,
+        "source_node_id": 4,
+        "target_node_id": 1,
+        "type": "line",
+        "label": ""
+      },
+      {
+        "id": 4,
+        "source_node_id": 5,
+        "target_node_id": 1,
+        "type": "line",
+        "label": ""
+      }
+    ]
+  }
+}

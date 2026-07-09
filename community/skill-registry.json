@@ -1,0 +1,72 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2025-07-04T00:00:00Z",
+  "skills": [
+    {
+      "id": "novel-analyzer",
+      "name": "小说拆解助手",
+      "author": "lingbi-community",
+      "version": "1.2.0",
+      "description": "自动分析小说结构、人物关系、情节脉络，生成故事节拍图",
+      "downloadUrl": "https://github.com/lingbi-community/skill-novel-analyzer/releases/latest/download/skill.zip",
+      "stars": 234,
+      "category": "writing",
+      "tags": ["小说", "分析", "结构"]
+    },
+    {
+      "id": "style-distiller",
+      "name": "风格蒸馏器",
+      "author": "lingbi-community",
+      "version": "1.0.0",
+      "description": "从样本中提取作者风格并应用到创作中，支持多风格混合",
+      "downloadUrl": "https://github.com/lingbi-community/skill-style-distiller/releases/latest/download/skill.zip",
+      "stars": 189,
+      "category": "writing",
+      "tags": ["风格", "蒸馏", "写作"]
+    },
+    {
+      "id": "character-builder",
+      "name": "角色构建器",
+      "author": "lingbi-community",
+      "version": "1.1.0",
+      "description": "基于 Codex 数据自动生成角色深度档案，包括背景、动机、成长弧线",
+      "downloadUrl": "https://github.com/lingbi-community/skill-character-builder/releases/latest/download/skill.zip",
+      "stars": 156,
+      "category": "codex",
+      "tags": ["角色", "Codex", "档案"]
+    },
+    {
+      "id": "plot-generator",
+      "name": "情节生成器",
+      "author": "lingbi-community",
+      "version": "0.9.0",
+      "description": "基于故事画布模板自动生成情节大纲，支持三幕剧/英雄之旅/五幕剧",
+      "downloadUrl": "https://github.com/lingbi-community/skill-plot-generator/releases/latest/download/skill.zip",
+      "stars": 142,
+      "category": "canvas",
+      "tags": ["情节", "大纲", "模板"]
+    },
+    {
+      "id": "dialogue-enhancer",
+      "name": "对话增强器",
+      "author": "lingbi-community",
+      "version": "1.0.0",
+      "description": "分析和改进对话写作，提升角色声音区分度和自然度",
+      "downloadUrl": "https://github.com/lingbi-community/skill-dialogue-enhancer/releases/latest/download/skill.zip",
+      "stars": 98,
+      "category": "writing",
+      "tags": ["对话", "角色", "增强"]
+    },
+    {
+      "id": "world-builder",
+      "name": "世界构建器",
+      "author": "lingbi-community",
+      "version": "1.0.0",
+      "description": "基于 Codex 地点和传说数据自动扩展世界观设定",
+      "downloadUrl": "https://github.com/lingbi-community/skill-world-builder/releases/latest/download/skill.zip",
+      "stars": 87,
+      "category": "codex",
+      "tags": ["世界", "Codex", "设定"]
+    }
+  ]
+}

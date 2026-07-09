@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>灵笔 — 品牌识别系统</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --ink-900: #1a1a2e;
+    --ink-800: #16213e;
+    --ink-700: #0f3460;
+    --ink-500: #1a5276;
+    --ink-300: #5dade2;
+    --ink-100: #d6eaf8;
+    --amber-500: #e8a838;
+    --amber-400: #f0c040;
+    --amber-300: #f5d76e;
+    --gold-500: #c9a84c;
+    --paper: #faf8f5;
+    --white: #ffffff;
+    --gray-100: #f0eee9;
+    --gray-300: #c8c3b8;
+    --gray-500: #8a8478;
+    --gray-700: #4a4540;
+  }
+
+  body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: var(--paper);
+    color: var(--ink-900);
+    line-height: 1.6;
+  }
+
+  /* === Header / Hero === */
+  .hero {
+    background: linear-gradient(135deg, var(--ink-900) 0%, var(--ink-700) 50%, var(--ink-500) 100%);
+    color: var(--white);
+    padding: 80px 40px 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(232,168,56,0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(93,173,226,0.06) 0%, transparent 40%);
+  }
+
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, var(--amber-400), var(--amber-500));
+    border-radius: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(232,168,56,0.3);
+    position: relative;
+  }
+  .logo-mark svg { width: 56px; height: 56px; }
+
+  .hero h1 {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    margin-bottom: 8px;
+  }
+  .hero .subtitle {
+    font-size: 20px;
+    font-weight: 300;
+    color: var(--amber-300);
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+  }
+  .hero .tagline {
+    font-size: 16px;
+    color: var(--ink-300);
+    max-width: 500px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  /* === Color Palette === */
+  .section {
+    padding: 60px 40px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .section-title {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--ink-900);
+  }
+  .section-subtitle {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin-bottom: 32px;
+    letter-spacing: 1px;
+  }
+
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .color-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.2s;
+  }
+  .color-card:hover { transform: translateY(-2px); }
+  .color-swatch { height: 80px; }
+  .color-info { padding: 10px 12px; background: var(--white); }
+  .color-name { font-size: 13px; font-weight: 500; color: var(--ink-900); }
+  .color-hex { font-size: 11px; color: var(--gray-500); font-family: monospace; }
+
+  /* === Typography === */
+  .type-showcase { margin-bottom: 40px; }
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .type-label {
+    font-size: 12px;
+    color: var(--gray-500);
+    width: 100px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .type-sample { flex: 1; color: var(--ink-900); }
+  .display-1 { font-family: 'Noto Serif SC', serif; font-size: 42px; font-weight: 900; }
+  .display-2 { font-family: 'Noto Serif SC', serif; font-size: 32px; font-weight: 700; }
+  .heading-1 { font-family: 'Noto Sans SC', sans-serif; font-size: 24px; font-weight: 700; }
+  .heading-2 { font-family: 'Noto Sans SC', sans-serif; font-size: 20px; font-weight: 500; }
+  .body-text { font-family: 'Noto Sans SC', sans-serif; font-size: 16px; font-weight: 400; }
+  .small-text { font-family: 'Noto Sans SC', sans-serif; font-size: 13px; font-weight: 300; }
+
+  /* === Logo Variations === */
+  .logo-showcase {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .logo-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .logo-card.dark {
+    background: var(--ink-900);
+  }
+  .logo-card h3 {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .logo-card.dark h3 { color: var(--ink-300); }
+
+  .logo-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .logo-icon-sm {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--amber-400), var(--amber-500));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon-sm svg { width: 22px; height: 22px; }
+  .logo-text {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: var(--ink-900);
+  }
+  .logo-card.dark .logo-text { color: var(--white); }
+  .logo-suffix {
+    font-size: 11px;
+    color: var(--amber-400);
+    letter-spacing: 3px;
+    margin-top: 4px;
+  }
+
+  .logo-stacked {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-stacked .logo-icon-big {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--amber-400), var(--amber-500));
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-stacked .logo-icon-big svg { width: 36px; height: 36px; }
+  .logo-stacked .logo-text-big {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: var(--ink-900);
+  }
+  .logo-card.dark .logo-text-big { color: var(--white); }
+
+  /* === Usage Guidelines === */
+  .guidelines {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .guideline-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .guideline-card h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--ink-900);
+  }
+  .guideline-card p, .guideline-card li {
+    font-size: 14px;
+    color: var(--gray-700);
+    line-height: 1.8;
+  }
+  .guideline-card ul { padding-left: 20px; }
+
+  /* === Footer === */
+  .footer {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+    font-size: 13px;
+    border-top: 1px solid var(--gray-100);
+  }
+
+  /* === Responsive === */
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 36px; }
+    .logo-showcase { grid-template-columns: 1fr; }
+    .guidelines { grid-template-columns: 1fr; }
+    .section { padding: 40px 20px; }
+  }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--amber-300), transparent);
+    margin: 0 40px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== HERO ========== -->
+<div class="hero">
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+      <path d="M15 5l4 4" stroke-width="2"/>
+      <circle cx="18" cy="6" r="1.5" fill="#e8a838" stroke="none"/>
+    </svg>
+  </div>
+  <h1>灵 笔</h1>
+  <div class="subtitle">L I N G B I</div>
+  <div class="tagline">AI 原生的世界写作平台 · 从灵感传说到完整叙事</div>
+</div>
+
+<!-- ========== COLOR PALETTE ========== -->
+<div class="section">
+  <h2 class="section-title">色彩系统</h2>
+  <div class="section-subtitle">COLOR PALETTE — BRAND IDENTITY</div>
+
+  <div class="color-grid">
+    <div class="color-card"><div class="color-swatch" style="background:#1a1a2e"></div><div class="color-info"><div class="color-name">墨底 Ink Base</div><div class="color-hex">#1A1A2E</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#0f3460"></div><div class="color-info"><div class="color-name">墨蓝 Ink Blue</div><div class="color-hex">#0F3460</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#1a5276"></div><div class="color-info"><div class="color-name">青蓝 Cerulean</div><div class="color-hex">#1A5276</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#5dade2"></div><div class="color-info"><div class="color-name">天蓝 Sky Blue</div><div class="color-hex">#5DADE2</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#d6eaf8"></div><div class="color-info"><div class="color-name">淡蓝 Pale Blue</div><div class="color-hex">#D6EAF8</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#e8a838"></div><div class="color-info"><div class="color-name">琥珀金 Amber</div><div class="color-hex">#E8A838</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#f0c040"></div><div class="color-info"><div class="color-name">亮金 Bright Gold</div><div class="color-hex">#F0C040</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#f5d76e"></div><div class="color-info"><div class="color-name">淡金 Light Gold</div><div class="color-hex">#F5D76E</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#faf8f5"></div><div class="color-info"><div class="color-name">纸白 Paper</div><div class="color-hex">#FAF8F5</div></div></div>
+    <div class="color-card"><div class="color-swatch" style="background:#4a4540"></div><div class="color-info"><div class="color-name">墨灰 Ink Gray</div><div class="color-hex">#4A4540</div></div></div>
+  </div>
+
+  <div style="display:flex; gap:24px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:200px;">
+      <h4 style="font-size:14px; color:var(--gray-500); margin-bottom:12px; letter-spacing:1px;">GRADIENT — PRIMARY</h4>
+      <div style="height:48px; border-radius:12px; background:linear-gradient(135deg, #1a1a2e, #0f3460, #1a5276);"></div>
+    </div>
+    <div style="flex:1; min-width:200px;">
+      <h4 style="font-size:14px; color:var(--gray-500); margin-bottom:12px; letter-spacing:1px;">GRADIENT — ACCENT</h4>
+      <div style="height:48px; border-radius:12px; background:linear-gradient(135deg, #e8a838, #f0c040, #f5d76e);"></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ========== TYPOGRAPHY ========== -->
+<div class="section">
+  <h2 class="section-title">字体系统</h2>
+  <div class="section-subtitle">TYPOGRAPHY — NOTO SERIF SC + NOTO SANS SC</div>
+
+  <div class="type-showcase">
+    <div class="type-row">
+      <div class="type-label">Display 1</div>
+      <div class="type-sample display-1">灵笔写乾坤</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Display 2</div>
+      <div class="type-sample display-2">AI 写作助手</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Heading 1</div>
+      <div class="type-sample heading-1">创建你的第一个世界</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Heading 2</div>
+      <div class="type-sample heading-2">角色·地点·传说·规则</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Body</div>
+      <div class="type-sample body-text">灵笔是一款 AI 原生的世界写作平台。支持从灵感创意到完整叙事的全流程创作，让作者专注于故事本身。</div>
+    </div>
+    <div class="type-row">
+      <div class="type-label">Small</div>
+      <div class="type-sample small-text">版本 0.5.0-dev · Flutter Desktop · MIT License</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ========== LOGO VARIANTS ========== -->
+<div class="section">
+  <h2 class="section-title">标识变体</h2>
+  <div class="section-subtitle">LOGO VARIANTS — HORIZONTAL · STACKED · ICON</div>
+
+  <div class="logo-showcase">
+    <div class="logo-card">
+      <h3>横版 Horizontal</h3>
+      <div class="logo-horizontal">
+        <div class="logo-icon-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="M15 5l4 4" stroke-width="2"/>
+            <circle cx="18" cy="6" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">灵笔</div>
+          <div class="logo-suffix">LINGBI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="logo-card dark">
+      <h3>深色 Dark Mode</h3>
+      <div class="logo-horizontal">
+        <div class="logo-icon-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="M15 5l4 4" stroke-width="2"/>
+            <circle cx="18" cy="6" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text">灵笔</div>
+          <div class="logo-suffix">LINGBI</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="logo-card">
+      <h3>竖版 Stacked</h3>
+      <div class="logo-stacked">
+        <div class="logo-icon-big">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="M15 5l4 4" stroke-width="2"/>
+            <circle cx="18" cy="6" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+        <div class="logo-text-big">灵笔</div>
+        <div class="logo-suffix" style="margin-top:0;">LINGBI</div>
+      </div>
+    </div>
+
+    <div class="logo-card">
+      <h3>图标 Icon Only</h3>
+      <div style="display:flex; align-items:center; justify-content:center; height:120px;">
+        <div style="width:80px; height:80px; background:linear-gradient(135deg, #e8a838, #f0c040); border-radius:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 16px rgba(232,168,56,0.3);">
+          <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            <path d="M15 5l4 4" stroke-width="2"/>
+            <circle cx="18" cy="6" r="1.5" fill="white" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ========== GUIDELINES ========== -->
+<div class="section">
+  <h2 class="section-title">使用规范</h2>
+  <div class="section-subtitle">BRAND GUIDELINES — DO'S AND DON'TS</div>
+
+  <div class="guidelines">
+    <div class="guideline-card">
+      <h4>✒️ 品牌精神</h4>
+      <p>灵笔代表「灵感的笔触」—— 将东方书法美学与现代 AI 技术融合。品牌调性：<strong>优雅、专注、创造力</strong>。</p>
+    </div>
+    <div class="guideline-card">
+      <h4>🎨 色彩使用</h4>
+      <ul>
+        <li>墨色系 (#1A1A2E → #1A5276) 用于背景、导航</li>
+        <li>琥珀金 (#E8A838) 用于强调、CTA、高亮</li>
+        <li>纸白 (#FAF8F5) 用于内容区背景</li>
+        <li>金色占比不超过 15%</li>
+      </ul>
+    </div>
+    <div class="guideline-card">
+      <h4>🔤 字体层级</h4>
+      <ul>
+        <li>标题/展示用 <strong>Noto Serif SC</strong> — 传统感</li>
+        <li>正文/UI 用 <strong>Noto Sans SC</strong> — 现代感</li>
+        <li>英文配字用 LINGBI 全大写</li>
+        <li>最小字号 13px，正文 16px</li>
+      </ul>
+    </div>
+    <div class="guideline-card">
+      <h4>📐 标识规范</h4>
+      <ul>
+        <li>图标+文字间距 ≥ 16px</li>
+        <li>最小使用尺寸: 横版 120px, 图标 32px</li>
+        <li>深色背景用金色图标，浅色背景用墨色</li>
+        <li>不要拉伸、变色、加额外阴影</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ========== USAGE EXAMPLES ========== -->
+<div class="divider"></div>
+<div class="section">
+  <h2 class="section-title">应用示例</h2>
+  <div class="section-subtitle">BRAND IN CONTEXT</div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+    <div style="background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="background:linear-gradient(135deg, #1a1a2e, #0f3460); padding:32px; text-align:center;">
+        <div style="display:inline-flex; align-items:center; gap:10px;">
+          <div style="width:32px; height:32px; background:linear-gradient(135deg,#e8a838,#f0c040); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" stroke-width="1.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </div>
+          <span style="font-family:'Noto Serif SC',serif; font-size:20px; font-weight:900; color:white; letter-spacing:3px;">灵笔</span>
+        </div>
+      </div>
+      <div style="padding:20px;">
+        <div style="font-size:13px; color:var(--gray-700);">AI 写作助手 · 桌面应用</div>
+        <div style="font-size:14px; font-weight:500; color:var(--ink-700); margin-top:4px;">从灵感传说到完整叙事</div>
+      </div>
+    </div>
+
+    <div style="background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.06);">
+      <div style="background:#faf8f5; padding:32px; text-align:center;">
+        <div style="display:inline-flex; align-items:center; gap:8px; flex-direction:column;">
+          <div style="width:48px; height:48px; background:linear-gradient(135deg,#e8a838,#f0c040); border-radius:12px; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.5"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          </div>
+          <span style="font-family:'Noto Serif SC',serif; font-size:16px; font-weight:900; color:#1a1a2e; letter-spacing:2px;">灵笔</span>
+          <span style="font-size:10px; color:#e8a838; letter-spacing:2px;">LINGBI</span>
+        </div>
+      </div>
+      <div style="padding:20px; text-align:center;">
+        <div style="display:flex; gap:8px; justify-content:center;">
+          <span style="font-size:11px; background:#d6eaf8; color:#1a5276; padding:2px 10px; border-radius:10px;">v0.5.0</span>
+          <span style="font-size:11px; background:#f5d76e; color:#4a4540; padding:2px 10px; border-radius:10px;">Open Source</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  灵笔 Lingbi · Brand Identity System · 2026
+</div>
+
+</body>
+</html>

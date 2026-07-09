@@ -1,0 +1,10 @@
+.git/
+build/
+.dart_tool/
+.pub/
+.idea/
+*.iml
+**/__pycache__/
+*.pyc
+.env
+.env.local

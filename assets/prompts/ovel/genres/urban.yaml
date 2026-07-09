@@ -1,0 +1,21 @@
+# 都市类型写作指南
+
+name: 都市
+slug: urban
+
+subgenres:
+  - name: 都市异能
+    keywords: [异能, 觉醒, 组织, 隐藏世界]
+    structure: 觉醒 → 探索 → 冲突 → 成长
+  - name: 都市生活
+    keywords: [职场, 情感, 创业, 家庭]
+    structure: 日常 → 矛盾 → 抉择 → 成长
+  - name: 都市修真
+    keywords: [隐藏身份, 现代修炼, 世俗]
+    structure: 入世 → 冲突 → 融合 → 守护
+
+worldbuilding_checklist:
+  - 城市背景设定（真实或虚构都市）
+  - 社会阶层分布
+  - 异能/力量体系的隐藏方式
+  - 政府相关组织的态度

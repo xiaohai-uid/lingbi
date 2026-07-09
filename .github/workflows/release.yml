@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.0'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze lib/
+
+      - name: Security audit
+        run: flutter pub audit
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Package MSIX
+        run: flutter pub run msix:create
+
+      - name: Upload MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: lingbi-windows-msix
+          path: |
+            build/windows/x64/runner/Release/*.msix
+            build/windows/x64/runner/Release/*.msixbundle
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/windows/x64/runner/Release/*.msix
+            build/windows/x64/runner/Release/*.msixbundle
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,49 @@
+# Node.js
+node_modules/
+package-lock.json
+
+# Flutter
+build/
+.dart_tool/
+.packages
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# Windows
+*.msix
+*.msixbundle
+*.exe
+*.zip
+*.7z
+
+# macOS
+.DS_Store
+
+# Project
+*.log
+.env
+.env.local
+lingbi_data/
+
+# Documentation generated
+docs/superpowers/
+
+# Temp / dev scripts
+fix_*.js
+tmp_*.dart
+*.png
+*.bmp
+# Local generated / scratch
+analyze_result.txt
+.scratch/
+coverage/
+tmp/
+*.g.dart.tmp

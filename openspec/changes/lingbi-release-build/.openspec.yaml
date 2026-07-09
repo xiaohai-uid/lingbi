@@ -1,0 +1,7 @@
+schema: spec-driven
+name: lingbi-release-build
+status: proposed
+created: 2026-07-05
+source: "参考 Clash Plus D:\\Program Files\\Clash Plus"
+priority: P0
+target_version: v3.0.0

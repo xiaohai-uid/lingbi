@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>灵笔 App UI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Noto Sans SC',sans-serif}
+body{background:#0a0a18;color:#e8e6e0;padding:40px;display:flex;flex-direction:column;align-items:center;gap:40px}
+.container{max-width:1280px;width:100%}
+h1{font-family:'Noto Serif SC',serif;font-size:28px;margin-bottom:4px}
+.sub{font-size:13px;color:#6b6880;letter-spacing:2px;margin-bottom:32px}
+h2.h{font-size:18px;font-weight:600;margin:32px 0 16px}
+
+/* App window */
+.win{border-radius:16px;overflow:hidden;border:1px solid #2a2a50;background:#0d0d1a;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.tb{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#14142a;border-bottom:1px solid #2a2a50}
+.tbl{display:flex;align-items:center;gap:12px}
+.dots{display:flex;gap:7px}
+.dot{width:12px;height:12px;border-radius:50%}
+.dc{background:#ff5f57}.dm{background:#febc2e}.dx{background:#28c840}
+.at{font-family:'Noto Serif SC',serif;font-size:14px;font-weight:600;color:#9895a8;letter-spacing:2px}
+.bc{font-size:12px;color:#6b6880}
+.bc span{color:#9895a8}
+
+/* 3-panel */
+.layout{display:grid;grid-template-columns:250px 1fr 340px;height:580px}
+
+/* Sidebar */
+.sb{background:#14142a;border-right:1px solid #2a2a50;display:flex;flex-direction:column}
+.sbh{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 8px;border-bottom:1px solid #2a2a50}
+.sbh h3{font-size:12px;font-weight:500;color:#6b6880;letter-spacing:1px;text-transform:uppercase}
+.si{padding:8px 16px;margin:8px 16px;background:#1c1c3a;border:1px solid #2a2a50;border-radius:6px;color:#9895a8;font-size:12px;outline:none}
+.si:focus{border-color:#e8a838}
+.pt{flex:1;overflow-y:auto;padding:4px 0}
+.ti{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;font-size:13px;color:#9895a8}
+.ti:hover{background:#252550;color:#e8e6e0}
+.ti.on{background:rgba(232,168,56,0.15);color:#e8a838}
+.ti .ic{font-size:14px;width:20px;text-align:center}
+.ti .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ti .bd{font-size:10px;padding:1px 6px;border-radius:10px;background:#252550;color:#6b6880}
+.tc{padding-left:20px}
+.sbf{display:flex;gap:6px;padding:8px 16px;border-top:1px solid #2a2a50}
+.sbf button{flex:1;padding:6px;font-size:11px;border-radius:6px;border:1px solid #2a2a50;background:transparent;color:#9895a8;cursor:pointer;font-family:inherit}
+.sbf button:hover{background:#252550;color:#e8e6e0}
+.sbf .pri{background:#e8a838;color:#0d0d1a;border-color:#e8a838}
+
+/* Editor */
+.ed{background:#0d0d1a;display:flex;flex-direction:column}
+.et{display:flex;align-items:center;gap:4px;padding:8px 12px;background:#14142a;border-bottom:1px solid #2a2a50;flex-wrap:wrap}
+.eg{display:flex;gap:2px;padding:0 4px;border-right:1px solid #2a2a50}
+.eg button{width:30px;height:28px;border:none;background:transparent;color:#9895a8;border-radius:4px;cursor:pointer;font-size:13px}
+.eg button:hover{background:#252550;color:#e8e6e0}
+.eg button.on{background:rgba(232,168,56,0.15);color:#e8a838}
+.ec{flex:1;padding:32px 48px;overflow-y:auto}
+.ct{font-family:'Noto Serif SC',serif;font-size:28px;font-weight:700;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid rgba(232,168,56,0.15)}
+.ec p{font-size:15px;line-height:1.9;margin-bottom:16px}
+.ec .pl{color:#6b6880;font-style:italic}
+.cb{display:inline-block;width:2px;height:18px;background:#e8a838;animation:blink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes blink{50%{opacity:0}}
+.es{display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#14142a;border-top:1px solid #2a2a50;font-size:11px;color:#6b6880}
+.sl,.sr{display:flex;gap:16px}
+
+/* AI Panel */
+.ai{background:#14142a;border-left:1px solid #2a2a50;display:flex;flex-direction:column}
+.aih{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid #2a2a50}
+.aih h3{font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px}
+.aid{width:8px;height:8px;border-radius:50%;background:#34d399;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.aih select{font-size:11px;padding:4px 8px;background:#1c1c3a;border:1px solid #2a2a50;border-radius:6px;color:#9895a8;font-family:inherit;cursor:pointer}
+.ams{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.msg{display:flex;gap:10px;max-width:90%}
+.msg.me{align-self:flex-end;flex-direction:row-reverse}
+.msg.bt{align-self:flex-start}
+.ma{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px}
+.msg.me .ma{background:#e8a838;color:#0d0d1a}
+.msg.bt .ma{background:#5dade2;color:white;font-size:14px}
+.mb{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6}
+.msg.me .mb{background:rgba(232,168,56,0.15);color:#e8e6e0;border-bottom-right-radius:4px}
+.msg.bt .mb{background:#1c1c3a;color:#9895a8;border-bottom-left-radius:4px}
+.mb .tm{font-size:10px;color:#6b6880;margin-top:4px;display:block}
+.mb .tk{font-size:11px;color:#6b6880;font-style:italic;padding:4px 8px;background:rgba(139,92,246,0.1);border-radius:4px;border-left:2px solid #8b5cf6;margin-bottom:6px}
+.aib{padding:8px 16px 16px;border-top:1px solid #2a2a50}
+.air{display:flex;gap:8px;align-items:flex-end}
+.air textarea{flex:1;padding:10px 14px;background:#1c1c3a;border:1px solid #2a2a50;border-radius:10px;color:#e8e6e0;font-size:13px;font-family:inherit;outline:none;resize:none;min-height:40px;line-height:1.5}
+.air textarea:focus{border-color:#e8a838}
+.ais{width:40px;height:40px;border-radius:10px;border:none;background:#e8a838;color:#0d0d1a;cursor:pointer;font-size:18px;flex-shrink:0}
+.ais:hover{background:#f0c040}
+.aiq{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.qb{padding:4px 10px;font-size:11px;border-radius:12px;border:1px solid #2a2a50;background:transparent;color:#6b6880;cursor:pointer;font-family:inherit}
+.qb:hover{border-color:#e8a838;color:#e8a838;background:rgba(232,168,56,0.15)}
+
+/* Components grid */
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:24px}
+.cc{background:#14142a;border:1px solid #2a2a50;border-radius:10px;padding:24px}
+.cc h4{font-size:14px;font-weight:500;margin-bottom:16px}
+.cr{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.btn{padding:8px 20px;border-radius:6px;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit}
+.b1{background:#e8a838;color:#0d0d1a}.b1:hover{background:#f0c040}
+.b2{background:#1c1c3a;color:#e8e6e0;border:1px solid #2a2a50}.b2:hover{background:#252550}
+.bs{padding:5px 12px;font-size:12px}
+.tag{padding:2px 10px;border-radius:10px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.tg{background:rgba(232,168,56,0.15);color:#e8a838}
+.tb{background:rgba(93,173,226,0.15);color:#5dade2}
+.tgr{background:rgba(52,211,153,0.15);color:#34d399}
+.tabs{display:flex;border-bottom:1px solid #2a2a50;margin-bottom:16px}
+.tab{padding:8px 16px;font-size:13px;color:#6b6880;cursor:pointer;border-bottom:2px solid transparent}
+.tab:hover{color:#9895a8}.tab.on{color:#e8a838;border-bottom-color:#e8a838}
+.cd{background:#1c1c3a;border:1px solid #2a2a50;border-radius:10px;padding:16px}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-thumb{background:#252550;border-radius:3px}
+@media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}.sb,.ai{display:none}}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>灵笔应用 UI 设计</h1>
+<div class="sub">LINGBI DESKTOP APP — UI MOCKUP</div>
+
+<h2 class="h">1. 主界面 — 三栏布局</h2>
+<div class="win">
+  <div class="tb">
+    <div class="tbl">
+      <div class="dots"><div class="dot dc"></div><div class="dot dm"></div><div class="dot dx"></div></div>
+      <span class="at">灵笔</span>
+    </div>
+    <div class="bc">修仙大陆 / 未命名作品 / <span>第一章 青云之巅</span></div>
+    <div style="display:flex;gap:8px"><button class="btn b2 bs">⚙</button></div>
+  </div>
+<div class="layout">
+
+<!-- Sidebar -->
+<div class="sb">
+  <div class="sbh"><h3>导航</h3><span style="color:#6b6880;font-size:14px;cursor:pointer">⋯</span></div>
+  <input class="si" placeholder="搜索文档...">
+  <div class="pt">
+    <div class="ti on"><span class="ic">📖</span><span class="nm">未命名作品</span><span style="font-size:10px;color:#6b6880">▾</span></div>
+    <div class="tc">
+      <div class="ti"><span class="ic">📄</span><span class="nm">第一章 青云之巅</span><span class="bd">2.3k</span></div>
+      <div class="ti"><span class="ic">📄</span><span class="nm">第二章 初入宗门</span><span class="bd">1.9k</span></div>
+      <div class="ti"><span class="ic">📄</span><span class="nm">第三章 灵兽森林</span><span class="bd">1.0k</span></div>
+    </div>
+    <div class="ti"><span class="ic">🗂️</span><span class="nm">Canon 世界观</span><span style="font-size:10px;color:#6b6880">▸</span></div>
+    <div class="ti"><span class="ic">📋</span><span class="nm">故事画布</span></div>
+    <div class="ti"><span class="ic">📊</span><span class="nm">时间线</span></div>
+  </div>
+  <div class="sbf"><button>+ 新建</button><button class="pri">+ 导入</button></div>
+</div>
+
+<!-- Editor -->
+<div class="ed">
+  <div class="et">
+    <div class="eg"><button class="on">B</button><button>I</button><button>U</button></div>
+    <div class="eg"><button>H1</button><button>H2</button><button>¶</button></div>
+    <div class="eg"><button>≡</button><button>•</button><button>1.</button></div>
+  </div>
+  <div class="ec">
+    <div class="ct">第一章 青云之巅</div>
+    <p>青云山，终年云雾缭绕。山巅之上，一座古朴的道观在晨光中若隐若现。</p>
+    <p>"林月，你可想好了？"老者声音低沉，目光如炬。</p>
+    <p>少女抬起头，眼中闪过一丝坚定："师父，我意已决。"</p>
+    <p class="pl">继续写作...</p><span class="cb"></span>
+  </div>
+  <div class="es">
+    <div class="sl"><span>字数: 5,241</span><span>进度: 21%</span></div>
+    <div class="sr"><span>自动保存中</span><span>🟢</span></div>
+  </div>
+</div>
+
+<!-- AI Panel -->
+<div class="ai">
+  <div class="aih">
+    <h3><span class="aid"></span>AI 助手</h3>
+    <select><option>DeepSeek</option><option>Claude</option></select>
+  </div>
+  <div class="ams">
+    <div class="msg bt">
+      <div class="ma">🤖</div>
+      <div class="mb">
+        <div class="tk">分析角色动机...</div>
+        建议明确：<br>
+        <strong>1. 身世之谜</strong> — 为何被遗弃？<br>
+        <strong>2. 师父隐瞒</strong> — 他知道什么？
+        <span class="tm">刚才 · 2.3k tokens</span>
+      </div>
+    </div>
+    <div class="msg me">
+      <div class="ma">我</div>
+      <div class="mb">帮我续写下一段<span class="tm">刚刚</span></div>
+    </div>
+  </div>
+  <div class="aib">
+    <div class="air">
+      <textarea rows="1" placeholder="输入指令..."></textarea>
+      <button class="ais">➤</button>
+    </div>
+    <div class="aiq">
+      <button class="qb">✍ 续写</button>
+      <button class="qb">✏ 改写</button>
+      <button class="qb">📝 扩写</button>
+      <button class="qb">🎨 风格</button>
+      <button class="qb">📋 大纲</button>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<!-- Components -->
+<h2 class="h">2. 组件系统</h2>
+<div class="cg">
+  <div class="cc">
+    <h4>按钮 Buttons</h4>
+    <div class="cr"><button class="btn b1">主要操作</button><button class="btn b2">次要操作</button></div>
+    <div class="cr"><button class="btn b1 bs">小按钮</button><button class="btn b2 bs">小按钮</button></div>
+  </div>
+  <div class="cc">
+    <h4>标签 Tags</h4>
+    <div class="cr"><span class="tag tg">主角</span><span class="tag tb">地点</span><span class="tag tgr">已完成</span></div>
+  </div>
+  <div class="cc">
+    <h4>选项卡 Tabs</h4>
+    <div class="tabs"><div class="tab on">写作</div><div class="tab">Codex</div><div class="tab">画布</div></div>
+    <div class="cd">卡片组件 — 用于 Codex 条目、角色卡片</div>
+  </div>
+  <div class="cc">
+    <h4>生成管线</h4>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#34d399;display:flex;align-items:center;justify-content:center;font-size:11px;color:white">✓</div>
+        <span style="font-size:12px;color:#9895a8">Layer 1 梗概</span>
+        <span style="font-size:11px;color:#34d399;margin-left:auto">完成</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:24px;height:24px;border-radius:50%;background:#e8a838;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0d0d1a">...</div>
+        <span style="font-size:12px;color:#9895a8">Layer 2 细纲</span>
+        <span style="font-size:11px;color:#e8a838;margin-left:auto">生成中</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Color palette summary -->
+<h2 class="h">3. 色彩总结</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#0d0d1a"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">墨底</div><div style="font-size:10px;color:#6b6880">#0D0D1A</div></div>
+  </div>
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#14142a"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">表面</div><div style="font-size:10px;color:#6b6880">#14142A</div></div>
+  </div>
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#1c1c3a"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">抬升</div><div style="font-size:10px;color:#6b6880">#1C1C3A</div></div>
+  </div>
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#e8a838"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">金色强调</div><div style="font-size:10px;color:#6b6880">#E8A838</div></div>
+  </div>
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#5dade2"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">蓝色点缀</div><div style="font-size:10px;color:#6b6880">#5DADE2</div></div>
+  </div>
+  <div style="border-radius:8px;overflow:hidden;border:1px solid #2a2a50">
+    <div style="height:60px;background:#2a2a50"></div>
+    <div style="padding:8px;background:#14142a"><div style="font-size:12px;color:#e8e6e0">边框</div><div style="font-size:10px;color:#6b6880">#2A2A50</div></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

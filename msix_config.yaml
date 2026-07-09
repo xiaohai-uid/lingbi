@@ -1,0 +1,15 @@
+# MSIX Packaging Configuration for LingBi
+# https://pub.dev/packages/msix
+msix_config:
+  display_name: LingBi
+  publisher_display_name: LingBi Team
+  identity_name: 47016LingBi.LingBi
+  logo_path: assets/icon/lingbi_512.png
+  capabilities: "internetClient,privateNetworkClientServer"
+  language: "zh-CN"
+  build_number: 1
+  version: 0.5.0.0
+  output_name: LingBi
+  certificate_path: "C:\Users\Administrator\Desktop\reasonix\lingbi\certificate.pfx"
+  signing_options:
+    certificate_password: ""

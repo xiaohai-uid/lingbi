@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Architecture review — 灵笔 Lingbi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+</script>
+<style>
+.seam { stroke-dasharray: 4 4; }
+.leak { stroke: #dc2626; }
+.deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+<header class="space-y-2">
+<h1 class="text-3xl font-serif font-bold">灵笔 — architecture review</h1>
+<p class="text-sm text-stone-500">2026-07-08 · 19 findings across the codebase</p>
+<div class="flex gap-4 text-xs mt-4">
+<span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 border border-slate-400 bg-white"></span> module</span>
+<span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 border-2 border-dashed border-amber-500"></span> seam</span>
+<span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 bg-red-500"></span> leakage</span>
+<span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 bg-slate-800"></span> deep module</span>
+</div>
+</header>
+
+<section id="candidates" class="space-y-10">
+
+<!-- ═══ Candidate 1 ═══ -->
+<article class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-serif font-semibold">1. Consolidate the AI generation pipeline</h2>
+<span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">Strong</span>
+</div>
+<p class="font-mono text-xs text-stone-500">lib/services/ai_service.dart · lib/services/novel/novel_service.dart · lib/services/novel/layer{1,2,3}_generator.dart · lib/core/ai/llm_factory.dart · lib/services/identity/identity_detector.dart · lib/services/butterfly_analyzer.dart</p>
+
+<div class="grid grid-cols-2 gap-6">
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph Before["Before: three entry points"]
+    A[UI] --> B[AIService.generateNovel]
+    A --> C[NovelService.generateFull]
+    C --> D1[Layer1]
+    C --> D2[Layer2]
+    C --> D3[Layer3]
+    D1 --> F[LLMFactory.create]
+    D2 --> F
+    D3 --> F
+    B --> F
+    G[ButterflyAnalyzer] -->|hardcodes deepseek| F
+    H[IdentityDetector] -->|hardcodes deepseek| F
+  end
+  style B stroke:#dc2626
+  style G stroke:#dc2626
+  style H stroke:#dc2626
+</pre>
+</div>
+</div>
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph After["After: single seam"]
+    I[UI] --> J[NovelService.generateFull]
+    J --> K[Layer1]
+    J --> L[Layer2]
+    J --> M[Layer3]
+    K --> N[AIService]
+    L --> N
+    M --> N
+    N --> O[(Provider pool\nconfigured via DI)]
+    P[ButterflyAnalyzer] --> N
+    Q[IdentityDetector] --> N
+    style N fill:#1e293b,color:#fff
+    style O fill:#1e293b,color:#fff
+  end
+</pre>
+</div>
+</div>
+</div>
+
+<p class="text-sm"><span class="font-semibold">Problem:</span> Two generation entry points (<code>AIService.generateNovel</code> vs <code>NovelService.generateFull</code>). Layer generators bypass <code>AIService</code>, so API keys, quotas and custom base URLs don't apply. Two services hardcode <code>'deepseek'</code>. <code>LLMFactory</code> is a static registry — prevents test isolation.</p>
+<p class="text-sm"><span class="font-semibold">Solution:</span> Make <code>AIService</code> the single provider creation seam. Inject it into Layer generators. Remove <code>LLMFactory</code> static registry; replace with instance-based pool managed by <code>AIService</code>. Delete <code>AIService.generateNovel()</code>; route all generation through <code>NovelService</code>.</p>
+<ul class="text-xs space-y-1 text-stone-600">
+<li><span class="font-semibold">Wins:</span> Locality — provider config lives in one module</li>
+<li><span class="font-semibold">Wins:</span> Leverage — quota enforcement reaches all generation paths</li>
+<li><span class="font-semibold">Wins:</span> Testability — inject mock provider instead of touching global registry</li>
+<li><span class="font-semibold">Wins:</span> Delete 2 hardcoded provider strings</li>
+<li><span class="font-semibold">ADR:</span> ADR-0001 (Flutter stack) unaffected; ADR-0002 (World as core) neutral</li>
+</ul>
+</article>
+
+<!-- ═══ Candidate 2 ═══ -->
+<article class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-serif font-semibold">2. Eliminate or deepen the repository pass-through layer</h2>
+<span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">Strong</span>
+</div>
+<p class="font-mono text-xs text-stone-500">lib/data/repositories/{work,volume,chapter,scene,character,canon,faction,timeline}_repository.dart · lib/services/world_service.dart · lib/services/canon_service.dart</p>
+
+<div class="grid grid-cols-2 gap-6">
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph Before["Before: 8 shallow wrappers + bypass"]
+    WS[WorldService] --> R1[WorkRepo]
+    WS --> R2[VolumeRepo]
+    WS -.bypass.-> DB[(Drift)]
+    CS[CanonService] --> R3[CanonRepo]
+    CS -.bypass.-> DB
+    R1 --> DB
+    R2 --> DB
+    R3 --> DB
+    R4[ChapterRepo] --> DB
+    R5[SceneRepo] --> DB
+    R6[CharacterRepo] --> DB
+    R7[FactionRepo] --> DB
+    R8[TimelineRepo] --> DB
+  end
+  style R1 stroke:#dc2626
+  style R2 stroke:#dc2626
+  style R3 stroke:#dc2626
+  style R4 stroke:#dc2626
+  style R5 stroke:#dc2626
+  style R6 stroke:#dc2626
+  style R7 stroke:#dc2626
+  style R8 stroke:#dc2626
+</pre>
+</div>
+</div>
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph After["After: one deep module"]
+    S[Services] --> DM[(DatabaseAccess)]
+    note["Repository concept removed.
+~800 lines of boilerplate gone.
+All services access Drift directly
+through a shared DatabaseManager."]
+  end
+  style DM fill:#1e293b,color:#fff
+</pre>
+</div>
+</div>
+</div>
+
+<p class="text-sm"><span class="font-semibold">Problem:</span> Interface of each repository is nearly as wide as its implementation — <code>getX()</code>, <code>createX()</code>, <code>updateX()</code>, <code>deleteX()</code> — no encapsulation, transactions, caching or domain logic. <code>WorldService</code> and <code>CanonService</code> bypass them for half their writes. Copy-paste bug in <code>WorkRepository.deleteVolume()</code>.</p>
+<p class="text-sm"><span class="font-semibold">Solution:</span> Option A (recommended): remove the repository layer. Let services call Drift directly through <code>DatabaseManager</code> with a shared query helper. ~800 lines of boilerplate to delete. Option B: deepen repositories by moving transaction control, caching, and event emission behind them — but this adds complexity and every existing bypass would need rewiring.</p>
+<ul class="text-xs space-y-1 text-stone-600">
+<li><span class="font-semibold">Wins:</span> Interface shrinks — one <code>DatabaseManager</code> instead of 8 repo interfaces</li>
+<li><span class="font-semibold">Wins:</span> Locality — data access logic concentrates, not scatters</li>
+<li><span class="font-semibold">Wins:</span> Delete 1 copy-paste bug</li>
+<li><span class="font-semibold">Wins:</span> Eliminate 8× repeated <code>_db()</code> boilerplate</li>
+</ul>
+</article>
+
+<!-- ═══ Candidate 3 ═══ -->
+<article class="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-xl font-serif font-semibold">3. Extract business logic from UI pages</h2>
+<span class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-3 py-1 rounded-full">Strong</span>
+</div>
+<p class="font-mono text-xs text-stone-500">lib/ui/pages/wg_{dashboard,editor,workspace}_page.dart · lib/ui/pages/canon_page.dart</p>
+
+<div class="grid grid-cols-2 gap-6">
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph Before["Before: 4 pages, ~3,900 lines, all setState"]
+    P1["wg_dashboard (929 lines)"] --> Stats["Stats logic"]
+    P1 --> Tree["Widget tree"]
+    P1 --> Nav["Navigation"]
+    P2["wg_workspace (1,244 lines)"] --> Stats2["Stats logic"]
+    P2 --> Tree2["Widget tree"]
+    P3["wg_editor (953 lines)"] --> Quill["Quill config"]
+    P3 --> Tree3["Widget tree"]
+  end
+</pre>
+</div>
+</div>
+<div>
+<div class="rounded-lg border border-slate-200 bg-white p-4">
+<pre class="mermaid">
+flowchart LR
+  subgraph After["After: thin pages + ViewModels"]
+    VM1["DashboardViewModel\n(testable)"] --> WS[WorldService]
+    VM2["EditorViewModel\n(testable)"] --> WS
+    VM3["WorkspaceViewModel\n(testable)"] --> WS
+    P1["wg_dashboard (~200 lines)"] --> VM1
+    P2["wg_workspace (~300 lines)"] --> VM3
+    P3["wg_editor (~200 lines)"] --> VM2
+  end
+  style VM1 fill:#1e293b,color:#fff
+  style VM2 fill:#1e293b,color:#fff
+  style VM3 fill:#1e293b,color:#fff
+</pre>
+</div>
+</div>
+</div>
+
+<p class="text-sm"><span class="font-semibold">Problem:</span> Four pages account for ~3,900 lines — nearly half the <code>lib/</code> codebase. Business logic (stats computation, Drift queries, LLM calls) interleaved with widget construction. Zero widget tests. Every page accesses <code>ServiceLocator.instance</code> directly, making substitution impossible. State is ad-hoc <code>setState</code> everywhere.</p>
+<p class="text-sm"><span class="font-semibold">Solution:</span> Extract a ViewModel per page — <code>DashboardViewModel</code>, <code>EditorViewModel</code>, <code>WorkspaceViewModel</code> — receiving services as constructor parameters. Pages become thin wrappers that receive a ViewModel and render its state. Use <code>ValueNotifier</code> or a lightweight state holder to replace <code>setState</code>.</p>
+<ul class="text-xs space-y-1 text-stone-600">
+<li><span class="font-semibold">Wins:</span> Testability — <code>DashboardViewModel</code> unit-testable without rendering a widget</li>
+<li><span class="font-semibold">Wins:</span> Locality — stats logic lives in one place, not inline in build()</li>
+<li><span class="font-semibold">Wins:</span> Interface shrinks — pages accept one ViewModel param instead of pulling global state</li>
+<li><span class="font-semibold">Wins:</span> ~3,000 lines of widget tree become ~600 lines of ViewModel + ~600 lines of widget</li>
+</ul>
+</article>
+
+</section>
+
+<section id="top-recommendation" class="bg-stone-100 rounded-xl border border-stone-300 p-6 space-y-3">
+<h2 class="text-xl font-serif font-semibold">Top recommendation: Candidate 1 — AI generation pipeline</h2>
+<p class="text-sm text-stone-700">This is the core product feature with the widest blast radius. Every AI-powered feature in the app (generation, analysis, detection) bypasses <code>AIService</code>'s configuration. Fixing this seam unlocks testability for the LLM layer, makes quota enforcement universal, and removes two hardcoded provider strings. The other candidates are real but less customer-facing — Candidate 2 (repositories) is mostly an internal hygiene issue, and Candidate 3 (ViewModel extraction) is important for test coverage but doesn't block correctness. Start here.</p>
+<a href="#" class="text-xs text-indigo-600 hover:underline font-medium" onclick="document.querySelector('h2').scrollIntoView({behavior:'smooth'})">↑ Back to top</a>
+</section>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,52 @@
+# 悬疑类型写作指南
+# 基于 Fair Play 原则 + 推理小说创作方法论
+
+name: 悬疑
+slug: mystery
+
+# 核心原则
+principles:
+  - name: Fair Play 原则
+    description: 所有破案线索必须在揭露真相前呈现给读者
+    apply: 凶手和手法应该在故事中留下足够线索，让读者有机会自己推理出来
+
+  - name: 切斯特顿围墙原则
+    description: 最明显的解释往往是真相，只不过被巧妙隐藏了
+    apply: 真相应该简单，谜面可以复杂
+
+  - name: 诺克斯十诫（改编）
+    items:
+      - 凶手必须在开场出现
+      - 不能使用超自然手段
+      - 不能使用未被提及的机关
+      - 不能用意外巧合破案
+      - 侦探不能是凶手
+
+# 悬疑子类型
+subgenres:
+  - name: 本格推理
+    keywords: [密室, 不可能犯罪, 预告杀人]
+    structure: 案件发生 → 调查 → 推理 → 反转 → 解谜
+  - name: 社会派
+    keywords: [动机, 社会背景, 人性]
+    structure: 事件 → 人物关系 → 社会因素 → 真相
+  - name: 悬疑惊悚
+    keywords: [未知, 心理压迫, 反转结局]
+    structure: 异象 → 追查 → 威胁升级 → 真相揭露
+
+# 线索放置模式
+clue_patterns:
+  - type: 视觉线索
+    example: 角色注意到某个不自然的细节
+  - type: 对话线索
+    example: 证人提到"奇怪的是..."
+  - type: 物证线索
+    example: 现场留下看似无关的物品
+  - type: 行为线索
+    example: 某人表现出反常行为
+
+# 误导设计
+red_herrings:
+  - 制造合理但错误的方向
+  - 利用读者的偏见和预期
+  - 关键信息藏在琐碎细节中

@@ -1,0 +1,19 @@
+# 起点爆款风格
+# 冲突前置 + 金手指 + 期待感
+
+name: 起点爆款
+slug: qidian
+
+characteristics:
+  - 开篇三章内展示金手指/核心优势
+  - 第一章结尾必有悬念钩子
+  - 每章至少一个小爽点，每三章一个大爽点
+  - 有明确的升级线和力量体系
+  - 反派智商在线，不是降智工具人
+
+hook_density_target: 3.0  # 爽点/千字
+chapter_structure:
+  - hook: 开头钩子（1-2段）
+  - development: 情节展开
+  - climax: 小高潮/反转
+  - cliffhanger: 结尾悬念

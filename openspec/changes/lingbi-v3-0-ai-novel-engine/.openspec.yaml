@@ -1,0 +1,20 @@
+schema: spec-driven
+name: lingbi-v3-0-ai-novel-engine
+status: proposed
+author: Superpowers Agent
+created: 2026-07-05
+updated: 2026-07-05
+source: "AI_NovelGenerator (F:\\AI_NovelGenerator)"
+priority: P0-P2
+estimated_duration: "18-27 天（6 Phase）"
+dependencies:
+  - "lingbi-v2-0-community-deployment (已完成)"
+  - "lingbi-v1-0-microservices-api (已完成)"
+target_version: v3.0.0
+tags:
+  - ai-novel-engine
+  - llm-abstraction
+  - generation-pipeline
+  - quality-review
+  - prompt-engineering
+  - worldbuilding

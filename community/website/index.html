@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵笔 Lingbi — AI 小说创作助手</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    /* Header */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .nav { display: flex; gap: 32px; }
+    .nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav a:hover { color: var(--primary); }
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%);
+    }
+    .hero h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 20px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    /* Features */
+    .features {
+      padding: 60px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-title {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 20px; margin-bottom: 8px; }
+    .feature-card p { color: var(--text-secondary); font-size: 15px; }
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--text-secondary);
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+    }
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 36px; }
+      .nav { gap: 16px; }
+      .header { padding: 0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">灵笔</div>
+    <nav class="nav">
+      <a href="https://lingbi-community.github.io">首页</a>
+      <a href="docs/">文档</a>
+      <a href="skills/">Skills</a>
+      <a href="changelog/">更新日志</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>AI 赋能的小说创作</h1>
+    <p>灵笔是一款面向小说作者的开源桌面写作工具，融合 AI 辅助创作与专业的写作管理功能。</p>
+    <div class="hero-buttons">
+      <a href="https://github.com/lingbi-community/lingbi/releases" class="btn btn-primary">⬇ 下载 v2.0</a>
+      <a href="docs/" class="btn btn-secondary">📖 查看文档</a>
+      <a href="skills/" class="btn btn-secondary">🧩 Skill 市场</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <h2 class="section-title">核心功能</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #eef2ff;">✍️</div>
+        <h3>WYSIWYG 编辑器</h3>
+        <p>基于 flutter_quill 的所见即所得富文本编辑，支持 Markdown 快捷键和实时预览。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #f0fdf4;">🤖</div>
+        <h3>AI 写作助手</h3>
+        <p>智能续写、风格分析、小说结构拆解，支持 DeepSeek/OpenAI/Claude/商汤等模型。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #fff7ed;">📚</div>
+        <h3>世界构建</h3>
+        <p>角色、地点、传说、情节线索管理，支持语义搜索和关系图谱可视化。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #fdf4ff;">🎨</div>
+        <h3>故事画布</h3>
+        <p>可视化情节节拍编排，力导向/树形/环形布局，拖拽排序，模板快速启动。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #f0f9ff;">💾</div>
+        <h3>自动保存</h3>
+        <p>30 秒定时自动保存 + Ctrl+S 快捷键，版本历史支持预览和恢复到任意版本。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #fefce8;">🧩</div>
+        <h3>Skill 市场</h3>
+        <p>从社区安装 Skill 扩展功能，一键安装/卸载，支持 Skill 自动更新。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>灵笔 (Lingbi) — 开源小说创作工具 | MIT License</p>
+    <p style="margin-top: 8px;">© 2025 lingbi-community</p>
+  </footer>
+</body>
+</html>

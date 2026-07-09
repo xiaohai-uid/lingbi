@@ -1,0 +1,91 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # These are independent Dart packages with their own pubspec.yaml files.
+    # The root Flutter app must not analyze them with the client dependency set.
+    - lingbi_server/**
+    - services/**
+    - launcher/**
+    - windows/flutter/ephemeral/**
+
+linter:
+  rules:
+    # 通用最佳实践
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_locals: true
+    prefer_final_in_for_each: true
+    avoid_print: false
+    use_key_in_widget_constructors: true
+    avoid_relative_lib_imports: true
+    avoid_init_to_null: true
+    avoid_null_checks_in_equality_operators: true
+    avoid_positional_boolean_parameters: true
+    avoid_redundant_argument_values: true
+    avoid_returning_null_for_void: true
+    avoid_returning_this: true
+    avoid_shadowing_type_parameters: true
+    avoid_types_as_parameter_names: true
+    avoid_unnecessary_containers: true
+    avoid_unused_constructor_parameters: true
+    avoid_void_async: true
+    cancel_subscriptions: true
+    close_sinks: true
+    comment_references: true
+    control_flow_in_finally: true
+    deprecated_consistency: true
+    empty_catches: true
+    empty_statements: true
+    eol_at_end_of_file: true
+    hash_and_equals: true
+    implementation_imports: true
+    iterable_contains_unrelated_type: true
+    list_remove_unrelated_type: true
+    literal_only_boolean_expressions: true
+    no_adjacent_strings_in_list: true
+    no_duplicate_case_values: true
+    no_logic_in_create_state: true
+    no_runtimeType_toString: true
+    prefer_foreach: true
+    prefer_generic_function_type_aliases: true
+    prefer_if_null_operators: true
+    prefer_inlined_adds: true
+    prefer_int_literals: true
+    prefer_interpolation_to_compose_strings: true
+    prefer_is_not_empty: true
+    prefer_is_not_operator: true
+    prefer_null_aware_operators: true
+    prefer_single_quotes: true
+    prefer_typing_uninitialized_variables: true
+    provide_deprecation_message: true
+    sort_child_properties_last: true
+    sort_constructors_first: true
+    sort_unnamed_constructors_first: true
+    throw_in_finally: true
+    unnecessary_await_in_return: true
+    unnecessary_brace_in_string_interps: true
+    unnecessary_const: true
+    unnecessary_getters_setters: true
+    unnecessary_new: true
+    unnecessary_null_aware_assignments: true
+    unnecessary_null_in_if_null_operators: true
+    unnecessary_overrides: true
+    unnecessary_parenthesis: true
+    unnecessary_string_escapes: true
+    unnecessary_string_interpolations: true
+    unnecessary_this: true
+    unrelated_type_equality_checks: true
+    unsafe_html: true
+    use_build_context_synchronously: true
+    use_full_hex_values_for_flutter_colors: true
+    use_is_even_rather_than_modulo: true
+    use_late_for_private_fields_and_variables: true
+    use_named_constants: true
+    use_raw_strings: true
+    use_rethrow_when_possible: true
+    use_setters_to_change_properties: true
+    use_string_buffers: true
+    use_to_and_as_if_applicable: true
+    valid_regexps: true
+    void_checks: true
