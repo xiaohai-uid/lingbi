@@ -79,6 +79,7 @@ class ServiceLocator {
     locator.storageService = StorageService();
     locator.fileService = FileService();
     locator.quotaService = QuotaService();
+    await locator.quotaService.loadMemberState();
 
     // 层级 2: 数据层服务
     locator.zvecService = ZVecService(storageService: locator.storageService);

@@ -2,6 +2,7 @@ import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/settings_service.dart';
 import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/services/provider_registry.dart';
+import 'package:lingbi/services/quota_service.dart';
 import 'package:lingbi/core/models/world.dart';
 import 'package:lingbi/ui/theme/wg_components.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final Map<String, TextEditingController> _keyControllers = {};
   final Map<String, TextEditingController> _urlControllers = {};
   List<World> _worlds = [];
+  final QuotaService _quota = ServiceLocator.instance.quotaService;
   bool _loadingWorlds = true;
 
   @override
@@ -127,6 +129,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: ListView(
         children: [
+          _buildQuotaCard(context),
           const _SectionHeader(title: '外观'),
           SwitchListTile(
             title:
@@ -299,6 +302,104 @@ trailing: Row(
         onPressed: () => _showAddProviderDialog(),
       ),
     );
+  }
+
+  Widget _buildQuotaCard(BuildContext context) {
+    final isMember = _quota.isMember;
+    final usage = _quota.dailyUsage;
+    final limit = _quota.dailyLimit;
+    final remaining = _quota.remaining;
+    final ratio = limit > 0 ? usage / limit : 0.0;
+    const afdUrl = 'https://afdian.com/a/lingbi';
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.workspace_premium, color: Color(0xFFE8A838)),
+                const SizedBox(width: 8),
+                Text('AI 调用配额',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: WgTokens.fgFor(context))),
+                const Spacer(),
+                if (isMember)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8A838).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('会员',
+                        style: TextStyle(color: Color(0xFFE8A838), fontSize: 12)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: ratio.clamp(0.0, 1.0),
+              backgroundColor: WgTokens.borderFor(context),
+              color: ratio > 0.8 ? Colors.orange : WgTokens.accent,
+            ),
+            const SizedBox(height: 8),
+            Text('今日已用 $usage / $limit · 剩余 $remaining 次',
+                style: TextStyle(color: WgTokens.fg2For(context), fontSize: 13)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.favorite, size: 16),
+                    label: const Text('升级会员（爱发电）'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFE8A838),
+                      side: const BorderSide(color: Color(0xFFE8A838)),
+                    ),
+                    onPressed: () => _activateMembership(context, afdUrl),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _activateMembership(BuildContext context, String afdUrl) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('激活会员'),
+        content: const Text('请在爱发电完成捐赠后，将获得的 tokens.json 放入程序目录，'
+            '然后点击下方「验证并激活」。'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('验证并激活'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final ok = await _quota.activateMemberToken();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ok ? '会员激活成功！' : '未找到有效的 tokens.json'),
+          ),
+        );
+        setState(() {});
+      }
+    }
   }
 
   void _showAddProviderDialog() {
