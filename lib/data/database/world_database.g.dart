@@ -2,7 +2,7 @@
 
 part of 'world_database.dart';
 
-// ignore_for_file: type=lint, unused_element
+// ignore_for_file: type=lint
 class $CharactersTable extends Characters
     with TableInfo<$CharactersTable, Character> {
   @override
