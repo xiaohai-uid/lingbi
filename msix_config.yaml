@@ -8,7 +8,7 @@ msix_config:
   capabilities: "internetClient,privateNetworkClientServer"
   language: "zh-CN"
   build_number: 1
-  version: 0.5.0.0
+  version: 1.0.0.0
   output_name: LingBi
   certificate_path: "C:\Users\Administrator\Desktop\reasonix\lingbi\certificate.pfx"
   signing_options:
