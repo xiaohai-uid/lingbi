@@ -342,6 +342,17 @@ services:
       qdrant:
         condition: service_healthy
 
+  model-discovery:
+    build:
+      context: ./go/model-discovery
+      dockerfile: Dockerfile
+    ports:
+      - "8099:8099"
+    environment:
+      - PORT=8099
+    networks:
+      - lingbi_network
+
   search-service:
     build:
       context: ./go/search-service

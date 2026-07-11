@@ -81,6 +81,7 @@ func main() {
 		router.RegisterFactionRoutes(api, "http://faction-service:8095")
 		router.RegisterSkillRoutes(api, "http://skill-service:8097")
 		router.RegisterSearchRoutes(api, "http://search-service:8098")
+		router.RegisterModelRoutes(api, "http://model-discovery:8099")
 	}
 
 	// Server
