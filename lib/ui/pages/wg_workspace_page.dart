@@ -8,6 +8,7 @@ import 'package:lingbi/services/generation/state_machine.dart';
 import 'package:lingbi/core/models/world.dart' show World;
 import 'package:lingbi/data/database/world_database.dart';
 import 'package:lingbi/ui/components/memory_panel.dart';
+import 'package:lingbi/ui/components/style_panel.dart';
 import 'package:lingbi/services/interfaces/i_memory_service.dart';
 import 'package:lingbi/ui/pages/wg_editor_page.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
@@ -881,6 +882,17 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                   entries: const [],
                   customContext: '',
                 ),
+              ),
+              const SizedBox(height: 12),
+              // ── 文风分析面板 ──
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAF7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE8E0D6)),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: const StylePanel(),
               ),
               const SizedBox(height: 12),
               Wrap(
