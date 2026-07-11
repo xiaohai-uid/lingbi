@@ -11,7 +11,10 @@ import '../core/database/database_manager.dart';
 import '../data/database/world_database.dart';
 import '../services/interfaces/i_memory_service.dart';
 import '../services/ai_service.dart';
+import '../services/document_service.dart';
+import '../core/models/document.dart';
 import '../utils/memory_prompt_templates.dart';
+import 'generation/context_builder.dart';
 import 'generation/context_builder.dart';
 
 const _uuid = Uuid();
@@ -235,7 +238,174 @@ class MemoryService implements IMemoryService {
 
   @override
   Future<SceneSummary> summarizeScene(String sceneId) async {
-    // TODO: Phase 1 — 实现 LLM 摘要生成
-    // 1. 通过 world_service 获取场景正文
-    // 2. 调用 _aiService.generateText() 传入 sceneSummaryPrompt
-    // 3. 
+    if (_documentService == null) {
+      throw StateError('DocumentService required for summarization');
+    }
+    final doc = await _documentService!.getDocumentBySceneId(sceneId);
+    if (doc == null) {
+      throw StateError('No document found for scene $sceneId');
+    }
+    final text = await _documentService!.readContent(doc.filePath);
+    if (text.isEmpty) {
+      throw StateError('Empty content for scene $sceneId');
+    }
+
+    final prompt = sceneSummaryPrompt(text);
+    final chunks = <String>[];
+    await for (final chunk in _aiService.chat(
+      message: '请分析并输出结构化JSON摘要: ' + text,
+      systemPrompt: prompt,
+    )) {
+      chunks.add(chunk);
+    }
+    final response = chunks.join('');
+    final json = jsonDecode(response) as Map<String, dynamic>;
+
+    return createSceneSummary(
+      sceneId: sceneId,
+      chapterId: doc.currentSceneId ?? '',
+      worldId: '',
+      summary: json['summary'] as String? ?? '',
+      keywords: (json['keywords'] as List?)?.join(',') ?? '',
+      characters: jsonEncode(json['characters'] ?? []),
+      location: json['location'] as String? ?? '',
+      mood: json['mood'] as String? ?? '',
+      inStoryDay: json['inStoryDay'] as String? ?? '',
+      causeEvent: json['causeEvent'] as String? ?? '',
+      effectEvent: json['effectEvent'] as String? ?? '',
+      characterEmotions: jsonEncode(json['characterEmotions'] ?? {}),
+      conflictType: json['conflictType'] as String? ?? '',
+      suspenseTags: jsonEncode(json['suspenseTags'] ?? []),
+      keyDialogues: jsonEncode(json['keyDialogues'] ?? []),
+      signatureMoments: jsonEncode(json['signatureMoments'] ?? []),
+      foreshadowingIds: jsonEncode(json['foreshadowingIds'] ?? []),
+      wordCount: text.length,
+      sceneOrder: 0,
+    );
+  }
+
+  @override
+  Future<ChapterSummary> summarizeChapter(String chapterId) async {
+    throw UnimplementedError('summarizeChapter requires worldId');
+  }
+
+  @override
+  Future<VolumeSummary> summarizeVolume(String volumeId) async {
+    throw UnimplementedError('summarizeVolume requires worldId');
+  }
+
+  // ═════════════════════════════════════
+  // 上下文构建
+  // ═════════════════════════════════════
+
+  @override
+  Future<String> buildMemoryContext({
+    required String worldId,
+    required String currentChapterId,
+    String? currentSceneId,
+    bool includeVolumeSummary = true,
+    int previousChaptersLimit = 5,
+  }) async {
+    final db = await _db(worldId);
+
+    final sceneSummaries = await (db.select(db.sceneSummaries)
+      ..where((t) => t.chapterId.equals(currentChapterId))
+      ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)])
+    ).get();
+
+    final allChapterSummaries = await db.select(db.chapterSummaries).get();
+
+    final result = MemoryContextBuilder.build(
+      sceneSummaries: sceneSummaries,
+      chapterSummaries: allChapterSummaries,
+      volumeSummary: includeVolumeSummary ? null : null,
+      previousChaptersLimit: previousChaptersLimit,
+    );
+
+    return result.text;
+  }
+
+  @override
+  Future<MemoryContextPreview> getContextPreview({
+    required String worldId,
+    required String chapterId,
+    String? sceneId,
+  }) async {
+    final context = await buildMemoryContext(
+      worldId: worldId,
+      currentChapterId: chapterId,
+      currentSceneId: sceneId,
+    );
+    final db = await _db(worldId);
+
+    final entries = <ContextEntry>[];
+
+    final scenes = await (db.select(db.sceneSummaries)
+      ..where((t) => t.chapterId.equals(chapterId))
+      ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)])
+    ).get();
+    for (final s in scenes) {
+      entries.add(ContextEntry(
+        id: s.id, type: SummaryType.scene,
+        label: '场景${s.sceneOrder}摘要', summary: s.summary,
+        autoInjected: true,
+      ));
+    }
+
+    final chapters = await db.select(db.chapterSummaries).get();
+    for (final c in chapters) {
+      entries.add(ContextEntry(
+        id: c.id, type: SummaryType.chapter,
+        label: '章摘要', summary: c.summary,
+        autoInjected: true,
+      ));
+    }
+
+    return MemoryContextPreview(entries: entries, assembledText: context);
+  }
+
+  @override
+  Future<void> updateSummary(SummaryType type, String id, String newContent) async {
+    throw UnimplementedError('use type-specific update methods');
+  }
+
+  @override
+  Future<List<SummaryMeta>> getRecentMemories(String worldId, {int limit = 20}) async {
+    final db = await _db(worldId);
+    final result = <SummaryMeta>[];
+
+    final scenes = await (db.select(db.sceneSummaries)
+      ..orderBy([(t) => OrderingTerm(expression: t.createdAt, mode: OrderingMode.desc)])
+      ..limit(limit)
+    ).get();
+    for (final s in scenes) {
+      result.add(SummaryMeta(
+        id: s.id, type: SummaryType.scene,
+        parentId: s.sceneId, summary: s.summary,
+        createdAt: s.createdAt, updatedAt: s.updatedAt,
+      ));
+    }
+
+    return result;
+  }
+
+  @override
+  Future<List<SummaryMeta>> searchMemories(String worldId, String keyword) async {
+    final db = await _db(worldId);
+    final result = <SummaryMeta>[];
+
+    final scenes = await (db.select(db.sceneSummaries)
+      ..where((t) => t.summary.like('%$keyword%') | t.keywords.like('%$keyword%'))
+      ..limit(20)
+    ).get();
+    for (final s in scenes) {
+      result.add(SummaryMeta(
+        id: s.id, type: SummaryType.scene,
+        parentId: s.sceneId, summary: s.summary,
+        createdAt: s.createdAt, updatedAt: s.updatedAt,
+      ));
+    }
+
+    return result;
+  }
+}
