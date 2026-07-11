@@ -13,10 +13,12 @@ class MemoryPanel extends StatefulWidget {
     super.key,
     required this.entries,
     this.customContext = '',
+    this.disabledIds = const {},
     this.onToggleEntry,
     this.onRemoveEntry,
     this.onCustomContextChanged,
     this.onRefresh,
+    this.onDisabledIdsChanged,
   });
 
   /// 当前上下文条目列表
@@ -34,8 +36,14 @@ class MemoryPanel extends StatefulWidget {
   /// 自定义上下文变化回调
   final void Function(String text)? onCustomContextChanged;
 
+  /// 禁用条目 ID 集合
+  final Set<String> disabledIds;
+
   /// 刷新记忆列表
   final VoidCallback? onRefresh;
+
+  /// 禁用状态变化回调
+  final void Function(Set<String> disabledIds)? onDisabledIdsChanged;
 
   @override
   State<MemoryPanel> createState() => _MemoryPanelState();
@@ -43,7 +51,7 @@ class MemoryPanel extends StatefulWidget {
 
 class _MemoryPanelState extends State<MemoryPanel> {
   late TextEditingController _customController;
-  final Set<String> _disabledIds = {};
+  Set<String> get _disabledIds => widget.disabledIds;
 
   @override
   void initState() {
@@ -192,13 +200,13 @@ class _MemoryPanelState extends State<MemoryPanel> {
               child: Checkbox(
                 value: !isDisabled,
                 onChanged: (_) {
-                  setState(() {
-                    if (isDisabled) {
-                      _disabledIds.remove(entry.id);
-                    } else {
-                      _disabledIds.add(entry.id);
-                    }
-                  });
+                  final updated = Set<String>.from(widget.disabledIds);
+                  if (isDisabled) {
+                    updated.remove(entry.id);
+                  } else {
+                    updated.add(entry.id);
+                  }
+                  widget.onDisabledIdsChanged?.call(updated);
                   widget.onToggleEntry
                       ?.call(entry.id, entry.type, isDisabled);
                 },

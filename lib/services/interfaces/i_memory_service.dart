@@ -73,6 +73,7 @@ abstract class IMemoryService {
     String? currentSceneId,
     bool includeVolumeSummary = true,
     int previousChaptersLimit = 5,
+    Set<String> excludeIds = const {},
   });
 
   /// 获取上下文预览（供 UI 编辑）
@@ -90,4 +91,11 @@ abstract class IMemoryService {
 
   /// 按关键词搜索摘要
   Future<List<SummaryMeta>> searchMemories(String worldId, String keyword);
+
+  /// 语义搜索记忆（Phase 2）
+  Future<List<SummaryMeta>> semanticSearchMemories(
+    String worldId,
+    String query, {
+    int limit = 10,
+  });
 }

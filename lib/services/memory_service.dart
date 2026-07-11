@@ -15,7 +15,8 @@ import '../services/document_service.dart';
 import '../core/models/document.dart';
 import '../utils/memory_prompt_templates.dart';
 import 'generation/context_builder.dart';
-import 'generation/context_builder.dart';
+import 'embedding_service.dart';
+import 'memory_storage_client.dart';
 
 const _uuid = Uuid();
 
@@ -25,13 +26,19 @@ class MemoryService implements IMemoryService {
     required DatabaseManager databaseManager,
     required AIService aiService,
     DocumentService? documentService,
+    EmbeddingService? embeddingService,
+    MemoryStorageClient? storageClient,
   })  : _databaseManager = databaseManager,
         _aiService = aiService,
-        _documentService = documentService;
+        _documentService = documentService,
+        _embeddingService = embeddingService,
+        _storageClient = storageClient;
 
   final DatabaseManager _databaseManager;
   final AIService _aiService;
   final DocumentService? _documentService;
+  final EmbeddingService? _embeddingService;
+  final MemoryStorageClient? _storageClient;
 
   Future<WorldDatabase> _db(String worldId) =>
       _databaseManager.getDatabase(worldId);
@@ -261,10 +268,39 @@ class MemoryService implements IMemoryService {
     final response = chunks.join('');
     final json = jsonDecode(response) as Map<String, dynamic>;
 
-    return createSceneSummary(
+    // 从 Document 关联的 Scene 获取 worldId
+    String worldId = '';
+    if (doc.currentSceneId != null && doc.currentSceneId!.isNotEmpty) {
+      try {
+        final db = await _databaseManager.getDatabase('default');
+        final scenes = await (db.select(db.scenes)
+          ..where((t) => t.id.equals(doc.currentSceneId!))).get();
+        if (scenes.isNotEmpty) {
+          final scene = scenes.first;
+          // 通过 Scene -> Chapter -> Volume -> Work 获取 worldId
+          final chapters = await (db.select(db.chapters)
+            ..where((t) => t.id.equals(scene.chapterId))).get();
+          if (chapters.isNotEmpty) {
+            final volumes = await (db.select(db.volumes)
+              ..where((t) => t.id.equals(chapters.first.volumeId))).get();
+            if (volumes.isNotEmpty) {
+              final works = await (db.select(db.works)
+                ..where((t) => t.id.equals(volumes.first.workId))).get();
+              if (works.isNotEmpty) {
+                worldId = works.first.worldId;
+              }
+            }
+          }
+        }
+      } catch (_) {
+        // worldId 获取失败时使用空字符串，后续可修复
+      }
+    }
+
+    final summary = createSceneSummary(
       sceneId: sceneId,
       chapterId: doc.currentSceneId ?? '',
-      worldId: '',
+      worldId: worldId,
       summary: json['summary'] as String? ?? '',
       keywords: (json['keywords'] as List?)?.join(',') ?? '',
       characters: jsonEncode(json['characters'] ?? []),
@@ -286,12 +322,16 @@ class MemoryService implements IMemoryService {
 
   @override
   Future<ChapterSummary> summarizeChapter(String chapterId) async {
-    throw UnimplementedError('summarizeChapter requires worldId');
+    // 从场景摘要聚合生成章级摘要
+    // TODO: 需要 worldId 参数
+    throw UnimplementedError('summarizeChapter requires worldId parameter');
   }
 
   @override
   Future<VolumeSummary> summarizeVolume(String volumeId) async {
-    throw UnimplementedError('summarizeVolume requires worldId');
+    // 从章节摘要聚合生成卷级摘要
+    // TODO: 需要 worldId 参数
+    throw UnimplementedError('summarizeVolume requires worldId parameter');
   }
 
   // ═════════════════════════════════════
@@ -305,15 +345,17 @@ class MemoryService implements IMemoryService {
     String? currentSceneId,
     bool includeVolumeSummary = true,
     int previousChaptersLimit = 5,
+    Set<String> excludeIds = const {},
   }) async {
     final db = await _db(worldId);
 
-    final sceneSummaries = await (db.select(db.sceneSummaries)
+    var scenesQuery = (db.select(db.sceneSummaries)
       ..where((t) => t.chapterId.equals(currentChapterId))
-      ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)])
-    ).get();
+      ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)]));
+    final sceneSummaries = (await scenesQuery.get()).where((s) => !excludeIds.contains(s.id)).toList();
 
-    final allChapterSummaries = await db.select(db.chapterSummaries).get();
+    var chaptersQuery = db.select(db.chapterSummaries);
+    final allChapterSummaries = (await chaptersQuery.get()).where((c) => !excludeIds.contains(c.id)).toList();
 
     final result = MemoryContextBuilder.build(
       sceneSummaries: sceneSummaries,
@@ -407,5 +449,41 @@ class MemoryService implements IMemoryService {
     }
 
     return result;
+  }
+
+  // ═════════════════════════════════════
+  // 语义搜索 (Phase 2)
+  // ═════════════════════════════════════
+
+  /// 语义搜索记忆 — 优先使用向量检索，降级到关键词搜索
+  Future<List<SummaryMeta>> semanticSearchMemories(
+    String worldId,
+    String query, {
+    int limit = 10,
+  }) async {
+    // 1. 尝试语义搜索
+    if (_embeddingService != null && _storageClient != null) {
+      try {
+        final vector = await _embeddingService!.embed(query);
+        final results = await _storageClient!.searchVectors(
+          vector: vector,
+          limit: limit,
+        );
+
+        return results.map((r) => SummaryMeta(
+          id: r.id,
+          type: SummaryType.scene,
+          parentId: r.payload['sceneId'] as String? ?? '',
+          summary: r.payload['summary'] as String? ?? '',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        )).toList();
+      } catch (_) {
+        // 语义搜索失败，降级到关键词搜索
+      }
+    }
+
+    // 2. 降级: 关键词搜索
+    return searchMemories(worldId, query);
   }
 }
