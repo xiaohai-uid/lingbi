@@ -2832,12 +2832,32 @@ class $LoresTable extends Lores with TableInfo<$LoresTable, Lore> {
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _descriptionMeta =
       const VerificationMeta('description');
   @override
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _triggerKeywordsMeta =
+      const VerificationMeta('triggerKeywords');
+  @override
+  late final GeneratedColumn<String> triggerKeywords = GeneratedColumn<String>(
+      'trigger_keywords', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _enabledMeta =
+      const VerificationMeta('enabled');
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+      'enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("enabled" IN (0, 1))'));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -2851,8 +2871,17 @@ class $LoresTable extends Lores with TableInfo<$LoresTable, Lore> {
       'updated_at', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, worldId, name, description, createdAt, updatedAt];
+  List<GeneratedColumn> get $columns => [
+        id,
+        worldId,
+        name,
+        type,
+        description,
+        triggerKeywords,
+        enabled,
+        createdAt,
+        updatedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2880,6 +2909,12 @@ class $LoresTable extends Lores with TableInfo<$LoresTable, Lore> {
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
     if (data.containsKey('description')) {
       context.handle(
           _descriptionMeta,
@@ -2887,6 +2922,20 @@ class $LoresTable extends Lores with TableInfo<$LoresTable, Lore> {
               data['description']!, _descriptionMeta));
     } else if (isInserting) {
       context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('trigger_keywords')) {
+      context.handle(
+          _triggerKeywordsMeta,
+          triggerKeywords.isAcceptableOrUnknown(
+              data['trigger_keywords']!, _triggerKeywordsMeta));
+    } else if (isInserting) {
+      context.missing(_triggerKeywordsMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(_enabledMeta,
+          enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta));
+    } else if (isInserting) {
+      context.missing(_enabledMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
@@ -2915,8 +2964,14 @@ class $LoresTable extends Lores with TableInfo<$LoresTable, Lore> {
           .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
       name: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
+      triggerKeywords: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}trigger_keywords'])!,
+      enabled: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}enabled'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -2934,14 +2989,20 @@ class Lore extends DataClass implements Insertable<Lore> {
   String id;
   String worldId;
   String name;
+  String type;
   String description;
+  String triggerKeywords;
+  bool enabled;
   DateTime createdAt;
   DateTime updatedAt;
   Lore(
       {required this.id,
       required this.worldId,
       required this.name,
+      required this.type,
       required this.description,
+      required this.triggerKeywords,
+      required this.enabled,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -2950,7 +3011,10 @@ class Lore extends DataClass implements Insertable<Lore> {
     map['id'] = Variable<String>(id);
     map['world_id'] = Variable<String>(worldId);
     map['name'] = Variable<String>(name);
+    map['type'] = Variable<String>(type);
     map['description'] = Variable<String>(description);
+    map['trigger_keywords'] = Variable<String>(triggerKeywords);
+    map['enabled'] = Variable<bool>(enabled);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2961,7 +3025,10 @@ class Lore extends DataClass implements Insertable<Lore> {
       id: Value(id),
       worldId: Value(worldId),
       name: Value(name),
+      type: Value(type),
       description: Value(description),
+      triggerKeywords: Value(triggerKeywords),
+      enabled: Value(enabled),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2974,7 +3041,10 @@ class Lore extends DataClass implements Insertable<Lore> {
       id: serializer.fromJson<String>(json['id']),
       worldId: serializer.fromJson<String>(json['worldId']),
       name: serializer.fromJson<String>(json['name']),
+      type: serializer.fromJson<String>(json['type']),
       description: serializer.fromJson<String>(json['description']),
+      triggerKeywords: serializer.fromJson<String>(json['triggerKeywords']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2986,7 +3056,10 @@ class Lore extends DataClass implements Insertable<Lore> {
       'id': serializer.toJson<String>(id),
       'worldId': serializer.toJson<String>(worldId),
       'name': serializer.toJson<String>(name),
+      'type': serializer.toJson<String>(type),
       'description': serializer.toJson<String>(description),
+      'triggerKeywords': serializer.toJson<String>(triggerKeywords),
+      'enabled': serializer.toJson<bool>(enabled),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2996,14 +3069,20 @@ class Lore extends DataClass implements Insertable<Lore> {
           {String? id,
           String? worldId,
           String? name,
+          String? type,
           String? description,
+          String? triggerKeywords,
+          bool? enabled,
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       Lore(
         id: id ?? this.id,
         worldId: worldId ?? this.worldId,
         name: name ?? this.name,
+        type: type ?? this.type,
         description: description ?? this.description,
+        triggerKeywords: triggerKeywords ?? this.triggerKeywords,
+        enabled: enabled ?? this.enabled,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -3012,8 +3091,13 @@ class Lore extends DataClass implements Insertable<Lore> {
       id: data.id.present ? data.id.value : this.id,
       worldId: data.worldId.present ? data.worldId.value : this.worldId,
       name: data.name.present ? data.name.value : this.name,
+      type: data.type.present ? data.type.value : this.type,
       description:
           data.description.present ? data.description.value : this.description,
+      triggerKeywords: data.triggerKeywords.present
+          ? data.triggerKeywords.value
+          : this.triggerKeywords,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -3025,7 +3109,10 @@ class Lore extends DataClass implements Insertable<Lore> {
           ..write('id: $id, ')
           ..write('worldId: $worldId, ')
           ..write('name: $name, ')
+          ..write('type: $type, ')
           ..write('description: $description, ')
+          ..write('triggerKeywords: $triggerKeywords, ')
+          ..write('enabled: $enabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3033,8 +3120,8 @@ class Lore extends DataClass implements Insertable<Lore> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, worldId, name, description, createdAt, updatedAt);
+  int get hashCode => Object.hash(id, worldId, name, type, description,
+      triggerKeywords, enabled, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3042,7 +3129,10 @@ class Lore extends DataClass implements Insertable<Lore> {
           other.id == this.id &&
           other.worldId == this.worldId &&
           other.name == this.name &&
+          other.type == this.type &&
           other.description == this.description &&
+          other.triggerKeywords == this.triggerKeywords &&
+          other.enabled == this.enabled &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -3051,7 +3141,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
   Value<String> id;
   Value<String> worldId;
   Value<String> name;
+  Value<String> type;
   Value<String> description;
+  Value<String> triggerKeywords;
+  Value<bool> enabled;
   Value<DateTime> createdAt;
   Value<DateTime> updatedAt;
   Value<int> rowid;
@@ -3059,7 +3152,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
     this.id = const Value.absent(),
     this.worldId = const Value.absent(),
     this.name = const Value.absent(),
+    this.type = const Value.absent(),
     this.description = const Value.absent(),
+    this.triggerKeywords = const Value.absent(),
+    this.enabled = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3068,21 +3164,30 @@ class LoresCompanion extends UpdateCompanion<Lore> {
     required String id,
     required String worldId,
     required String name,
+    required String type,
     required String description,
+    required String triggerKeywords,
+    required bool enabled,
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         worldId = Value(worldId),
         name = Value(name),
+        type = Value(type),
         description = Value(description),
+        triggerKeywords = Value(triggerKeywords),
+        enabled = Value(enabled),
         createdAt = Value(createdAt),
         updatedAt = Value(updatedAt);
   static Insertable<Lore> custom({
     Expression<String>? id,
     Expression<String>? worldId,
     Expression<String>? name,
+    Expression<String>? type,
     Expression<String>? description,
+    Expression<String>? triggerKeywords,
+    Expression<bool>? enabled,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -3091,7 +3196,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
       if (id != null) 'id': id,
       if (worldId != null) 'world_id': worldId,
       if (name != null) 'name': name,
+      if (type != null) 'type': type,
       if (description != null) 'description': description,
+      if (triggerKeywords != null) 'trigger_keywords': triggerKeywords,
+      if (enabled != null) 'enabled': enabled,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -3102,7 +3210,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
       {Value<String>? id,
       Value<String>? worldId,
       Value<String>? name,
+      Value<String>? type,
       Value<String>? description,
+      Value<String>? triggerKeywords,
+      Value<bool>? enabled,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -3110,7 +3221,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
       id: id ?? this.id,
       worldId: worldId ?? this.worldId,
       name: name ?? this.name,
+      type: type ?? this.type,
       description: description ?? this.description,
+      triggerKeywords: triggerKeywords ?? this.triggerKeywords,
+      enabled: enabled ?? this.enabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -3129,8 +3243,17 @@ class LoresCompanion extends UpdateCompanion<Lore> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (triggerKeywords.present) {
+      map['trigger_keywords'] = Variable<String>(triggerKeywords.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -3150,7 +3273,10 @@ class LoresCompanion extends UpdateCompanion<Lore> {
           ..write('id: $id, ')
           ..write('worldId: $worldId, ')
           ..write('name: $name, ')
+          ..write('type: $type, ')
           ..write('description: $description, ')
+          ..write('triggerKeywords: $triggerKeywords, ')
+          ..write('enabled: $enabled, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -5575,6 +5701,1027 @@ class ButterflyAnalysesCompanion extends UpdateCompanion<ButterflyAnalysis> {
   }
 }
 
+class $SceneSummariesTable extends SceneSummaries
+    with TableInfo<$SceneSummariesTable, SceneSummary> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SceneSummariesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sceneIdMeta =
+      const VerificationMeta('sceneId');
+  @override
+  late final GeneratedColumn<String> sceneId = GeneratedColumn<String>(
+      'scene_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _chapterIdMeta =
+      const VerificationMeta('chapterId');
+  @override
+  late final GeneratedColumn<String> chapterId = GeneratedColumn<String>(
+      'chapter_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _keywordsMeta =
+      const VerificationMeta('keywords');
+  @override
+  late final GeneratedColumn<String> keywords = GeneratedColumn<String>(
+      'keywords', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _charactersMeta =
+      const VerificationMeta('characters');
+  @override
+  late final GeneratedColumn<String> characters = GeneratedColumn<String>(
+      'characters', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _locationMeta =
+      const VerificationMeta('location');
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+      'location', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _moodMeta = const VerificationMeta('mood');
+  @override
+  late final GeneratedColumn<String> mood = GeneratedColumn<String>(
+      'mood', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _inStoryDayMeta =
+      const VerificationMeta('inStoryDay');
+  @override
+  late final GeneratedColumn<String> inStoryDay = GeneratedColumn<String>(
+      'in_story_day', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _causeEventMeta =
+      const VerificationMeta('causeEvent');
+  @override
+  late final GeneratedColumn<String> causeEvent = GeneratedColumn<String>(
+      'cause_event', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _effectEventMeta =
+      const VerificationMeta('effectEvent');
+  @override
+  late final GeneratedColumn<String> effectEvent = GeneratedColumn<String>(
+      'effect_event', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _characterEmotionsMeta =
+      const VerificationMeta('characterEmotions');
+  @override
+  late final GeneratedColumn<String> characterEmotions =
+      GeneratedColumn<String>('character_emotions', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _conflictTypeMeta =
+      const VerificationMeta('conflictType');
+  @override
+  late final GeneratedColumn<String> conflictType = GeneratedColumn<String>(
+      'conflict_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _suspenseTagsMeta =
+      const VerificationMeta('suspenseTags');
+  @override
+  late final GeneratedColumn<String> suspenseTags = GeneratedColumn<String>(
+      'suspense_tags', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _keyDialoguesMeta =
+      const VerificationMeta('keyDialogues');
+  @override
+  late final GeneratedColumn<String> keyDialogues = GeneratedColumn<String>(
+      'key_dialogues', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _signatureMomentsMeta =
+      const VerificationMeta('signatureMoments');
+  @override
+  late final GeneratedColumn<String> signatureMoments = GeneratedColumn<String>(
+      'signature_moments', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _foreshadowingIdsMeta =
+      const VerificationMeta('foreshadowingIds');
+  @override
+  late final GeneratedColumn<String> foreshadowingIds = GeneratedColumn<String>(
+      'foreshadowing_ids', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _wordCountMeta =
+      const VerificationMeta('wordCount');
+  @override
+  late final GeneratedColumn<int> wordCount = GeneratedColumn<int>(
+      'word_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _sceneOrderMeta =
+      const VerificationMeta('sceneOrder');
+  @override
+  late final GeneratedColumn<int> sceneOrder = GeneratedColumn<int>(
+      'scene_order', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        sceneId,
+        chapterId,
+        worldId,
+        summary,
+        keywords,
+        characters,
+        location,
+        mood,
+        inStoryDay,
+        causeEvent,
+        effectEvent,
+        characterEmotions,
+        conflictType,
+        suspenseTags,
+        keyDialogues,
+        signatureMoments,
+        foreshadowingIds,
+        wordCount,
+        sceneOrder,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'scene_summaries';
+  @override
+  VerificationContext validateIntegrity(Insertable<SceneSummary> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('scene_id')) {
+      context.handle(_sceneIdMeta,
+          sceneId.isAcceptableOrUnknown(data['scene_id']!, _sceneIdMeta));
+    } else if (isInserting) {
+      context.missing(_sceneIdMeta);
+    }
+    if (data.containsKey('chapter_id')) {
+      context.handle(_chapterIdMeta,
+          chapterId.isAcceptableOrUnknown(data['chapter_id']!, _chapterIdMeta));
+    } else if (isInserting) {
+      context.missing(_chapterIdMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('keywords')) {
+      context.handle(_keywordsMeta,
+          keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta));
+    } else if (isInserting) {
+      context.missing(_keywordsMeta);
+    }
+    if (data.containsKey('characters')) {
+      context.handle(
+          _charactersMeta,
+          characters.isAcceptableOrUnknown(
+              data['characters']!, _charactersMeta));
+    } else if (isInserting) {
+      context.missing(_charactersMeta);
+    }
+    if (data.containsKey('location')) {
+      context.handle(_locationMeta,
+          location.isAcceptableOrUnknown(data['location']!, _locationMeta));
+    } else if (isInserting) {
+      context.missing(_locationMeta);
+    }
+    if (data.containsKey('mood')) {
+      context.handle(
+          _moodMeta, mood.isAcceptableOrUnknown(data['mood']!, _moodMeta));
+    } else if (isInserting) {
+      context.missing(_moodMeta);
+    }
+    if (data.containsKey('in_story_day')) {
+      context.handle(
+          _inStoryDayMeta,
+          inStoryDay.isAcceptableOrUnknown(
+              data['in_story_day']!, _inStoryDayMeta));
+    } else if (isInserting) {
+      context.missing(_inStoryDayMeta);
+    }
+    if (data.containsKey('cause_event')) {
+      context.handle(
+          _causeEventMeta,
+          causeEvent.isAcceptableOrUnknown(
+              data['cause_event']!, _causeEventMeta));
+    } else if (isInserting) {
+      context.missing(_causeEventMeta);
+    }
+    if (data.containsKey('effect_event')) {
+      context.handle(
+          _effectEventMeta,
+          effectEvent.isAcceptableOrUnknown(
+              data['effect_event']!, _effectEventMeta));
+    } else if (isInserting) {
+      context.missing(_effectEventMeta);
+    }
+    if (data.containsKey('character_emotions')) {
+      context.handle(
+          _characterEmotionsMeta,
+          characterEmotions.isAcceptableOrUnknown(
+              data['character_emotions']!, _characterEmotionsMeta));
+    } else if (isInserting) {
+      context.missing(_characterEmotionsMeta);
+    }
+    if (data.containsKey('conflict_type')) {
+      context.handle(
+          _conflictTypeMeta,
+          conflictType.isAcceptableOrUnknown(
+              data['conflict_type']!, _conflictTypeMeta));
+    } else if (isInserting) {
+      context.missing(_conflictTypeMeta);
+    }
+    if (data.containsKey('suspense_tags')) {
+      context.handle(
+          _suspenseTagsMeta,
+          suspenseTags.isAcceptableOrUnknown(
+              data['suspense_tags']!, _suspenseTagsMeta));
+    } else if (isInserting) {
+      context.missing(_suspenseTagsMeta);
+    }
+    if (data.containsKey('key_dialogues')) {
+      context.handle(
+          _keyDialoguesMeta,
+          keyDialogues.isAcceptableOrUnknown(
+              data['key_dialogues']!, _keyDialoguesMeta));
+    } else if (isInserting) {
+      context.missing(_keyDialoguesMeta);
+    }
+    if (data.containsKey('signature_moments')) {
+      context.handle(
+          _signatureMomentsMeta,
+          signatureMoments.isAcceptableOrUnknown(
+              data['signature_moments']!, _signatureMomentsMeta));
+    } else if (isInserting) {
+      context.missing(_signatureMomentsMeta);
+    }
+    if (data.containsKey('foreshadowing_ids')) {
+      context.handle(
+          _foreshadowingIdsMeta,
+          foreshadowingIds.isAcceptableOrUnknown(
+              data['foreshadowing_ids']!, _foreshadowingIdsMeta));
+    } else if (isInserting) {
+      context.missing(_foreshadowingIdsMeta);
+    }
+    if (data.containsKey('word_count')) {
+      context.handle(_wordCountMeta,
+          wordCount.isAcceptableOrUnknown(data['word_count']!, _wordCountMeta));
+    } else if (isInserting) {
+      context.missing(_wordCountMeta);
+    }
+    if (data.containsKey('scene_order')) {
+      context.handle(
+          _sceneOrderMeta,
+          sceneOrder.isAcceptableOrUnknown(
+              data['scene_order']!, _sceneOrderMeta));
+    } else if (isInserting) {
+      context.missing(_sceneOrderMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SceneSummary map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SceneSummary(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      sceneId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}scene_id'])!,
+      chapterId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}chapter_id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary'])!,
+      keywords: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}keywords'])!,
+      characters: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}characters'])!,
+      location: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}location'])!,
+      mood: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mood'])!,
+      inStoryDay: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}in_story_day'])!,
+      causeEvent: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}cause_event'])!,
+      effectEvent: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}effect_event'])!,
+      characterEmotions: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}character_emotions'])!,
+      conflictType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}conflict_type'])!,
+      suspenseTags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}suspense_tags'])!,
+      keyDialogues: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}key_dialogues'])!,
+      signatureMoments: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}signature_moments'])!,
+      foreshadowingIds: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}foreshadowing_ids'])!,
+      wordCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}word_count'])!,
+      sceneOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}scene_order'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $SceneSummariesTable createAlias(String alias) {
+    return $SceneSummariesTable(attachedDatabase, alias);
+  }
+}
+
+class SceneSummary extends DataClass implements Insertable<SceneSummary> {
+  String id;
+  String sceneId;
+  String chapterId;
+  String worldId;
+  String summary;
+  String keywords;
+  String characters;
+  String location;
+  String mood;
+  String inStoryDay;
+  String causeEvent;
+  String effectEvent;
+  String characterEmotions;
+  String conflictType;
+  String suspenseTags;
+  String keyDialogues;
+  String signatureMoments;
+  String foreshadowingIds;
+  int wordCount;
+  int sceneOrder;
+  DateTime createdAt;
+  DateTime updatedAt;
+  SceneSummary(
+      {required this.id,
+      required this.sceneId,
+      required this.chapterId,
+      required this.worldId,
+      required this.summary,
+      required this.keywords,
+      required this.characters,
+      required this.location,
+      required this.mood,
+      required this.inStoryDay,
+      required this.causeEvent,
+      required this.effectEvent,
+      required this.characterEmotions,
+      required this.conflictType,
+      required this.suspenseTags,
+      required this.keyDialogues,
+      required this.signatureMoments,
+      required this.foreshadowingIds,
+      required this.wordCount,
+      required this.sceneOrder,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['scene_id'] = Variable<String>(sceneId);
+    map['chapter_id'] = Variable<String>(chapterId);
+    map['world_id'] = Variable<String>(worldId);
+    map['summary'] = Variable<String>(summary);
+    map['keywords'] = Variable<String>(keywords);
+    map['characters'] = Variable<String>(characters);
+    map['location'] = Variable<String>(location);
+    map['mood'] = Variable<String>(mood);
+    map['in_story_day'] = Variable<String>(inStoryDay);
+    map['cause_event'] = Variable<String>(causeEvent);
+    map['effect_event'] = Variable<String>(effectEvent);
+    map['character_emotions'] = Variable<String>(characterEmotions);
+    map['conflict_type'] = Variable<String>(conflictType);
+    map['suspense_tags'] = Variable<String>(suspenseTags);
+    map['key_dialogues'] = Variable<String>(keyDialogues);
+    map['signature_moments'] = Variable<String>(signatureMoments);
+    map['foreshadowing_ids'] = Variable<String>(foreshadowingIds);
+    map['word_count'] = Variable<int>(wordCount);
+    map['scene_order'] = Variable<int>(sceneOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SceneSummariesCompanion toCompanion(bool nullToAbsent) {
+    return SceneSummariesCompanion(
+      id: Value(id),
+      sceneId: Value(sceneId),
+      chapterId: Value(chapterId),
+      worldId: Value(worldId),
+      summary: Value(summary),
+      keywords: Value(keywords),
+      characters: Value(characters),
+      location: Value(location),
+      mood: Value(mood),
+      inStoryDay: Value(inStoryDay),
+      causeEvent: Value(causeEvent),
+      effectEvent: Value(effectEvent),
+      characterEmotions: Value(characterEmotions),
+      conflictType: Value(conflictType),
+      suspenseTags: Value(suspenseTags),
+      keyDialogues: Value(keyDialogues),
+      signatureMoments: Value(signatureMoments),
+      foreshadowingIds: Value(foreshadowingIds),
+      wordCount: Value(wordCount),
+      sceneOrder: Value(sceneOrder),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SceneSummary.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SceneSummary(
+      id: serializer.fromJson<String>(json['id']),
+      sceneId: serializer.fromJson<String>(json['sceneId']),
+      chapterId: serializer.fromJson<String>(json['chapterId']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      summary: serializer.fromJson<String>(json['summary']),
+      keywords: serializer.fromJson<String>(json['keywords']),
+      characters: serializer.fromJson<String>(json['characters']),
+      location: serializer.fromJson<String>(json['location']),
+      mood: serializer.fromJson<String>(json['mood']),
+      inStoryDay: serializer.fromJson<String>(json['inStoryDay']),
+      causeEvent: serializer.fromJson<String>(json['causeEvent']),
+      effectEvent: serializer.fromJson<String>(json['effectEvent']),
+      characterEmotions: serializer.fromJson<String>(json['characterEmotions']),
+      conflictType: serializer.fromJson<String>(json['conflictType']),
+      suspenseTags: serializer.fromJson<String>(json['suspenseTags']),
+      keyDialogues: serializer.fromJson<String>(json['keyDialogues']),
+      signatureMoments: serializer.fromJson<String>(json['signatureMoments']),
+      foreshadowingIds: serializer.fromJson<String>(json['foreshadowingIds']),
+      wordCount: serializer.fromJson<int>(json['wordCount']),
+      sceneOrder: serializer.fromJson<int>(json['sceneOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'sceneId': serializer.toJson<String>(sceneId),
+      'chapterId': serializer.toJson<String>(chapterId),
+      'worldId': serializer.toJson<String>(worldId),
+      'summary': serializer.toJson<String>(summary),
+      'keywords': serializer.toJson<String>(keywords),
+      'characters': serializer.toJson<String>(characters),
+      'location': serializer.toJson<String>(location),
+      'mood': serializer.toJson<String>(mood),
+      'inStoryDay': serializer.toJson<String>(inStoryDay),
+      'causeEvent': serializer.toJson<String>(causeEvent),
+      'effectEvent': serializer.toJson<String>(effectEvent),
+      'characterEmotions': serializer.toJson<String>(characterEmotions),
+      'conflictType': serializer.toJson<String>(conflictType),
+      'suspenseTags': serializer.toJson<String>(suspenseTags),
+      'keyDialogues': serializer.toJson<String>(keyDialogues),
+      'signatureMoments': serializer.toJson<String>(signatureMoments),
+      'foreshadowingIds': serializer.toJson<String>(foreshadowingIds),
+      'wordCount': serializer.toJson<int>(wordCount),
+      'sceneOrder': serializer.toJson<int>(sceneOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  SceneSummary copyWith(
+          {String? id,
+          String? sceneId,
+          String? chapterId,
+          String? worldId,
+          String? summary,
+          String? keywords,
+          String? characters,
+          String? location,
+          String? mood,
+          String? inStoryDay,
+          String? causeEvent,
+          String? effectEvent,
+          String? characterEmotions,
+          String? conflictType,
+          String? suspenseTags,
+          String? keyDialogues,
+          String? signatureMoments,
+          String? foreshadowingIds,
+          int? wordCount,
+          int? sceneOrder,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      SceneSummary(
+        id: id ?? this.id,
+        sceneId: sceneId ?? this.sceneId,
+        chapterId: chapterId ?? this.chapterId,
+        worldId: worldId ?? this.worldId,
+        summary: summary ?? this.summary,
+        keywords: keywords ?? this.keywords,
+        characters: characters ?? this.characters,
+        location: location ?? this.location,
+        mood: mood ?? this.mood,
+        inStoryDay: inStoryDay ?? this.inStoryDay,
+        causeEvent: causeEvent ?? this.causeEvent,
+        effectEvent: effectEvent ?? this.effectEvent,
+        characterEmotions: characterEmotions ?? this.characterEmotions,
+        conflictType: conflictType ?? this.conflictType,
+        suspenseTags: suspenseTags ?? this.suspenseTags,
+        keyDialogues: keyDialogues ?? this.keyDialogues,
+        signatureMoments: signatureMoments ?? this.signatureMoments,
+        foreshadowingIds: foreshadowingIds ?? this.foreshadowingIds,
+        wordCount: wordCount ?? this.wordCount,
+        sceneOrder: sceneOrder ?? this.sceneOrder,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  SceneSummary copyWithCompanion(SceneSummariesCompanion data) {
+    return SceneSummary(
+      id: data.id.present ? data.id.value : this.id,
+      sceneId: data.sceneId.present ? data.sceneId.value : this.sceneId,
+      chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      keywords: data.keywords.present ? data.keywords.value : this.keywords,
+      characters:
+          data.characters.present ? data.characters.value : this.characters,
+      location: data.location.present ? data.location.value : this.location,
+      mood: data.mood.present ? data.mood.value : this.mood,
+      inStoryDay:
+          data.inStoryDay.present ? data.inStoryDay.value : this.inStoryDay,
+      causeEvent:
+          data.causeEvent.present ? data.causeEvent.value : this.causeEvent,
+      effectEvent:
+          data.effectEvent.present ? data.effectEvent.value : this.effectEvent,
+      characterEmotions: data.characterEmotions.present
+          ? data.characterEmotions.value
+          : this.characterEmotions,
+      conflictType: data.conflictType.present
+          ? data.conflictType.value
+          : this.conflictType,
+      suspenseTags: data.suspenseTags.present
+          ? data.suspenseTags.value
+          : this.suspenseTags,
+      keyDialogues: data.keyDialogues.present
+          ? data.keyDialogues.value
+          : this.keyDialogues,
+      signatureMoments: data.signatureMoments.present
+          ? data.signatureMoments.value
+          : this.signatureMoments,
+      foreshadowingIds: data.foreshadowingIds.present
+          ? data.foreshadowingIds.value
+          : this.foreshadowingIds,
+      wordCount: data.wordCount.present ? data.wordCount.value : this.wordCount,
+      sceneOrder:
+          data.sceneOrder.present ? data.sceneOrder.value : this.sceneOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SceneSummary(')
+          ..write('id: $id, ')
+          ..write('sceneId: $sceneId, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('keywords: $keywords, ')
+          ..write('characters: $characters, ')
+          ..write('location: $location, ')
+          ..write('mood: $mood, ')
+          ..write('inStoryDay: $inStoryDay, ')
+          ..write('causeEvent: $causeEvent, ')
+          ..write('effectEvent: $effectEvent, ')
+          ..write('characterEmotions: $characterEmotions, ')
+          ..write('conflictType: $conflictType, ')
+          ..write('suspenseTags: $suspenseTags, ')
+          ..write('keyDialogues: $keyDialogues, ')
+          ..write('signatureMoments: $signatureMoments, ')
+          ..write('foreshadowingIds: $foreshadowingIds, ')
+          ..write('wordCount: $wordCount, ')
+          ..write('sceneOrder: $sceneOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+        id,
+        sceneId,
+        chapterId,
+        worldId,
+        summary,
+        keywords,
+        characters,
+        location,
+        mood,
+        inStoryDay,
+        causeEvent,
+        effectEvent,
+        characterEmotions,
+        conflictType,
+        suspenseTags,
+        keyDialogues,
+        signatureMoments,
+        foreshadowingIds,
+        wordCount,
+        sceneOrder,
+        createdAt,
+        updatedAt
+      ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SceneSummary &&
+          other.id == this.id &&
+          other.sceneId == this.sceneId &&
+          other.chapterId == this.chapterId &&
+          other.worldId == this.worldId &&
+          other.summary == this.summary &&
+          other.keywords == this.keywords &&
+          other.characters == this.characters &&
+          other.location == this.location &&
+          other.mood == this.mood &&
+          other.inStoryDay == this.inStoryDay &&
+          other.causeEvent == this.causeEvent &&
+          other.effectEvent == this.effectEvent &&
+          other.characterEmotions == this.characterEmotions &&
+          other.conflictType == this.conflictType &&
+          other.suspenseTags == this.suspenseTags &&
+          other.keyDialogues == this.keyDialogues &&
+          other.signatureMoments == this.signatureMoments &&
+          other.foreshadowingIds == this.foreshadowingIds &&
+          other.wordCount == this.wordCount &&
+          other.sceneOrder == this.sceneOrder &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
+  Value<String> id;
+  Value<String> sceneId;
+  Value<String> chapterId;
+  Value<String> worldId;
+  Value<String> summary;
+  Value<String> keywords;
+  Value<String> characters;
+  Value<String> location;
+  Value<String> mood;
+  Value<String> inStoryDay;
+  Value<String> causeEvent;
+  Value<String> effectEvent;
+  Value<String> characterEmotions;
+  Value<String> conflictType;
+  Value<String> suspenseTags;
+  Value<String> keyDialogues;
+  Value<String> signatureMoments;
+  Value<String> foreshadowingIds;
+  Value<int> wordCount;
+  Value<int> sceneOrder;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  SceneSummariesCompanion({
+    this.id = const Value.absent(),
+    this.sceneId = const Value.absent(),
+    this.chapterId = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.keywords = const Value.absent(),
+    this.characters = const Value.absent(),
+    this.location = const Value.absent(),
+    this.mood = const Value.absent(),
+    this.inStoryDay = const Value.absent(),
+    this.causeEvent = const Value.absent(),
+    this.effectEvent = const Value.absent(),
+    this.characterEmotions = const Value.absent(),
+    this.conflictType = const Value.absent(),
+    this.suspenseTags = const Value.absent(),
+    this.keyDialogues = const Value.absent(),
+    this.signatureMoments = const Value.absent(),
+    this.foreshadowingIds = const Value.absent(),
+    this.wordCount = const Value.absent(),
+    this.sceneOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SceneSummariesCompanion.insert({
+    required String id,
+    required String sceneId,
+    required String chapterId,
+    required String worldId,
+    required String summary,
+    required String keywords,
+    required String characters,
+    required String location,
+    required String mood,
+    required String inStoryDay,
+    required String causeEvent,
+    required String effectEvent,
+    required String characterEmotions,
+    required String conflictType,
+    required String suspenseTags,
+    required String keyDialogues,
+    required String signatureMoments,
+    required String foreshadowingIds,
+    required int wordCount,
+    required int sceneOrder,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        sceneId = Value(sceneId),
+        chapterId = Value(chapterId),
+        worldId = Value(worldId),
+        summary = Value(summary),
+        keywords = Value(keywords),
+        characters = Value(characters),
+        location = Value(location),
+        mood = Value(mood),
+        inStoryDay = Value(inStoryDay),
+        causeEvent = Value(causeEvent),
+        effectEvent = Value(effectEvent),
+        characterEmotions = Value(characterEmotions),
+        conflictType = Value(conflictType),
+        suspenseTags = Value(suspenseTags),
+        keyDialogues = Value(keyDialogues),
+        signatureMoments = Value(signatureMoments),
+        foreshadowingIds = Value(foreshadowingIds),
+        wordCount = Value(wordCount),
+        sceneOrder = Value(sceneOrder),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<SceneSummary> custom({
+    Expression<String>? id,
+    Expression<String>? sceneId,
+    Expression<String>? chapterId,
+    Expression<String>? worldId,
+    Expression<String>? summary,
+    Expression<String>? keywords,
+    Expression<String>? characters,
+    Expression<String>? location,
+    Expression<String>? mood,
+    Expression<String>? inStoryDay,
+    Expression<String>? causeEvent,
+    Expression<String>? effectEvent,
+    Expression<String>? characterEmotions,
+    Expression<String>? conflictType,
+    Expression<String>? suspenseTags,
+    Expression<String>? keyDialogues,
+    Expression<String>? signatureMoments,
+    Expression<String>? foreshadowingIds,
+    Expression<int>? wordCount,
+    Expression<int>? sceneOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sceneId != null) 'scene_id': sceneId,
+      if (chapterId != null) 'chapter_id': chapterId,
+      if (worldId != null) 'world_id': worldId,
+      if (summary != null) 'summary': summary,
+      if (keywords != null) 'keywords': keywords,
+      if (characters != null) 'characters': characters,
+      if (location != null) 'location': location,
+      if (mood != null) 'mood': mood,
+      if (inStoryDay != null) 'in_story_day': inStoryDay,
+      if (causeEvent != null) 'cause_event': causeEvent,
+      if (effectEvent != null) 'effect_event': effectEvent,
+      if (characterEmotions != null) 'character_emotions': characterEmotions,
+      if (conflictType != null) 'conflict_type': conflictType,
+      if (suspenseTags != null) 'suspense_tags': suspenseTags,
+      if (keyDialogues != null) 'key_dialogues': keyDialogues,
+      if (signatureMoments != null) 'signature_moments': signatureMoments,
+      if (foreshadowingIds != null) 'foreshadowing_ids': foreshadowingIds,
+      if (wordCount != null) 'word_count': wordCount,
+      if (sceneOrder != null) 'scene_order': sceneOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SceneSummariesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? sceneId,
+      Value<String>? chapterId,
+      Value<String>? worldId,
+      Value<String>? summary,
+      Value<String>? keywords,
+      Value<String>? characters,
+      Value<String>? location,
+      Value<String>? mood,
+      Value<String>? inStoryDay,
+      Value<String>? causeEvent,
+      Value<String>? effectEvent,
+      Value<String>? characterEmotions,
+      Value<String>? conflictType,
+      Value<String>? suspenseTags,
+      Value<String>? keyDialogues,
+      Value<String>? signatureMoments,
+      Value<String>? foreshadowingIds,
+      Value<int>? wordCount,
+      Value<int>? sceneOrder,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return SceneSummariesCompanion(
+      id: id ?? this.id,
+      sceneId: sceneId ?? this.sceneId,
+      chapterId: chapterId ?? this.chapterId,
+      worldId: worldId ?? this.worldId,
+      summary: summary ?? this.summary,
+      keywords: keywords ?? this.keywords,
+      characters: characters ?? this.characters,
+      location: location ?? this.location,
+      mood: mood ?? this.mood,
+      inStoryDay: inStoryDay ?? this.inStoryDay,
+      causeEvent: causeEvent ?? this.causeEvent,
+      effectEvent: effectEvent ?? this.effectEvent,
+      characterEmotions: characterEmotions ?? this.characterEmotions,
+      conflictType: conflictType ?? this.conflictType,
+      suspenseTags: suspenseTags ?? this.suspenseTags,
+      keyDialogues: keyDialogues ?? this.keyDialogues,
+      signatureMoments: signatureMoments ?? this.signatureMoments,
+      foreshadowingIds: foreshadowingIds ?? this.foreshadowingIds,
+      wordCount: wordCount ?? this.wordCount,
+      sceneOrder: sceneOrder ?? this.sceneOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (sceneId.present) {
+      map['scene_id'] = Variable<String>(sceneId.value);
+    }
+    if (chapterId.present) {
+      map['chapter_id'] = Variable<String>(chapterId.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (keywords.present) {
+      map['keywords'] = Variable<String>(keywords.value);
+    }
+    if (characters.present) {
+      map['characters'] = Variable<String>(characters.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (mood.present) {
+      map['mood'] = Variable<String>(mood.value);
+    }
+    if (inStoryDay.present) {
+      map['in_story_day'] = Variable<String>(inStoryDay.value);
+    }
+    if (causeEvent.present) {
+      map['cause_event'] = Variable<String>(causeEvent.value);
+    }
+    if (effectEvent.present) {
+      map['effect_event'] = Variable<String>(effectEvent.value);
+    }
+    if (characterEmotions.present) {
+      map['character_emotions'] = Variable<String>(characterEmotions.value);
+    }
+    if (conflictType.present) {
+      map['conflict_type'] = Variable<String>(conflictType.value);
+    }
+    if (suspenseTags.present) {
+      map['suspense_tags'] = Variable<String>(suspenseTags.value);
+    }
+    if (keyDialogues.present) {
+      map['key_dialogues'] = Variable<String>(keyDialogues.value);
+    }
+    if (signatureMoments.present) {
+      map['signature_moments'] = Variable<String>(signatureMoments.value);
+    }
+    if (foreshadowingIds.present) {
+      map['foreshadowing_ids'] = Variable<String>(foreshadowingIds.value);
+    }
+    if (wordCount.present) {
+      map['word_count'] = Variable<int>(wordCount.value);
+    }
+    if (sceneOrder.present) {
+      map['scene_order'] = Variable<int>(sceneOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SceneSummariesCompanion(')
+          ..write('id: $id, ')
+          ..write('sceneId: $sceneId, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('keywords: $keywords, ')
+          ..write('characters: $characters, ')
+          ..write('location: $location, ')
+          ..write('mood: $mood, ')
+          ..write('inStoryDay: $inStoryDay, ')
+          ..write('causeEvent: $causeEvent, ')
+          ..write('effectEvent: $effectEvent, ')
+          ..write('characterEmotions: $characterEmotions, ')
+          ..write('conflictType: $conflictType, ')
+          ..write('suspenseTags: $suspenseTags, ')
+          ..write('keyDialogues: $keyDialogues, ')
+          ..write('signatureMoments: $signatureMoments, ')
+          ..write('foreshadowingIds: $foreshadowingIds, ')
+          ..write('wordCount: $wordCount, ')
+          ..write('sceneOrder: $sceneOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorksTable extends Works with TableInfo<$WorksTable, Work> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -7665,6 +8812,7 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
   late final $ForeshadowingsTable foreshadowings = $ForeshadowingsTable(this);
   late final $ButterflyAnalysesTable butterflyAnalyses =
       $ButterflyAnalysesTable(this);
+  late final $SceneSummariesTable sceneSummaries = $SceneSummariesTable(this);
   late final $WorksTable works = $WorksTable(this);
   late final $VolumesTable volumes = $VolumesTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
@@ -7687,6 +8835,7 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
         factions,
         foreshadowings,
         butterflyAnalyses,
+        sceneSummaries,
         works,
         volumes,
         chapters,
@@ -9049,7 +10198,10 @@ typedef $$LoresTableCreateCompanionBuilder = LoresCompanion Function({
   required String id,
   required String worldId,
   required String name,
+  required String type,
   required String description,
+  required String triggerKeywords,
+  required bool enabled,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -9058,7 +10210,10 @@ typedef $$LoresTableUpdateCompanionBuilder = LoresCompanion Function({
   Value<String> id,
   Value<String> worldId,
   Value<String> name,
+  Value<String> type,
   Value<String> description,
+  Value<String> triggerKeywords,
+  Value<bool> enabled,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -9082,8 +10237,18 @@ class $$LoresTableFilterComposer
   ColumnFilters<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get triggerKeywords => $composableBuilder(
+      column: $table.triggerKeywords,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get enabled => $composableBuilder(
+      column: $table.enabled, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -9110,8 +10275,18 @@ class $$LoresTableOrderingComposer
   ColumnOrderings<String> get name => $composableBuilder(
       column: $table.name, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get triggerKeywords => $composableBuilder(
+      column: $table.triggerKeywords,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get enabled => $composableBuilder(
+      column: $table.enabled, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
@@ -9138,8 +10313,17 @@ class $$LoresTableAnnotationComposer
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<String> get triggerKeywords => $composableBuilder(
+      column: $table.triggerKeywords, builder: (column) => column);
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -9174,7 +10358,10 @@ class $$LoresTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> worldId = const Value.absent(),
             Value<String> name = const Value.absent(),
+            Value<String> type = const Value.absent(),
             Value<String> description = const Value.absent(),
+            Value<String> triggerKeywords = const Value.absent(),
+            Value<bool> enabled = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -9183,7 +10370,10 @@ class $$LoresTableTableManager extends RootTableManager<
             id: id,
             worldId: worldId,
             name: name,
+            type: type,
             description: description,
+            triggerKeywords: triggerKeywords,
+            enabled: enabled,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -9192,7 +10382,10 @@ class $$LoresTableTableManager extends RootTableManager<
             required String id,
             required String worldId,
             required String name,
+            required String type,
             required String description,
+            required String triggerKeywords,
+            required bool enabled,
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -9201,7 +10394,10 @@ class $$LoresTableTableManager extends RootTableManager<
             id: id,
             worldId: worldId,
             name: name,
+            type: type,
             description: description,
+            triggerKeywords: triggerKeywords,
+            enabled: enabled,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -10405,6 +11601,444 @@ typedef $$ButterflyAnalysesTableProcessedTableManager = ProcessedTableManager<
     ),
     ButterflyAnalysis,
     PrefetchHooks Function()>;
+typedef $$SceneSummariesTableCreateCompanionBuilder = SceneSummariesCompanion
+    Function({
+  required String id,
+  required String sceneId,
+  required String chapterId,
+  required String worldId,
+  required String summary,
+  required String keywords,
+  required String characters,
+  required String location,
+  required String mood,
+  required String inStoryDay,
+  required String causeEvent,
+  required String effectEvent,
+  required String characterEmotions,
+  required String conflictType,
+  required String suspenseTags,
+  required String keyDialogues,
+  required String signatureMoments,
+  required String foreshadowingIds,
+  required int wordCount,
+  required int sceneOrder,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$SceneSummariesTableUpdateCompanionBuilder = SceneSummariesCompanion
+    Function({
+  Value<String> id,
+  Value<String> sceneId,
+  Value<String> chapterId,
+  Value<String> worldId,
+  Value<String> summary,
+  Value<String> keywords,
+  Value<String> characters,
+  Value<String> location,
+  Value<String> mood,
+  Value<String> inStoryDay,
+  Value<String> causeEvent,
+  Value<String> effectEvent,
+  Value<String> characterEmotions,
+  Value<String> conflictType,
+  Value<String> suspenseTags,
+  Value<String> keyDialogues,
+  Value<String> signatureMoments,
+  Value<String> foreshadowingIds,
+  Value<int> wordCount,
+  Value<int> sceneOrder,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$SceneSummariesTableFilterComposer
+    extends Composer<_$WorldDatabase, $SceneSummariesTable> {
+  $$SceneSummariesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sceneId => $composableBuilder(
+      column: $table.sceneId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get characters => $composableBuilder(
+      column: $table.characters, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get location => $composableBuilder(
+      column: $table.location, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mood => $composableBuilder(
+      column: $table.mood, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get inStoryDay => $composableBuilder(
+      column: $table.inStoryDay, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get causeEvent => $composableBuilder(
+      column: $table.causeEvent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get effectEvent => $composableBuilder(
+      column: $table.effectEvent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get characterEmotions => $composableBuilder(
+      column: $table.characterEmotions,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get conflictType => $composableBuilder(
+      column: $table.conflictType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get suspenseTags => $composableBuilder(
+      column: $table.suspenseTags, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keyDialogues => $composableBuilder(
+      column: $table.keyDialogues, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get signatureMoments => $composableBuilder(
+      column: $table.signatureMoments,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get foreshadowingIds => $composableBuilder(
+      column: $table.foreshadowingIds,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get wordCount => $composableBuilder(
+      column: $table.wordCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sceneOrder => $composableBuilder(
+      column: $table.sceneOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$SceneSummariesTableOrderingComposer
+    extends Composer<_$WorldDatabase, $SceneSummariesTable> {
+  $$SceneSummariesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sceneId => $composableBuilder(
+      column: $table.sceneId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get characters => $composableBuilder(
+      column: $table.characters, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get location => $composableBuilder(
+      column: $table.location, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mood => $composableBuilder(
+      column: $table.mood, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get inStoryDay => $composableBuilder(
+      column: $table.inStoryDay, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get causeEvent => $composableBuilder(
+      column: $table.causeEvent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get effectEvent => $composableBuilder(
+      column: $table.effectEvent, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get characterEmotions => $composableBuilder(
+      column: $table.characterEmotions,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get conflictType => $composableBuilder(
+      column: $table.conflictType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get suspenseTags => $composableBuilder(
+      column: $table.suspenseTags,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keyDialogues => $composableBuilder(
+      column: $table.keyDialogues,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get signatureMoments => $composableBuilder(
+      column: $table.signatureMoments,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get foreshadowingIds => $composableBuilder(
+      column: $table.foreshadowingIds,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get wordCount => $composableBuilder(
+      column: $table.wordCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sceneOrder => $composableBuilder(
+      column: $table.sceneOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SceneSummariesTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $SceneSummariesTable> {
+  $$SceneSummariesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sceneId =>
+      $composableBuilder(column: $table.sceneId, builder: (column) => column);
+
+  GeneratedColumn<String> get chapterId =>
+      $composableBuilder(column: $table.chapterId, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get keywords =>
+      $composableBuilder(column: $table.keywords, builder: (column) => column);
+
+  GeneratedColumn<String> get characters => $composableBuilder(
+      column: $table.characters, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<String> get mood =>
+      $composableBuilder(column: $table.mood, builder: (column) => column);
+
+  GeneratedColumn<String> get inStoryDay => $composableBuilder(
+      column: $table.inStoryDay, builder: (column) => column);
+
+  GeneratedColumn<String> get causeEvent => $composableBuilder(
+      column: $table.causeEvent, builder: (column) => column);
+
+  GeneratedColumn<String> get effectEvent => $composableBuilder(
+      column: $table.effectEvent, builder: (column) => column);
+
+  GeneratedColumn<String> get characterEmotions => $composableBuilder(
+      column: $table.characterEmotions, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictType => $composableBuilder(
+      column: $table.conflictType, builder: (column) => column);
+
+  GeneratedColumn<String> get suspenseTags => $composableBuilder(
+      column: $table.suspenseTags, builder: (column) => column);
+
+  GeneratedColumn<String> get keyDialogues => $composableBuilder(
+      column: $table.keyDialogues, builder: (column) => column);
+
+  GeneratedColumn<String> get signatureMoments => $composableBuilder(
+      column: $table.signatureMoments, builder: (column) => column);
+
+  GeneratedColumn<String> get foreshadowingIds => $composableBuilder(
+      column: $table.foreshadowingIds, builder: (column) => column);
+
+  GeneratedColumn<int> get wordCount =>
+      $composableBuilder(column: $table.wordCount, builder: (column) => column);
+
+  GeneratedColumn<int> get sceneOrder => $composableBuilder(
+      column: $table.sceneOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SceneSummariesTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $SceneSummariesTable,
+    SceneSummary,
+    $$SceneSummariesTableFilterComposer,
+    $$SceneSummariesTableOrderingComposer,
+    $$SceneSummariesTableAnnotationComposer,
+    $$SceneSummariesTableCreateCompanionBuilder,
+    $$SceneSummariesTableUpdateCompanionBuilder,
+    (
+      SceneSummary,
+      BaseReferences<_$WorldDatabase, $SceneSummariesTable, SceneSummary>
+    ),
+    SceneSummary,
+    PrefetchHooks Function()> {
+  $$SceneSummariesTableTableManager(
+      _$WorldDatabase db, $SceneSummariesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SceneSummariesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SceneSummariesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SceneSummariesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> sceneId = const Value.absent(),
+            Value<String> chapterId = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String> summary = const Value.absent(),
+            Value<String> keywords = const Value.absent(),
+            Value<String> characters = const Value.absent(),
+            Value<String> location = const Value.absent(),
+            Value<String> mood = const Value.absent(),
+            Value<String> inStoryDay = const Value.absent(),
+            Value<String> causeEvent = const Value.absent(),
+            Value<String> effectEvent = const Value.absent(),
+            Value<String> characterEmotions = const Value.absent(),
+            Value<String> conflictType = const Value.absent(),
+            Value<String> suspenseTags = const Value.absent(),
+            Value<String> keyDialogues = const Value.absent(),
+            Value<String> signatureMoments = const Value.absent(),
+            Value<String> foreshadowingIds = const Value.absent(),
+            Value<int> wordCount = const Value.absent(),
+            Value<int> sceneOrder = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SceneSummariesCompanion(
+            id: id,
+            sceneId: sceneId,
+            chapterId: chapterId,
+            worldId: worldId,
+            summary: summary,
+            keywords: keywords,
+            characters: characters,
+            location: location,
+            mood: mood,
+            inStoryDay: inStoryDay,
+            causeEvent: causeEvent,
+            effectEvent: effectEvent,
+            characterEmotions: characterEmotions,
+            conflictType: conflictType,
+            suspenseTags: suspenseTags,
+            keyDialogues: keyDialogues,
+            signatureMoments: signatureMoments,
+            foreshadowingIds: foreshadowingIds,
+            wordCount: wordCount,
+            sceneOrder: sceneOrder,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String sceneId,
+            required String chapterId,
+            required String worldId,
+            required String summary,
+            required String keywords,
+            required String characters,
+            required String location,
+            required String mood,
+            required String inStoryDay,
+            required String causeEvent,
+            required String effectEvent,
+            required String characterEmotions,
+            required String conflictType,
+            required String suspenseTags,
+            required String keyDialogues,
+            required String signatureMoments,
+            required String foreshadowingIds,
+            required int wordCount,
+            required int sceneOrder,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SceneSummariesCompanion.insert(
+            id: id,
+            sceneId: sceneId,
+            chapterId: chapterId,
+            worldId: worldId,
+            summary: summary,
+            keywords: keywords,
+            characters: characters,
+            location: location,
+            mood: mood,
+            inStoryDay: inStoryDay,
+            causeEvent: causeEvent,
+            effectEvent: effectEvent,
+            characterEmotions: characterEmotions,
+            conflictType: conflictType,
+            suspenseTags: suspenseTags,
+            keyDialogues: keyDialogues,
+            signatureMoments: signatureMoments,
+            foreshadowingIds: foreshadowingIds,
+            wordCount: wordCount,
+            sceneOrder: sceneOrder,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SceneSummariesTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $SceneSummariesTable,
+    SceneSummary,
+    $$SceneSummariesTableFilterComposer,
+    $$SceneSummariesTableOrderingComposer,
+    $$SceneSummariesTableAnnotationComposer,
+    $$SceneSummariesTableCreateCompanionBuilder,
+    $$SceneSummariesTableUpdateCompanionBuilder,
+    (
+      SceneSummary,
+      BaseReferences<_$WorldDatabase, $SceneSummariesTable, SceneSummary>
+    ),
+    SceneSummary,
+    PrefetchHooks Function()>;
 typedef $$WorksTableCreateCompanionBuilder = WorksCompanion Function({
   required String id,
   required String worldId,
@@ -11461,6 +13095,8 @@ class $WorldDatabaseManager {
       $$ForeshadowingsTableTableManager(_db, _db.foreshadowings);
   $$ButterflyAnalysesTableTableManager get butterflyAnalyses =>
       $$ButterflyAnalysesTableTableManager(_db, _db.butterflyAnalyses);
+  $$SceneSummariesTableTableManager get sceneSummaries =>
+      $$SceneSummariesTableTableManager(_db, _db.sceneSummaries);
   $$WorksTableTableManager get works =>
       $$WorksTableTableManager(_db, _db.works);
   $$VolumesTableTableManager get volumes =>

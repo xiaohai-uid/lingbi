@@ -121,7 +121,10 @@ class Lores extends Table {
   TextColumn get id => text()();
   TextColumn get worldId => text()();
   TextColumn get name => text()();
+  TextColumn get type => text()(); // character / location / item / rule / event
   TextColumn get description => text()();
+  TextColumn get triggerKeywords => text()(); // 逗号分隔的关键词
+  BoolColumn get enabled => boolean()(); // 是否启用
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -294,6 +297,47 @@ class ButterflyAnalyses extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 场景摘要表 — 存储场景级结构化摘要
+@DataClassName('SceneSummary')
+class SceneSummaries extends Table {
+  // ── 标识 ──
+  TextColumn get id => text()();
+  TextColumn get sceneId => text()();
+  TextColumn get chapterId => text()();
+  TextColumn get worldId => text()();
+
+  // ── 核心内容 ──
+  TextColumn get summary => text()();
+  TextColumn get keywords => text()();
+  TextColumn get characters => text()();
+  TextColumn get location => text()();
+  TextColumn get mood => text()();
+
+  // ── 时间与因果 ──
+  TextColumn get inStoryDay => text()();
+  TextColumn get causeEvent => text()();
+  TextColumn get effectEvent => text()();
+
+  // ── 情感与冲突 ──
+  TextColumn get characterEmotions => text()();
+  TextColumn get conflictType => text()();
+  TextColumn get suspenseTags => text()();
+
+  // ── 内容亮点 ──
+  TextColumn get keyDialogues => text()();
+  TextColumn get signatureMoments => text()();
+  TextColumn get foreshadowingIds => text()();
+
+  // ── 元数据 ──
+  IntColumn get wordCount => integer()();
+  IntColumn get sceneOrder => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ============================================================
 // 数据库定义
 // ============================================================
@@ -312,6 +356,7 @@ class ButterflyAnalyses extends Table {
     Factions,
     Foreshadowings,
     ButterflyAnalyses,
+    SceneSummaries,
     Works,
     Volumes,
     Chapters,
@@ -323,7 +368,7 @@ class WorldDatabase extends _$WorldDatabase {
   WorldDatabase(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy();
