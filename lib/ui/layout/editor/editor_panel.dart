@@ -7,6 +7,9 @@ import 'editor_toolbar.dart';
 
 import 'package:lingbi/data/database/world_database.dart' as db;
 import 'package:lingbi/services/identity/identity_detector.dart';
+import 'package:lingbi/services/retroactive_edit_service.dart';
+import 'package:lingbi/services/interfaces/i_retroactive_edit_service.dart';
+import 'package:lingbi/ui/components/selection_edit_popup.dart';
 import 'package:lingbi/services/identity/identity_rules.dart';
 import 'package:lingbi/ui/components/identity_notification.dart';
 import 'package:lingbi/ui/components/identity_dialog.dart';
@@ -24,6 +27,7 @@ class EditorPanel extends StatefulWidget {
     this.characters = const [],
     this.onConfirmIdentity,
     this.onIgnoreAllIdentities,
+    this.retroactiveEditService,
   });
   final String? initialContent;
   final String? documentTitle;
@@ -33,6 +37,7 @@ class EditorPanel extends StatefulWidget {
   final String? worldId;
   final String? sceneId;
   final List<db.Character> characters;
+  final RetroactiveEditService? retroactiveEditService;
   final void Function(IdentityCandidate)? onConfirmIdentity;
   final VoidCallback? onIgnoreAllIdentities;
 
@@ -52,6 +57,12 @@ class _EditorPanelState extends State<EditorPanel> {
   SaveStatus _saveStatus = SaveStatus.saved;
   bool _contentLoaded = false;
   DetectionResult? _detectionResult;
+  bool _showEditPopup = false;
+  String _selectedText = "";
+  int _selectionStart = 0;
+  int _selectionEnd = 0;
+  bool _canUndo = false;
+  String _lastContentBeforeEdit = "";
 
   bool get _identityEnabled =>
       widget.identityDetector != null && widget.sceneId != null;
@@ -67,10 +78,28 @@ class _EditorPanelState extends State<EditorPanel> {
     _contentLoaded = true;
 
     _changesSubscription = _controller.document.changes.listen(_onDocChanged);
+    _controller.selectionChanges.listen(_onSelectionChanged);
 
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _autoSave();
     });
+  }
+
+  void _onSelectionChanged(_) {
+    final sel = _controller.selection;
+    if (sel.isValid && !sel.isCollapsed) {
+      final text = _controller.document.sublist(sel.start, sel.end);
+      setState(() {
+        _selectedText = text;
+        _selectionStart = sel.start;
+        _selectionEnd = sel.end;
+        _showEditPopup = true;
+      });
+    } else {
+      if (_showEditPopup) {
+        setState(() => _showEditPopup = false);
+      }
+    }
   }
 
   void _onDocChanged(_) {
@@ -158,6 +187,52 @@ class _EditorPanelState extends State<EditorPanel> {
       }
     }
     return buffer.toString();
+  }
+
+  Future<void> _handleEdit(EditMode mode, {String? targetTone}) async {
+    if (widget.retroactiveEditService == null) return;
+    _lastContentBeforeEdit = _currentContent;
+    final service = widget.retroactiveEditService!;
+    service.snapshotBefore('editor', _currentContent);
+    try {
+      final result = await service.edit(
+        selectedText: _selectedText,
+        fullContext: _currentContent,
+        mode: mode,
+        targetTone: targetTone,
+        startOffset: _selectionStart,
+        endOffset: _selectionEnd,
+      );
+      final before = _currentContent.substring(0, _selectionStart);
+      final after = _currentContent.substring(_selectionEnd);
+      final newContent = before + result.newText + after;
+      service.snapshotAfter('editor', _currentContent, newContent);
+      _loadContent(newContent);
+      _currentContent = newContent;
+      widget.onContentChanged?.call(newContent);
+      setState(() {
+        _showEditPopup = false;
+        _canUndo = true;
+        _isDirty = true;
+        _saveStatus = SaveStatus.unsaved;
+      });
+    } catch (_) {
+      _loadContent(_lastContentBeforeEdit);
+    }
+  }
+
+  Future<void> _handleUndo() async {
+    if (widget.retroactiveEditService == null) return;
+    final previous = await widget.retroactiveEditService!.undo('editor');
+    if (previous != null) {
+      _loadContent(previous);
+      _currentContent = previous;
+      widget.onContentChanged?.call(previous);
+      setState(() {
+        _showEditPopup = false;
+        _canUndo = false;
+      });
+    }
   }
 
   Future<void> _autoSave() async {
@@ -351,6 +426,21 @@ class _EditorPanelState extends State<EditorPanel> {
                 ),
               ],
             ),
+            if (_showEditPopup)
+              Positioned(
+                top: 100,
+                right: 24,
+                child: Material(
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(12),
+                  child: SelectionEditPopup(
+                    selectedText: _selectedText,
+                    canUndo: _canUndo,
+                    onEdit: _handleEdit,
+                    onUndo: _canUndo ? _handleUndo : null,
+                  ),
+                ),
+              ),
             if (_detectionResult != null && _detectionResult!.hasResults)
               Positioned(
                 top: widget.documentTitle != null ? 88 : 16,
