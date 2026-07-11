@@ -9,6 +9,7 @@ abstract class IAIService {
 
   Stream<String> chat({
     required String message,
+    String? systemPrompt,
     double temperature = 0.7,
     int maxTokens = 2048,
   });
