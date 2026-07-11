@@ -342,6 +342,22 @@ services:
       qdrant:
         condition: service_healthy
 
+  goal-service:
+    build:
+      context: ./go/goal-service
+      dockerfile: Dockerfile
+    ports:
+      - "8102:8102"
+    environment:
+      - PORT=8102
+      - DATABASE_URL=postgres://lingbi:lingbi@postgres:5432/lingbi
+      - REDIS_URL=redis:6379
+    networks:
+      - lingbi_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   style-service:
     build:
       context: ./rust/style-service
