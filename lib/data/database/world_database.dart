@@ -338,6 +338,48 @@ class SceneSummaries extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 章节摘要表 — 聚合场景摘要生成章级摘要
+@DataClassName('ChapterSummary')
+class ChapterSummaries extends Table {
+  TextColumn get id => text()();
+  TextColumn get chapterId => text()();
+  TextColumn get volumeId => text()();
+  TextColumn get worldId => text()();
+  TextColumn get summary => text()();
+  TextColumn get hook => text()();
+  TextColumn get majorEvents => text()();
+  TextColumn get characterArcs => text()();
+  TextColumn get conflictResolution => text()();
+  TextColumn get emotionalClimax => text()();
+  TextColumn get unansweredQuestions => text()();
+  IntColumn get sceneCount => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 卷摘要表 — 聚合章摘要生成卷级摘要
+@DataClassName('VolumeSummary')
+class VolumeSummaries extends Table {
+  TextColumn get id => text()();
+  TextColumn get volumeId => text()();
+  TextColumn get worldId => text()();
+  TextColumn get summary => text()();
+  TextColumn get status => text()();
+  TextColumn get mainCharacters => text()();
+  TextColumn get storyArc => text()();
+  TextColumn get majorPlotPoints => text()();
+  TextColumn get unresolvedThreads => text()();
+  IntColumn get chapterCount => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ============================================================
 // 数据库定义
 // ============================================================
@@ -357,6 +399,8 @@ class SceneSummaries extends Table {
     Foreshadowings,
     ButterflyAnalyses,
     SceneSummaries,
+    ChapterSummaries,
+    VolumeSummaries,
     Works,
     Volumes,
     Chapters,

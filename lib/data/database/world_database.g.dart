@@ -6722,6 +6722,1307 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
   }
 }
 
+class $ChapterSummariesTable extends ChapterSummaries
+    with TableInfo<$ChapterSummariesTable, ChapterSummary> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChapterSummariesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _chapterIdMeta =
+      const VerificationMeta('chapterId');
+  @override
+  late final GeneratedColumn<String> chapterId = GeneratedColumn<String>(
+      'chapter_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _volumeIdMeta =
+      const VerificationMeta('volumeId');
+  @override
+  late final GeneratedColumn<String> volumeId = GeneratedColumn<String>(
+      'volume_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _hookMeta = const VerificationMeta('hook');
+  @override
+  late final GeneratedColumn<String> hook = GeneratedColumn<String>(
+      'hook', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _majorEventsMeta =
+      const VerificationMeta('majorEvents');
+  @override
+  late final GeneratedColumn<String> majorEvents = GeneratedColumn<String>(
+      'major_events', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _characterArcsMeta =
+      const VerificationMeta('characterArcs');
+  @override
+  late final GeneratedColumn<String> characterArcs = GeneratedColumn<String>(
+      'character_arcs', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _conflictResolutionMeta =
+      const VerificationMeta('conflictResolution');
+  @override
+  late final GeneratedColumn<String> conflictResolution =
+      GeneratedColumn<String>('conflict_resolution', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _emotionalClimaxMeta =
+      const VerificationMeta('emotionalClimax');
+  @override
+  late final GeneratedColumn<String> emotionalClimax = GeneratedColumn<String>(
+      'emotional_climax', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _unansweredQuestionsMeta =
+      const VerificationMeta('unansweredQuestions');
+  @override
+  late final GeneratedColumn<String> unansweredQuestions =
+      GeneratedColumn<String>('unanswered_questions', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sceneCountMeta =
+      const VerificationMeta('sceneCount');
+  @override
+  late final GeneratedColumn<int> sceneCount = GeneratedColumn<int>(
+      'scene_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        chapterId,
+        volumeId,
+        worldId,
+        summary,
+        hook,
+        majorEvents,
+        characterArcs,
+        conflictResolution,
+        emotionalClimax,
+        unansweredQuestions,
+        sceneCount,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chapter_summaries';
+  @override
+  VerificationContext validateIntegrity(Insertable<ChapterSummary> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('chapter_id')) {
+      context.handle(_chapterIdMeta,
+          chapterId.isAcceptableOrUnknown(data['chapter_id']!, _chapterIdMeta));
+    } else if (isInserting) {
+      context.missing(_chapterIdMeta);
+    }
+    if (data.containsKey('volume_id')) {
+      context.handle(_volumeIdMeta,
+          volumeId.isAcceptableOrUnknown(data['volume_id']!, _volumeIdMeta));
+    } else if (isInserting) {
+      context.missing(_volumeIdMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('hook')) {
+      context.handle(
+          _hookMeta, hook.isAcceptableOrUnknown(data['hook']!, _hookMeta));
+    } else if (isInserting) {
+      context.missing(_hookMeta);
+    }
+    if (data.containsKey('major_events')) {
+      context.handle(
+          _majorEventsMeta,
+          majorEvents.isAcceptableOrUnknown(
+              data['major_events']!, _majorEventsMeta));
+    } else if (isInserting) {
+      context.missing(_majorEventsMeta);
+    }
+    if (data.containsKey('character_arcs')) {
+      context.handle(
+          _characterArcsMeta,
+          characterArcs.isAcceptableOrUnknown(
+              data['character_arcs']!, _characterArcsMeta));
+    } else if (isInserting) {
+      context.missing(_characterArcsMeta);
+    }
+    if (data.containsKey('conflict_resolution')) {
+      context.handle(
+          _conflictResolutionMeta,
+          conflictResolution.isAcceptableOrUnknown(
+              data['conflict_resolution']!, _conflictResolutionMeta));
+    } else if (isInserting) {
+      context.missing(_conflictResolutionMeta);
+    }
+    if (data.containsKey('emotional_climax')) {
+      context.handle(
+          _emotionalClimaxMeta,
+          emotionalClimax.isAcceptableOrUnknown(
+              data['emotional_climax']!, _emotionalClimaxMeta));
+    } else if (isInserting) {
+      context.missing(_emotionalClimaxMeta);
+    }
+    if (data.containsKey('unanswered_questions')) {
+      context.handle(
+          _unansweredQuestionsMeta,
+          unansweredQuestions.isAcceptableOrUnknown(
+              data['unanswered_questions']!, _unansweredQuestionsMeta));
+    } else if (isInserting) {
+      context.missing(_unansweredQuestionsMeta);
+    }
+    if (data.containsKey('scene_count')) {
+      context.handle(
+          _sceneCountMeta,
+          sceneCount.isAcceptableOrUnknown(
+              data['scene_count']!, _sceneCountMeta));
+    } else if (isInserting) {
+      context.missing(_sceneCountMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChapterSummary map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChapterSummary(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      chapterId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}chapter_id'])!,
+      volumeId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}volume_id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary'])!,
+      hook: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}hook'])!,
+      majorEvents: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}major_events'])!,
+      characterArcs: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}character_arcs'])!,
+      conflictResolution: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}conflict_resolution'])!,
+      emotionalClimax: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}emotional_climax'])!,
+      unansweredQuestions: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}unanswered_questions'])!,
+      sceneCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}scene_count'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $ChapterSummariesTable createAlias(String alias) {
+    return $ChapterSummariesTable(attachedDatabase, alias);
+  }
+}
+
+class ChapterSummary extends DataClass implements Insertable<ChapterSummary> {
+  String id;
+  String chapterId;
+  String volumeId;
+  String worldId;
+  String summary;
+  String hook;
+  String majorEvents;
+  String characterArcs;
+  String conflictResolution;
+  String emotionalClimax;
+  String unansweredQuestions;
+  int sceneCount;
+  DateTime createdAt;
+  DateTime updatedAt;
+  ChapterSummary(
+      {required this.id,
+      required this.chapterId,
+      required this.volumeId,
+      required this.worldId,
+      required this.summary,
+      required this.hook,
+      required this.majorEvents,
+      required this.characterArcs,
+      required this.conflictResolution,
+      required this.emotionalClimax,
+      required this.unansweredQuestions,
+      required this.sceneCount,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['chapter_id'] = Variable<String>(chapterId);
+    map['volume_id'] = Variable<String>(volumeId);
+    map['world_id'] = Variable<String>(worldId);
+    map['summary'] = Variable<String>(summary);
+    map['hook'] = Variable<String>(hook);
+    map['major_events'] = Variable<String>(majorEvents);
+    map['character_arcs'] = Variable<String>(characterArcs);
+    map['conflict_resolution'] = Variable<String>(conflictResolution);
+    map['emotional_climax'] = Variable<String>(emotionalClimax);
+    map['unanswered_questions'] = Variable<String>(unansweredQuestions);
+    map['scene_count'] = Variable<int>(sceneCount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ChapterSummariesCompanion toCompanion(bool nullToAbsent) {
+    return ChapterSummariesCompanion(
+      id: Value(id),
+      chapterId: Value(chapterId),
+      volumeId: Value(volumeId),
+      worldId: Value(worldId),
+      summary: Value(summary),
+      hook: Value(hook),
+      majorEvents: Value(majorEvents),
+      characterArcs: Value(characterArcs),
+      conflictResolution: Value(conflictResolution),
+      emotionalClimax: Value(emotionalClimax),
+      unansweredQuestions: Value(unansweredQuestions),
+      sceneCount: Value(sceneCount),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ChapterSummary.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChapterSummary(
+      id: serializer.fromJson<String>(json['id']),
+      chapterId: serializer.fromJson<String>(json['chapterId']),
+      volumeId: serializer.fromJson<String>(json['volumeId']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      summary: serializer.fromJson<String>(json['summary']),
+      hook: serializer.fromJson<String>(json['hook']),
+      majorEvents: serializer.fromJson<String>(json['majorEvents']),
+      characterArcs: serializer.fromJson<String>(json['characterArcs']),
+      conflictResolution:
+          serializer.fromJson<String>(json['conflictResolution']),
+      emotionalClimax: serializer.fromJson<String>(json['emotionalClimax']),
+      unansweredQuestions:
+          serializer.fromJson<String>(json['unansweredQuestions']),
+      sceneCount: serializer.fromJson<int>(json['sceneCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'chapterId': serializer.toJson<String>(chapterId),
+      'volumeId': serializer.toJson<String>(volumeId),
+      'worldId': serializer.toJson<String>(worldId),
+      'summary': serializer.toJson<String>(summary),
+      'hook': serializer.toJson<String>(hook),
+      'majorEvents': serializer.toJson<String>(majorEvents),
+      'characterArcs': serializer.toJson<String>(characterArcs),
+      'conflictResolution': serializer.toJson<String>(conflictResolution),
+      'emotionalClimax': serializer.toJson<String>(emotionalClimax),
+      'unansweredQuestions': serializer.toJson<String>(unansweredQuestions),
+      'sceneCount': serializer.toJson<int>(sceneCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ChapterSummary copyWith(
+          {String? id,
+          String? chapterId,
+          String? volumeId,
+          String? worldId,
+          String? summary,
+          String? hook,
+          String? majorEvents,
+          String? characterArcs,
+          String? conflictResolution,
+          String? emotionalClimax,
+          String? unansweredQuestions,
+          int? sceneCount,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      ChapterSummary(
+        id: id ?? this.id,
+        chapterId: chapterId ?? this.chapterId,
+        volumeId: volumeId ?? this.volumeId,
+        worldId: worldId ?? this.worldId,
+        summary: summary ?? this.summary,
+        hook: hook ?? this.hook,
+        majorEvents: majorEvents ?? this.majorEvents,
+        characterArcs: characterArcs ?? this.characterArcs,
+        conflictResolution: conflictResolution ?? this.conflictResolution,
+        emotionalClimax: emotionalClimax ?? this.emotionalClimax,
+        unansweredQuestions: unansweredQuestions ?? this.unansweredQuestions,
+        sceneCount: sceneCount ?? this.sceneCount,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  ChapterSummary copyWithCompanion(ChapterSummariesCompanion data) {
+    return ChapterSummary(
+      id: data.id.present ? data.id.value : this.id,
+      chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
+      volumeId: data.volumeId.present ? data.volumeId.value : this.volumeId,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      hook: data.hook.present ? data.hook.value : this.hook,
+      majorEvents:
+          data.majorEvents.present ? data.majorEvents.value : this.majorEvents,
+      characterArcs: data.characterArcs.present
+          ? data.characterArcs.value
+          : this.characterArcs,
+      conflictResolution: data.conflictResolution.present
+          ? data.conflictResolution.value
+          : this.conflictResolution,
+      emotionalClimax: data.emotionalClimax.present
+          ? data.emotionalClimax.value
+          : this.emotionalClimax,
+      unansweredQuestions: data.unansweredQuestions.present
+          ? data.unansweredQuestions.value
+          : this.unansweredQuestions,
+      sceneCount:
+          data.sceneCount.present ? data.sceneCount.value : this.sceneCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChapterSummary(')
+          ..write('id: $id, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('volumeId: $volumeId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('hook: $hook, ')
+          ..write('majorEvents: $majorEvents, ')
+          ..write('characterArcs: $characterArcs, ')
+          ..write('conflictResolution: $conflictResolution, ')
+          ..write('emotionalClimax: $emotionalClimax, ')
+          ..write('unansweredQuestions: $unansweredQuestions, ')
+          ..write('sceneCount: $sceneCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      chapterId,
+      volumeId,
+      worldId,
+      summary,
+      hook,
+      majorEvents,
+      characterArcs,
+      conflictResolution,
+      emotionalClimax,
+      unansweredQuestions,
+      sceneCount,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChapterSummary &&
+          other.id == this.id &&
+          other.chapterId == this.chapterId &&
+          other.volumeId == this.volumeId &&
+          other.worldId == this.worldId &&
+          other.summary == this.summary &&
+          other.hook == this.hook &&
+          other.majorEvents == this.majorEvents &&
+          other.characterArcs == this.characterArcs &&
+          other.conflictResolution == this.conflictResolution &&
+          other.emotionalClimax == this.emotionalClimax &&
+          other.unansweredQuestions == this.unansweredQuestions &&
+          other.sceneCount == this.sceneCount &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ChapterSummariesCompanion extends UpdateCompanion<ChapterSummary> {
+  Value<String> id;
+  Value<String> chapterId;
+  Value<String> volumeId;
+  Value<String> worldId;
+  Value<String> summary;
+  Value<String> hook;
+  Value<String> majorEvents;
+  Value<String> characterArcs;
+  Value<String> conflictResolution;
+  Value<String> emotionalClimax;
+  Value<String> unansweredQuestions;
+  Value<int> sceneCount;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  ChapterSummariesCompanion({
+    this.id = const Value.absent(),
+    this.chapterId = const Value.absent(),
+    this.volumeId = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.hook = const Value.absent(),
+    this.majorEvents = const Value.absent(),
+    this.characterArcs = const Value.absent(),
+    this.conflictResolution = const Value.absent(),
+    this.emotionalClimax = const Value.absent(),
+    this.unansweredQuestions = const Value.absent(),
+    this.sceneCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChapterSummariesCompanion.insert({
+    required String id,
+    required String chapterId,
+    required String volumeId,
+    required String worldId,
+    required String summary,
+    required String hook,
+    required String majorEvents,
+    required String characterArcs,
+    required String conflictResolution,
+    required String emotionalClimax,
+    required String unansweredQuestions,
+    required int sceneCount,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        chapterId = Value(chapterId),
+        volumeId = Value(volumeId),
+        worldId = Value(worldId),
+        summary = Value(summary),
+        hook = Value(hook),
+        majorEvents = Value(majorEvents),
+        characterArcs = Value(characterArcs),
+        conflictResolution = Value(conflictResolution),
+        emotionalClimax = Value(emotionalClimax),
+        unansweredQuestions = Value(unansweredQuestions),
+        sceneCount = Value(sceneCount),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<ChapterSummary> custom({
+    Expression<String>? id,
+    Expression<String>? chapterId,
+    Expression<String>? volumeId,
+    Expression<String>? worldId,
+    Expression<String>? summary,
+    Expression<String>? hook,
+    Expression<String>? majorEvents,
+    Expression<String>? characterArcs,
+    Expression<String>? conflictResolution,
+    Expression<String>? emotionalClimax,
+    Expression<String>? unansweredQuestions,
+    Expression<int>? sceneCount,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (chapterId != null) 'chapter_id': chapterId,
+      if (volumeId != null) 'volume_id': volumeId,
+      if (worldId != null) 'world_id': worldId,
+      if (summary != null) 'summary': summary,
+      if (hook != null) 'hook': hook,
+      if (majorEvents != null) 'major_events': majorEvents,
+      if (characterArcs != null) 'character_arcs': characterArcs,
+      if (conflictResolution != null) 'conflict_resolution': conflictResolution,
+      if (emotionalClimax != null) 'emotional_climax': emotionalClimax,
+      if (unansweredQuestions != null)
+        'unanswered_questions': unansweredQuestions,
+      if (sceneCount != null) 'scene_count': sceneCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChapterSummariesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? chapterId,
+      Value<String>? volumeId,
+      Value<String>? worldId,
+      Value<String>? summary,
+      Value<String>? hook,
+      Value<String>? majorEvents,
+      Value<String>? characterArcs,
+      Value<String>? conflictResolution,
+      Value<String>? emotionalClimax,
+      Value<String>? unansweredQuestions,
+      Value<int>? sceneCount,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return ChapterSummariesCompanion(
+      id: id ?? this.id,
+      chapterId: chapterId ?? this.chapterId,
+      volumeId: volumeId ?? this.volumeId,
+      worldId: worldId ?? this.worldId,
+      summary: summary ?? this.summary,
+      hook: hook ?? this.hook,
+      majorEvents: majorEvents ?? this.majorEvents,
+      characterArcs: characterArcs ?? this.characterArcs,
+      conflictResolution: conflictResolution ?? this.conflictResolution,
+      emotionalClimax: emotionalClimax ?? this.emotionalClimax,
+      unansweredQuestions: unansweredQuestions ?? this.unansweredQuestions,
+      sceneCount: sceneCount ?? this.sceneCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (chapterId.present) {
+      map['chapter_id'] = Variable<String>(chapterId.value);
+    }
+    if (volumeId.present) {
+      map['volume_id'] = Variable<String>(volumeId.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (hook.present) {
+      map['hook'] = Variable<String>(hook.value);
+    }
+    if (majorEvents.present) {
+      map['major_events'] = Variable<String>(majorEvents.value);
+    }
+    if (characterArcs.present) {
+      map['character_arcs'] = Variable<String>(characterArcs.value);
+    }
+    if (conflictResolution.present) {
+      map['conflict_resolution'] = Variable<String>(conflictResolution.value);
+    }
+    if (emotionalClimax.present) {
+      map['emotional_climax'] = Variable<String>(emotionalClimax.value);
+    }
+    if (unansweredQuestions.present) {
+      map['unanswered_questions'] = Variable<String>(unansweredQuestions.value);
+    }
+    if (sceneCount.present) {
+      map['scene_count'] = Variable<int>(sceneCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChapterSummariesCompanion(')
+          ..write('id: $id, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('volumeId: $volumeId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('hook: $hook, ')
+          ..write('majorEvents: $majorEvents, ')
+          ..write('characterArcs: $characterArcs, ')
+          ..write('conflictResolution: $conflictResolution, ')
+          ..write('emotionalClimax: $emotionalClimax, ')
+          ..write('unansweredQuestions: $unansweredQuestions, ')
+          ..write('sceneCount: $sceneCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VolumeSummariesTable extends VolumeSummaries
+    with TableInfo<$VolumeSummariesTable, VolumeSummary> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VolumeSummariesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _volumeIdMeta =
+      const VerificationMeta('volumeId');
+  @override
+  late final GeneratedColumn<String> volumeId = GeneratedColumn<String>(
+      'volume_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _mainCharactersMeta =
+      const VerificationMeta('mainCharacters');
+  @override
+  late final GeneratedColumn<String> mainCharacters = GeneratedColumn<String>(
+      'main_characters', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _storyArcMeta =
+      const VerificationMeta('storyArc');
+  @override
+  late final GeneratedColumn<String> storyArc = GeneratedColumn<String>(
+      'story_arc', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _majorPlotPointsMeta =
+      const VerificationMeta('majorPlotPoints');
+  @override
+  late final GeneratedColumn<String> majorPlotPoints = GeneratedColumn<String>(
+      'major_plot_points', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _unresolvedThreadsMeta =
+      const VerificationMeta('unresolvedThreads');
+  @override
+  late final GeneratedColumn<String> unresolvedThreads =
+      GeneratedColumn<String>('unresolved_threads', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _chapterCountMeta =
+      const VerificationMeta('chapterCount');
+  @override
+  late final GeneratedColumn<int> chapterCount = GeneratedColumn<int>(
+      'chapter_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        volumeId,
+        worldId,
+        summary,
+        status,
+        mainCharacters,
+        storyArc,
+        majorPlotPoints,
+        unresolvedThreads,
+        chapterCount,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'volume_summaries';
+  @override
+  VerificationContext validateIntegrity(Insertable<VolumeSummary> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('volume_id')) {
+      context.handle(_volumeIdMeta,
+          volumeId.isAcceptableOrUnknown(data['volume_id']!, _volumeIdMeta));
+    } else if (isInserting) {
+      context.missing(_volumeIdMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('main_characters')) {
+      context.handle(
+          _mainCharactersMeta,
+          mainCharacters.isAcceptableOrUnknown(
+              data['main_characters']!, _mainCharactersMeta));
+    } else if (isInserting) {
+      context.missing(_mainCharactersMeta);
+    }
+    if (data.containsKey('story_arc')) {
+      context.handle(_storyArcMeta,
+          storyArc.isAcceptableOrUnknown(data['story_arc']!, _storyArcMeta));
+    } else if (isInserting) {
+      context.missing(_storyArcMeta);
+    }
+    if (data.containsKey('major_plot_points')) {
+      context.handle(
+          _majorPlotPointsMeta,
+          majorPlotPoints.isAcceptableOrUnknown(
+              data['major_plot_points']!, _majorPlotPointsMeta));
+    } else if (isInserting) {
+      context.missing(_majorPlotPointsMeta);
+    }
+    if (data.containsKey('unresolved_threads')) {
+      context.handle(
+          _unresolvedThreadsMeta,
+          unresolvedThreads.isAcceptableOrUnknown(
+              data['unresolved_threads']!, _unresolvedThreadsMeta));
+    } else if (isInserting) {
+      context.missing(_unresolvedThreadsMeta);
+    }
+    if (data.containsKey('chapter_count')) {
+      context.handle(
+          _chapterCountMeta,
+          chapterCount.isAcceptableOrUnknown(
+              data['chapter_count']!, _chapterCountMeta));
+    } else if (isInserting) {
+      context.missing(_chapterCountMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VolumeSummary map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VolumeSummary(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      volumeId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}volume_id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      mainCharacters: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}main_characters'])!,
+      storyArc: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}story_arc'])!,
+      majorPlotPoints: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}major_plot_points'])!,
+      unresolvedThreads: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}unresolved_threads'])!,
+      chapterCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}chapter_count'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $VolumeSummariesTable createAlias(String alias) {
+    return $VolumeSummariesTable(attachedDatabase, alias);
+  }
+}
+
+class VolumeSummary extends DataClass implements Insertable<VolumeSummary> {
+  String id;
+  String volumeId;
+  String worldId;
+  String summary;
+  String status;
+  String mainCharacters;
+  String storyArc;
+  String majorPlotPoints;
+  String unresolvedThreads;
+  int chapterCount;
+  DateTime createdAt;
+  DateTime updatedAt;
+  VolumeSummary(
+      {required this.id,
+      required this.volumeId,
+      required this.worldId,
+      required this.summary,
+      required this.status,
+      required this.mainCharacters,
+      required this.storyArc,
+      required this.majorPlotPoints,
+      required this.unresolvedThreads,
+      required this.chapterCount,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['volume_id'] = Variable<String>(volumeId);
+    map['world_id'] = Variable<String>(worldId);
+    map['summary'] = Variable<String>(summary);
+    map['status'] = Variable<String>(status);
+    map['main_characters'] = Variable<String>(mainCharacters);
+    map['story_arc'] = Variable<String>(storyArc);
+    map['major_plot_points'] = Variable<String>(majorPlotPoints);
+    map['unresolved_threads'] = Variable<String>(unresolvedThreads);
+    map['chapter_count'] = Variable<int>(chapterCount);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  VolumeSummariesCompanion toCompanion(bool nullToAbsent) {
+    return VolumeSummariesCompanion(
+      id: Value(id),
+      volumeId: Value(volumeId),
+      worldId: Value(worldId),
+      summary: Value(summary),
+      status: Value(status),
+      mainCharacters: Value(mainCharacters),
+      storyArc: Value(storyArc),
+      majorPlotPoints: Value(majorPlotPoints),
+      unresolvedThreads: Value(unresolvedThreads),
+      chapterCount: Value(chapterCount),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory VolumeSummary.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VolumeSummary(
+      id: serializer.fromJson<String>(json['id']),
+      volumeId: serializer.fromJson<String>(json['volumeId']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      summary: serializer.fromJson<String>(json['summary']),
+      status: serializer.fromJson<String>(json['status']),
+      mainCharacters: serializer.fromJson<String>(json['mainCharacters']),
+      storyArc: serializer.fromJson<String>(json['storyArc']),
+      majorPlotPoints: serializer.fromJson<String>(json['majorPlotPoints']),
+      unresolvedThreads: serializer.fromJson<String>(json['unresolvedThreads']),
+      chapterCount: serializer.fromJson<int>(json['chapterCount']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'volumeId': serializer.toJson<String>(volumeId),
+      'worldId': serializer.toJson<String>(worldId),
+      'summary': serializer.toJson<String>(summary),
+      'status': serializer.toJson<String>(status),
+      'mainCharacters': serializer.toJson<String>(mainCharacters),
+      'storyArc': serializer.toJson<String>(storyArc),
+      'majorPlotPoints': serializer.toJson<String>(majorPlotPoints),
+      'unresolvedThreads': serializer.toJson<String>(unresolvedThreads),
+      'chapterCount': serializer.toJson<int>(chapterCount),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  VolumeSummary copyWith(
+          {String? id,
+          String? volumeId,
+          String? worldId,
+          String? summary,
+          String? status,
+          String? mainCharacters,
+          String? storyArc,
+          String? majorPlotPoints,
+          String? unresolvedThreads,
+          int? chapterCount,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      VolumeSummary(
+        id: id ?? this.id,
+        volumeId: volumeId ?? this.volumeId,
+        worldId: worldId ?? this.worldId,
+        summary: summary ?? this.summary,
+        status: status ?? this.status,
+        mainCharacters: mainCharacters ?? this.mainCharacters,
+        storyArc: storyArc ?? this.storyArc,
+        majorPlotPoints: majorPlotPoints ?? this.majorPlotPoints,
+        unresolvedThreads: unresolvedThreads ?? this.unresolvedThreads,
+        chapterCount: chapterCount ?? this.chapterCount,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  VolumeSummary copyWithCompanion(VolumeSummariesCompanion data) {
+    return VolumeSummary(
+      id: data.id.present ? data.id.value : this.id,
+      volumeId: data.volumeId.present ? data.volumeId.value : this.volumeId,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      status: data.status.present ? data.status.value : this.status,
+      mainCharacters: data.mainCharacters.present
+          ? data.mainCharacters.value
+          : this.mainCharacters,
+      storyArc: data.storyArc.present ? data.storyArc.value : this.storyArc,
+      majorPlotPoints: data.majorPlotPoints.present
+          ? data.majorPlotPoints.value
+          : this.majorPlotPoints,
+      unresolvedThreads: data.unresolvedThreads.present
+          ? data.unresolvedThreads.value
+          : this.unresolvedThreads,
+      chapterCount: data.chapterCount.present
+          ? data.chapterCount.value
+          : this.chapterCount,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VolumeSummary(')
+          ..write('id: $id, ')
+          ..write('volumeId: $volumeId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('status: $status, ')
+          ..write('mainCharacters: $mainCharacters, ')
+          ..write('storyArc: $storyArc, ')
+          ..write('majorPlotPoints: $majorPlotPoints, ')
+          ..write('unresolvedThreads: $unresolvedThreads, ')
+          ..write('chapterCount: $chapterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      volumeId,
+      worldId,
+      summary,
+      status,
+      mainCharacters,
+      storyArc,
+      majorPlotPoints,
+      unresolvedThreads,
+      chapterCount,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VolumeSummary &&
+          other.id == this.id &&
+          other.volumeId == this.volumeId &&
+          other.worldId == this.worldId &&
+          other.summary == this.summary &&
+          other.status == this.status &&
+          other.mainCharacters == this.mainCharacters &&
+          other.storyArc == this.storyArc &&
+          other.majorPlotPoints == this.majorPlotPoints &&
+          other.unresolvedThreads == this.unresolvedThreads &&
+          other.chapterCount == this.chapterCount &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class VolumeSummariesCompanion extends UpdateCompanion<VolumeSummary> {
+  Value<String> id;
+  Value<String> volumeId;
+  Value<String> worldId;
+  Value<String> summary;
+  Value<String> status;
+  Value<String> mainCharacters;
+  Value<String> storyArc;
+  Value<String> majorPlotPoints;
+  Value<String> unresolvedThreads;
+  Value<int> chapterCount;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  VolumeSummariesCompanion({
+    this.id = const Value.absent(),
+    this.volumeId = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.status = const Value.absent(),
+    this.mainCharacters = const Value.absent(),
+    this.storyArc = const Value.absent(),
+    this.majorPlotPoints = const Value.absent(),
+    this.unresolvedThreads = const Value.absent(),
+    this.chapterCount = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VolumeSummariesCompanion.insert({
+    required String id,
+    required String volumeId,
+    required String worldId,
+    required String summary,
+    required String status,
+    required String mainCharacters,
+    required String storyArc,
+    required String majorPlotPoints,
+    required String unresolvedThreads,
+    required int chapterCount,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        volumeId = Value(volumeId),
+        worldId = Value(worldId),
+        summary = Value(summary),
+        status = Value(status),
+        mainCharacters = Value(mainCharacters),
+        storyArc = Value(storyArc),
+        majorPlotPoints = Value(majorPlotPoints),
+        unresolvedThreads = Value(unresolvedThreads),
+        chapterCount = Value(chapterCount),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<VolumeSummary> custom({
+    Expression<String>? id,
+    Expression<String>? volumeId,
+    Expression<String>? worldId,
+    Expression<String>? summary,
+    Expression<String>? status,
+    Expression<String>? mainCharacters,
+    Expression<String>? storyArc,
+    Expression<String>? majorPlotPoints,
+    Expression<String>? unresolvedThreads,
+    Expression<int>? chapterCount,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (volumeId != null) 'volume_id': volumeId,
+      if (worldId != null) 'world_id': worldId,
+      if (summary != null) 'summary': summary,
+      if (status != null) 'status': status,
+      if (mainCharacters != null) 'main_characters': mainCharacters,
+      if (storyArc != null) 'story_arc': storyArc,
+      if (majorPlotPoints != null) 'major_plot_points': majorPlotPoints,
+      if (unresolvedThreads != null) 'unresolved_threads': unresolvedThreads,
+      if (chapterCount != null) 'chapter_count': chapterCount,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VolumeSummariesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? volumeId,
+      Value<String>? worldId,
+      Value<String>? summary,
+      Value<String>? status,
+      Value<String>? mainCharacters,
+      Value<String>? storyArc,
+      Value<String>? majorPlotPoints,
+      Value<String>? unresolvedThreads,
+      Value<int>? chapterCount,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return VolumeSummariesCompanion(
+      id: id ?? this.id,
+      volumeId: volumeId ?? this.volumeId,
+      worldId: worldId ?? this.worldId,
+      summary: summary ?? this.summary,
+      status: status ?? this.status,
+      mainCharacters: mainCharacters ?? this.mainCharacters,
+      storyArc: storyArc ?? this.storyArc,
+      majorPlotPoints: majorPlotPoints ?? this.majorPlotPoints,
+      unresolvedThreads: unresolvedThreads ?? this.unresolvedThreads,
+      chapterCount: chapterCount ?? this.chapterCount,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (volumeId.present) {
+      map['volume_id'] = Variable<String>(volumeId.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (mainCharacters.present) {
+      map['main_characters'] = Variable<String>(mainCharacters.value);
+    }
+    if (storyArc.present) {
+      map['story_arc'] = Variable<String>(storyArc.value);
+    }
+    if (majorPlotPoints.present) {
+      map['major_plot_points'] = Variable<String>(majorPlotPoints.value);
+    }
+    if (unresolvedThreads.present) {
+      map['unresolved_threads'] = Variable<String>(unresolvedThreads.value);
+    }
+    if (chapterCount.present) {
+      map['chapter_count'] = Variable<int>(chapterCount.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VolumeSummariesCompanion(')
+          ..write('id: $id, ')
+          ..write('volumeId: $volumeId, ')
+          ..write('worldId: $worldId, ')
+          ..write('summary: $summary, ')
+          ..write('status: $status, ')
+          ..write('mainCharacters: $mainCharacters, ')
+          ..write('storyArc: $storyArc, ')
+          ..write('majorPlotPoints: $majorPlotPoints, ')
+          ..write('unresolvedThreads: $unresolvedThreads, ')
+          ..write('chapterCount: $chapterCount, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorksTable extends Works with TableInfo<$WorksTable, Work> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -8813,6 +10114,10 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
   late final $ButterflyAnalysesTable butterflyAnalyses =
       $ButterflyAnalysesTable(this);
   late final $SceneSummariesTable sceneSummaries = $SceneSummariesTable(this);
+  late final $ChapterSummariesTable chapterSummaries =
+      $ChapterSummariesTable(this);
+  late final $VolumeSummariesTable volumeSummaries =
+      $VolumeSummariesTable(this);
   late final $WorksTable works = $WorksTable(this);
   late final $VolumesTable volumes = $VolumesTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
@@ -8836,6 +10141,8 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
         foreshadowings,
         butterflyAnalyses,
         sceneSummaries,
+        chapterSummaries,
+        volumeSummaries,
         works,
         volumes,
         chapters,
@@ -12039,6 +13346,608 @@ typedef $$SceneSummariesTableProcessedTableManager = ProcessedTableManager<
     ),
     SceneSummary,
     PrefetchHooks Function()>;
+typedef $$ChapterSummariesTableCreateCompanionBuilder
+    = ChapterSummariesCompanion Function({
+  required String id,
+  required String chapterId,
+  required String volumeId,
+  required String worldId,
+  required String summary,
+  required String hook,
+  required String majorEvents,
+  required String characterArcs,
+  required String conflictResolution,
+  required String emotionalClimax,
+  required String unansweredQuestions,
+  required int sceneCount,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$ChapterSummariesTableUpdateCompanionBuilder
+    = ChapterSummariesCompanion Function({
+  Value<String> id,
+  Value<String> chapterId,
+  Value<String> volumeId,
+  Value<String> worldId,
+  Value<String> summary,
+  Value<String> hook,
+  Value<String> majorEvents,
+  Value<String> characterArcs,
+  Value<String> conflictResolution,
+  Value<String> emotionalClimax,
+  Value<String> unansweredQuestions,
+  Value<int> sceneCount,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$ChapterSummariesTableFilterComposer
+    extends Composer<_$WorldDatabase, $ChapterSummariesTable> {
+  $$ChapterSummariesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get volumeId => $composableBuilder(
+      column: $table.volumeId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get hook => $composableBuilder(
+      column: $table.hook, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get majorEvents => $composableBuilder(
+      column: $table.majorEvents, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get characterArcs => $composableBuilder(
+      column: $table.characterArcs, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get conflictResolution => $composableBuilder(
+      column: $table.conflictResolution,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get emotionalClimax => $composableBuilder(
+      column: $table.emotionalClimax,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unansweredQuestions => $composableBuilder(
+      column: $table.unansweredQuestions,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sceneCount => $composableBuilder(
+      column: $table.sceneCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ChapterSummariesTableOrderingComposer
+    extends Composer<_$WorldDatabase, $ChapterSummariesTable> {
+  $$ChapterSummariesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get volumeId => $composableBuilder(
+      column: $table.volumeId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get hook => $composableBuilder(
+      column: $table.hook, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get majorEvents => $composableBuilder(
+      column: $table.majorEvents, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get characterArcs => $composableBuilder(
+      column: $table.characterArcs,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get conflictResolution => $composableBuilder(
+      column: $table.conflictResolution,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get emotionalClimax => $composableBuilder(
+      column: $table.emotionalClimax,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unansweredQuestions => $composableBuilder(
+      column: $table.unansweredQuestions,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sceneCount => $composableBuilder(
+      column: $table.sceneCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ChapterSummariesTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $ChapterSummariesTable> {
+  $$ChapterSummariesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get chapterId =>
+      $composableBuilder(column: $table.chapterId, builder: (column) => column);
+
+  GeneratedColumn<String> get volumeId =>
+      $composableBuilder(column: $table.volumeId, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get hook =>
+      $composableBuilder(column: $table.hook, builder: (column) => column);
+
+  GeneratedColumn<String> get majorEvents => $composableBuilder(
+      column: $table.majorEvents, builder: (column) => column);
+
+  GeneratedColumn<String> get characterArcs => $composableBuilder(
+      column: $table.characterArcs, builder: (column) => column);
+
+  GeneratedColumn<String> get conflictResolution => $composableBuilder(
+      column: $table.conflictResolution, builder: (column) => column);
+
+  GeneratedColumn<String> get emotionalClimax => $composableBuilder(
+      column: $table.emotionalClimax, builder: (column) => column);
+
+  GeneratedColumn<String> get unansweredQuestions => $composableBuilder(
+      column: $table.unansweredQuestions, builder: (column) => column);
+
+  GeneratedColumn<int> get sceneCount => $composableBuilder(
+      column: $table.sceneCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ChapterSummariesTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $ChapterSummariesTable,
+    ChapterSummary,
+    $$ChapterSummariesTableFilterComposer,
+    $$ChapterSummariesTableOrderingComposer,
+    $$ChapterSummariesTableAnnotationComposer,
+    $$ChapterSummariesTableCreateCompanionBuilder,
+    $$ChapterSummariesTableUpdateCompanionBuilder,
+    (
+      ChapterSummary,
+      BaseReferences<_$WorldDatabase, $ChapterSummariesTable, ChapterSummary>
+    ),
+    ChapterSummary,
+    PrefetchHooks Function()> {
+  $$ChapterSummariesTableTableManager(
+      _$WorldDatabase db, $ChapterSummariesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChapterSummariesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChapterSummariesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChapterSummariesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> chapterId = const Value.absent(),
+            Value<String> volumeId = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String> summary = const Value.absent(),
+            Value<String> hook = const Value.absent(),
+            Value<String> majorEvents = const Value.absent(),
+            Value<String> characterArcs = const Value.absent(),
+            Value<String> conflictResolution = const Value.absent(),
+            Value<String> emotionalClimax = const Value.absent(),
+            Value<String> unansweredQuestions = const Value.absent(),
+            Value<int> sceneCount = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChapterSummariesCompanion(
+            id: id,
+            chapterId: chapterId,
+            volumeId: volumeId,
+            worldId: worldId,
+            summary: summary,
+            hook: hook,
+            majorEvents: majorEvents,
+            characterArcs: characterArcs,
+            conflictResolution: conflictResolution,
+            emotionalClimax: emotionalClimax,
+            unansweredQuestions: unansweredQuestions,
+            sceneCount: sceneCount,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String chapterId,
+            required String volumeId,
+            required String worldId,
+            required String summary,
+            required String hook,
+            required String majorEvents,
+            required String characterArcs,
+            required String conflictResolution,
+            required String emotionalClimax,
+            required String unansweredQuestions,
+            required int sceneCount,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ChapterSummariesCompanion.insert(
+            id: id,
+            chapterId: chapterId,
+            volumeId: volumeId,
+            worldId: worldId,
+            summary: summary,
+            hook: hook,
+            majorEvents: majorEvents,
+            characterArcs: characterArcs,
+            conflictResolution: conflictResolution,
+            emotionalClimax: emotionalClimax,
+            unansweredQuestions: unansweredQuestions,
+            sceneCount: sceneCount,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ChapterSummariesTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $ChapterSummariesTable,
+    ChapterSummary,
+    $$ChapterSummariesTableFilterComposer,
+    $$ChapterSummariesTableOrderingComposer,
+    $$ChapterSummariesTableAnnotationComposer,
+    $$ChapterSummariesTableCreateCompanionBuilder,
+    $$ChapterSummariesTableUpdateCompanionBuilder,
+    (
+      ChapterSummary,
+      BaseReferences<_$WorldDatabase, $ChapterSummariesTable, ChapterSummary>
+    ),
+    ChapterSummary,
+    PrefetchHooks Function()>;
+typedef $$VolumeSummariesTableCreateCompanionBuilder = VolumeSummariesCompanion
+    Function({
+  required String id,
+  required String volumeId,
+  required String worldId,
+  required String summary,
+  required String status,
+  required String mainCharacters,
+  required String storyArc,
+  required String majorPlotPoints,
+  required String unresolvedThreads,
+  required int chapterCount,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$VolumeSummariesTableUpdateCompanionBuilder = VolumeSummariesCompanion
+    Function({
+  Value<String> id,
+  Value<String> volumeId,
+  Value<String> worldId,
+  Value<String> summary,
+  Value<String> status,
+  Value<String> mainCharacters,
+  Value<String> storyArc,
+  Value<String> majorPlotPoints,
+  Value<String> unresolvedThreads,
+  Value<int> chapterCount,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$VolumeSummariesTableFilterComposer
+    extends Composer<_$WorldDatabase, $VolumeSummariesTable> {
+  $$VolumeSummariesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get volumeId => $composableBuilder(
+      column: $table.volumeId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mainCharacters => $composableBuilder(
+      column: $table.mainCharacters,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get storyArc => $composableBuilder(
+      column: $table.storyArc, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get majorPlotPoints => $composableBuilder(
+      column: $table.majorPlotPoints,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unresolvedThreads => $composableBuilder(
+      column: $table.unresolvedThreads,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get chapterCount => $composableBuilder(
+      column: $table.chapterCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$VolumeSummariesTableOrderingComposer
+    extends Composer<_$WorldDatabase, $VolumeSummariesTable> {
+  $$VolumeSummariesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get volumeId => $composableBuilder(
+      column: $table.volumeId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mainCharacters => $composableBuilder(
+      column: $table.mainCharacters,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get storyArc => $composableBuilder(
+      column: $table.storyArc, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get majorPlotPoints => $composableBuilder(
+      column: $table.majorPlotPoints,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unresolvedThreads => $composableBuilder(
+      column: $table.unresolvedThreads,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get chapterCount => $composableBuilder(
+      column: $table.chapterCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$VolumeSummariesTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $VolumeSummariesTable> {
+  $$VolumeSummariesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get volumeId =>
+      $composableBuilder(column: $table.volumeId, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get mainCharacters => $composableBuilder(
+      column: $table.mainCharacters, builder: (column) => column);
+
+  GeneratedColumn<String> get storyArc =>
+      $composableBuilder(column: $table.storyArc, builder: (column) => column);
+
+  GeneratedColumn<String> get majorPlotPoints => $composableBuilder(
+      column: $table.majorPlotPoints, builder: (column) => column);
+
+  GeneratedColumn<String> get unresolvedThreads => $composableBuilder(
+      column: $table.unresolvedThreads, builder: (column) => column);
+
+  GeneratedColumn<int> get chapterCount => $composableBuilder(
+      column: $table.chapterCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$VolumeSummariesTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $VolumeSummariesTable,
+    VolumeSummary,
+    $$VolumeSummariesTableFilterComposer,
+    $$VolumeSummariesTableOrderingComposer,
+    $$VolumeSummariesTableAnnotationComposer,
+    $$VolumeSummariesTableCreateCompanionBuilder,
+    $$VolumeSummariesTableUpdateCompanionBuilder,
+    (
+      VolumeSummary,
+      BaseReferences<_$WorldDatabase, $VolumeSummariesTable, VolumeSummary>
+    ),
+    VolumeSummary,
+    PrefetchHooks Function()> {
+  $$VolumeSummariesTableTableManager(
+      _$WorldDatabase db, $VolumeSummariesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VolumeSummariesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VolumeSummariesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VolumeSummariesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> volumeId = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String> summary = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String> mainCharacters = const Value.absent(),
+            Value<String> storyArc = const Value.absent(),
+            Value<String> majorPlotPoints = const Value.absent(),
+            Value<String> unresolvedThreads = const Value.absent(),
+            Value<int> chapterCount = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              VolumeSummariesCompanion(
+            id: id,
+            volumeId: volumeId,
+            worldId: worldId,
+            summary: summary,
+            status: status,
+            mainCharacters: mainCharacters,
+            storyArc: storyArc,
+            majorPlotPoints: majorPlotPoints,
+            unresolvedThreads: unresolvedThreads,
+            chapterCount: chapterCount,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String volumeId,
+            required String worldId,
+            required String summary,
+            required String status,
+            required String mainCharacters,
+            required String storyArc,
+            required String majorPlotPoints,
+            required String unresolvedThreads,
+            required int chapterCount,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              VolumeSummariesCompanion.insert(
+            id: id,
+            volumeId: volumeId,
+            worldId: worldId,
+            summary: summary,
+            status: status,
+            mainCharacters: mainCharacters,
+            storyArc: storyArc,
+            majorPlotPoints: majorPlotPoints,
+            unresolvedThreads: unresolvedThreads,
+            chapterCount: chapterCount,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$VolumeSummariesTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $VolumeSummariesTable,
+    VolumeSummary,
+    $$VolumeSummariesTableFilterComposer,
+    $$VolumeSummariesTableOrderingComposer,
+    $$VolumeSummariesTableAnnotationComposer,
+    $$VolumeSummariesTableCreateCompanionBuilder,
+    $$VolumeSummariesTableUpdateCompanionBuilder,
+    (
+      VolumeSummary,
+      BaseReferences<_$WorldDatabase, $VolumeSummariesTable, VolumeSummary>
+    ),
+    VolumeSummary,
+    PrefetchHooks Function()>;
 typedef $$WorksTableCreateCompanionBuilder = WorksCompanion Function({
   required String id,
   required String worldId,
@@ -13097,6 +15006,10 @@ class $WorldDatabaseManager {
       $$ButterflyAnalysesTableTableManager(_db, _db.butterflyAnalyses);
   $$SceneSummariesTableTableManager get sceneSummaries =>
       $$SceneSummariesTableTableManager(_db, _db.sceneSummaries);
+  $$ChapterSummariesTableTableManager get chapterSummaries =>
+      $$ChapterSummariesTableTableManager(_db, _db.chapterSummaries);
+  $$VolumeSummariesTableTableManager get volumeSummaries =>
+      $$VolumeSummariesTableTableManager(_db, _db.volumeSummaries);
   $$WorksTableTableManager get works =>
       $$WorksTableTableManager(_db, _db.works);
   $$VolumesTableTableManager get volumes =>
