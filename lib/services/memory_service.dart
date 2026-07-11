@@ -12,6 +12,7 @@ import '../data/database/world_database.dart';
 import '../services/interfaces/i_memory_service.dart';
 import '../services/ai_service.dart';
 import '../utils/memory_prompt_templates.dart';
+import 'generation/context_builder.dart';
 
 const _uuid = Uuid();
 
@@ -20,11 +21,14 @@ class MemoryService implements IMemoryService {
   MemoryService({
     required DatabaseManager databaseManager,
     required AIService aiService,
+    DocumentService? documentService,
   })  : _databaseManager = databaseManager,
-        _aiService = aiService;
+        _aiService = aiService,
+        _documentService = documentService;
 
   final DatabaseManager _databaseManager;
   final AIService _aiService;
+  final DocumentService? _documentService;
 
   Future<WorldDatabase> _db(String worldId) =>
       _databaseManager.getDatabase(worldId);
