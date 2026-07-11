@@ -35,7 +35,10 @@ class WorldService {
     required this.canonRepository,
     required this.timelineRepository,
     required this.factionRepository,
+    this.memoryService,
   });
+
+  final MemoryService? memoryService;
   final DatabaseManager databaseManager;
   final WorkRepository workRepository;
   final VolumeRepository volumeRepository;
@@ -257,6 +260,47 @@ class WorldService {
     return (db.select(db.documents)
           ..where((t) => t.id.equals(scenes.first.documentId)))
         .getSingleOrNull();
+  }
+
+  /// 检查章节是否所有场景完成，如果是则触发章摘要
+  Future<void> checkChapterCompletion(String chapterId, String worldId) async {
+    if (memoryService == null) return;
+    final db = await databaseManager.getDatabase(worldId);
+    final scenes = await (db.select(db.scenes)
+        ..where((t) => t.chapterId.equals(chapterId))).get();
+    final summaries = await (db.select(db.sceneSummaries)
+        ..where((t) => t.chapterId.equals(chapterId))).get();
+    // 所有场景都有摘要时才触发章摘要
+    if (scenes.isNotEmpty && scenes.length == summaries.length) {
+      try {
+        await memoryService!.summarizeChapter(chapterId);
+      } catch (_) {}
+    }
+  }
+
+  /// 检查卷是否所有章节完成，如果是则触发卷摘要
+  Future<void> checkVolumeCompletion(String volumeId, String worldId) async {
+    if (memoryService == null) return;
+    final db = await databaseManager.getDatabase(worldId);
+    final chapters = await (db.select(db.chapters)
+        ..where((t) => t.volumeId.equals(volumeId))).get();
+    final summaries = await (db.select(db.chapterSummaries)
+        ..where((t) => t.volumeId.equals(volumeId))).get();
+    if (chapters.isNotEmpty && chapters.length == summaries.length) {
+      try {
+        await memoryService!.summarizeVolume(volumeId);
+      } catch (_) {}
+    }
+  }
+
+  /// 场景保存后自动触发记忆摘要（异步，不阻塞）
+  Future<void> onSceneSaved(String sceneId, String worldId) async {
+    if (memoryService == null) return;
+    try {
+      await memoryService!.summarizeScene(sceneId);
+    } catch (_) {
+      // 摘要生成失败不影响用户操作
+    }
   }
 
   Future<Directory> _getWorldsDir() async {
