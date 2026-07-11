@@ -16,6 +16,30 @@ import '../utils/style_prompt_templates.dart';
 const _uuid = Uuid();
 
 /// 风格检测服务
+
+class _AggregatedStyle {
+  final String tone;
+  final String vocabularyLevel;
+  final double dialogueRatio;
+  final double sentenceComplexity;
+  final String pacing;
+  final double paragraphLength;
+  final String rhetoricalDevices;
+  final String keywords;
+
+  const _AggregatedStyle({
+    required this.tone,
+    required this.vocabularyLevel,
+    required this.dialogueRatio,
+    required this.sentenceComplexity,
+    required this.pacing,
+    required this.paragraphLength,
+    required this.rhetoricalDevices,
+    required this.keywords,
+  });
+}
+
+
 class StyleDetectionService implements IStyleDetectionService {
   StyleDetectionService({
     required DatabaseManager databaseManager,
@@ -74,19 +98,8 @@ class StyleDetectionService implements IStyleDetectionService {
     return (await db.select(db.styleProfiles).get()).first;
   }
 
-  @override
-  Future<StyleProfile> analyzeChapter(String chapterId, String worldId) async {
-    final db = await _db(worldId);
-
-    // 获取本章所有场景的风格画像
-    final profiles = await (db.select(db.styleProfiles)
-      ..where((t) => t.chapterId.equals(chapterId))).get();
-
-    if (profiles.isEmpty) {
-      throw StateError('No style profiles found for chapter $chapterId');
-    }
-
-    // 聚合：分类取众数，数值取平均
+/// 聚合风格画像：分类取众数，数值取平均
+  _AggregatedStyle _aggregateProfiles(List<StyleProfile> profiles) {
     final toneCount = <String, int>{};
     final vocabCount = <String, int>{};
     final pacingCount = <String, int>{};
@@ -107,25 +120,49 @@ class StyleDetectionService implements IStyleDetectionService {
       avgParagraph /= profiles.length;
     }
 
-    // 取出现次数最多的作为聚合值
     String mostFrequent(Map<String, int> counts) {
       return counts.entries.fold('', (a, b) => b.value > (counts[a] ?? 0) ? b.key : a);
     }
 
+    return _AggregatedStyle(
+      tone: mostFrequent(toneCount),
+      vocabularyLevel: mostFrequent(vocabCount),
+      dialogueRatio: avgDialogue,
+      sentenceComplexity: avgComplexity,
+      pacing: mostFrequent(pacingCount),
+      paragraphLength: avgParagraph,
+      rhetoricalDevices: profiles.first.rhetoricalDevices,
+      keywords: profiles.first.keywords,
+    );
+  }
+
+  @override
+  Future<StyleProfile> analyzeChapter(String chapterId, String worldId) async {
+    final db = await _db(worldId);
+
+    // 获取本章所有场景的风格画像
+    final profiles = await (db.select(db.styleProfiles)
+      ..where((t) => t.chapterId.equals(chapterId))).get();
+
+    if (profiles.isEmpty) {
+      throw StateError('No style profiles found for chapter $chapterId');
+    }
+
+    final agg = _aggregateProfiles(profiles);
     final now = DateTime.now();
     final id = _uuid.v4();
     await db.into(db.styleProfiles).insert(StyleProfilesCompanion.insert(
       id: id, worldId: worldId,
       chapterId: Value(chapterId),
       summary: 'Chapter aggregate: ${profiles.length} scenes',
-      tone: mostFrequent(toneCount),
-      vocabularyLevel: mostFrequent(vocabCount),
-      dialogueRatio: avgDialogue,
-      sentenceComplexity: avgComplexity,
-      pacing: mostFrequent(pacingCount),
-      rhetoricalDevices: profiles.first.rhetoricalDevices,
-      paragraphLength: avgParagraph,
-      keywords: profiles.first.keywords,
+      tone: agg.tone,
+      vocabularyLevel: agg.vocabularyLevel,
+      dialogueRatio: agg.dialogueRatio,
+      sentenceComplexity: agg.sentenceComplexity,
+      pacing: agg.pacing,
+      rhetoricalDevices: agg.rhetoricalDevices,
+      paragraphLength: agg.paragraphLength,
+      keywords: agg.keywords,
       rawAnalysis: 'Aggregated from ${profiles.length} scene profiles',
       createdAt: now, updatedAt: now,
     ));
@@ -152,45 +189,21 @@ class StyleDetectionService implements IStyleDetectionService {
       throw StateError('No style profiles found for work $workId');
     }
 
-    // Same aggregation logic as analyzeChapter
-    final toneCount = <String, int>{};
-    final vocabCount = <String, int>{};
-    final pacingCount = <String, int>{};
-    double avgDialogue = 0, avgComplexity = 0, avgParagraph = 0;
-
-    for (final p in profiles) {
-      toneCount[p.tone] = (toneCount[p.tone] ?? 0) + 1;
-      vocabCount[p.vocabularyLevel] = (vocabCount[p.vocabularyLevel] ?? 0) + 1;
-      pacingCount[p.pacing] = (pacingCount[p.pacing] ?? 0) + 1;
-      avgDialogue += p.dialogueRatio;
-      avgComplexity += p.sentenceComplexity;
-      avgParagraph += p.paragraphLength;
-    }
-
-    if (profiles.isNotEmpty) {
-      avgDialogue /= profiles.length;
-      avgComplexity /= profiles.length;
-      avgParagraph /= profiles.length;
-    }
-
-    String mostFrequent(Map<String, int> counts) {
-      return counts.entries.fold('', (a, b) => b.value > (counts[a] ?? 0) ? b.key : a);
-    }
-
+    final agg = _aggregateProfiles(profiles);
     final now = DateTime.now();
     final id = _uuid.v4();
     await db.into(db.styleProfiles).insert(StyleProfilesCompanion.insert(
       id: id, worldId: worldId,
       workId: Value(workId),
       summary: 'Work aggregate: ${profiles.length} scene profiles',
-      tone: mostFrequent(toneCount),
-      vocabularyLevel: mostFrequent(vocabCount),
-      dialogueRatio: avgDialogue,
-      sentenceComplexity: avgComplexity,
-      pacing: mostFrequent(pacingCount),
-      rhetoricalDevices: profiles.first.rhetoricalDevices,
-      paragraphLength: avgParagraph,
-      keywords: profiles.first.keywords,
+      tone: agg.tone,
+      vocabularyLevel: agg.vocabularyLevel,
+      dialogueRatio: agg.dialogueRatio,
+      sentenceComplexity: agg.sentenceComplexity,
+      pacing: agg.pacing,
+      rhetoricalDevices: agg.rhetoricalDevices,
+      paragraphLength: agg.paragraphLength,
+      keywords: agg.keywords,
       rawAnalysis: 'Aggregated from ${profiles.length} scene profiles across work',
       createdAt: now, updatedAt: now,
     ));
