@@ -61,6 +61,10 @@ func RegisterTimelineRoutes(r *gin.RouterGroup, target string) {
 	r.Any("/timeline/*path", proxy(target+"/api/v1/timeline"))
 }
 
+func RegisterSearchRoutes(r *gin.RouterGroup, target string) {
+	r.Any("/search/*path", proxy(target+"/api/v1/search"))
+}
+
 func RegisterSkillRoutes(r *gin.RouterGroup, target string) {
 	r.Any("/skills/*path", proxy(target+"/api/v1/skills"))
 }

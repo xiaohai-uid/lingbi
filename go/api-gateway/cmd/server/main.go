@@ -80,6 +80,7 @@ func main() {
 		router.RegisterTimelineRoutes(api, "http://timeline-service:8094")
 		router.RegisterFactionRoutes(api, "http://faction-service:8095")
 		router.RegisterSkillRoutes(api, "http://skill-service:8097")
+		router.RegisterSearchRoutes(api, "http://search-service:8098")
 	}
 
 	// Server

@@ -342,6 +342,24 @@ services:
       qdrant:
         condition: service_healthy
 
+  search-service:
+    build:
+      context: ./go/search-service
+      dockerfile: Dockerfile
+    ports:
+      - "8098:8098"
+    environment:
+      - PORT=8098
+      - REDIS_URL=redis:6379
+      - AI_PROVIDER_URL=http://ai-provider:8081
+    networks:
+      - lingbi_network
+    depends_on:
+      redis:
+        condition: service_healthy
+      ai-provider:
+        condition: service_healthy
+
   skill-service:
     build:
       context: ./rust/skill-service
