@@ -342,6 +342,21 @@ services:
       qdrant:
         condition: service_healthy
 
+  style-service:
+    build:
+      context: ./rust/style-service
+      dockerfile: Dockerfile
+    ports:
+      - "8101:8101"
+    environment:
+      - PORT=8101
+      - AI_PROVIDER_URL=http://ai-provider:8081
+    networks:
+      - lingbi_network
+    depends_on:
+      ai-provider:
+        condition: service_healthy
+
   memory-service:
     build:
       context: ./rust/memory-service

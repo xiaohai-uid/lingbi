@@ -83,6 +83,7 @@ func main() {
 		router.RegisterSearchRoutes(api, "http://search-service:8098")
 		router.RegisterModelRoutes(api, "http://model-discovery:8099")
 		router.RegisterMemoryRoutes(api, "http://memory-service:8100")
+		router.RegisterStyleRoutes(api, "http://style-service:8101")
 	}
 
 	// Server
