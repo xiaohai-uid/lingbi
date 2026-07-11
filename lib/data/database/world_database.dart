@@ -381,6 +381,31 @@ class VolumeSummaries extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 风格分析结果表 — 场景/章/作品层级关联
+@DataClassName('StyleProfile')
+class StyleProfiles extends Table {
+  TextColumn get id => text()();
+  TextColumn get worldId => text()();
+  TextColumn get sceneId => text().nullable()();
+  TextColumn get chapterId => text().nullable()();
+  TextColumn get workId => text().nullable()();
+  TextColumn get summary => text()();
+  TextColumn get tone => text()();
+  TextColumn get vocabularyLevel => text()();
+  RealColumn get dialogueRatio => real()();
+  RealColumn get sentenceComplexity => real()();
+  TextColumn get pacing => text()();
+  TextColumn get rhetoricalDevices => text()();
+  RealColumn get paragraphLength => real()();
+  TextColumn get keywords => text()();
+  TextColumn get rawAnalysis => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ============================================================
 // 数据库定义
 // ============================================================
@@ -402,6 +427,7 @@ class VolumeSummaries extends Table {
     SceneSummaries,
     ChapterSummaries,
     VolumeSummaries,
+    StyleProfiles,
     Works,
     Volumes,
     Chapters,
@@ -413,7 +439,7 @@ class WorldDatabase extends _$WorldDatabase {
   WorldDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy();

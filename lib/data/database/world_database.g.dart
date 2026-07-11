@@ -8066,6 +8066,816 @@ class VolumeSummariesCompanion extends UpdateCompanion<VolumeSummary> {
   }
 }
 
+class $StyleProfilesTable extends StyleProfiles
+    with TableInfo<$StyleProfilesTable, StyleProfile> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StyleProfilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sceneIdMeta =
+      const VerificationMeta('sceneId');
+  @override
+  late final GeneratedColumn<String> sceneId = GeneratedColumn<String>(
+      'scene_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _chapterIdMeta =
+      const VerificationMeta('chapterId');
+  @override
+  late final GeneratedColumn<String> chapterId = GeneratedColumn<String>(
+      'chapter_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _workIdMeta = const VerificationMeta('workId');
+  @override
+  late final GeneratedColumn<String> workId = GeneratedColumn<String>(
+      'work_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _summaryMeta =
+      const VerificationMeta('summary');
+  @override
+  late final GeneratedColumn<String> summary = GeneratedColumn<String>(
+      'summary', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _toneMeta = const VerificationMeta('tone');
+  @override
+  late final GeneratedColumn<String> tone = GeneratedColumn<String>(
+      'tone', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _vocabularyLevelMeta =
+      const VerificationMeta('vocabularyLevel');
+  @override
+  late final GeneratedColumn<String> vocabularyLevel = GeneratedColumn<String>(
+      'vocabulary_level', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _dialogueRatioMeta =
+      const VerificationMeta('dialogueRatio');
+  @override
+  late final GeneratedColumn<double> dialogueRatio = GeneratedColumn<double>(
+      'dialogue_ratio', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _sentenceComplexityMeta =
+      const VerificationMeta('sentenceComplexity');
+  @override
+  late final GeneratedColumn<double> sentenceComplexity =
+      GeneratedColumn<double>('sentence_complexity', aliasedName, false,
+          type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _pacingMeta = const VerificationMeta('pacing');
+  @override
+  late final GeneratedColumn<String> pacing = GeneratedColumn<String>(
+      'pacing', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _rhetoricalDevicesMeta =
+      const VerificationMeta('rhetoricalDevices');
+  @override
+  late final GeneratedColumn<String> rhetoricalDevices =
+      GeneratedColumn<String>('rhetorical_devices', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _paragraphLengthMeta =
+      const VerificationMeta('paragraphLength');
+  @override
+  late final GeneratedColumn<double> paragraphLength = GeneratedColumn<double>(
+      'paragraph_length', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _keywordsMeta =
+      const VerificationMeta('keywords');
+  @override
+  late final GeneratedColumn<String> keywords = GeneratedColumn<String>(
+      'keywords', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _rawAnalysisMeta =
+      const VerificationMeta('rawAnalysis');
+  @override
+  late final GeneratedColumn<String> rawAnalysis = GeneratedColumn<String>(
+      'raw_analysis', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        worldId,
+        sceneId,
+        chapterId,
+        workId,
+        summary,
+        tone,
+        vocabularyLevel,
+        dialogueRatio,
+        sentenceComplexity,
+        pacing,
+        rhetoricalDevices,
+        paragraphLength,
+        keywords,
+        rawAnalysis,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'style_profiles';
+  @override
+  VerificationContext validateIntegrity(Insertable<StyleProfile> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('scene_id')) {
+      context.handle(_sceneIdMeta,
+          sceneId.isAcceptableOrUnknown(data['scene_id']!, _sceneIdMeta));
+    }
+    if (data.containsKey('chapter_id')) {
+      context.handle(_chapterIdMeta,
+          chapterId.isAcceptableOrUnknown(data['chapter_id']!, _chapterIdMeta));
+    }
+    if (data.containsKey('work_id')) {
+      context.handle(_workIdMeta,
+          workId.isAcceptableOrUnknown(data['work_id']!, _workIdMeta));
+    }
+    if (data.containsKey('summary')) {
+      context.handle(_summaryMeta,
+          summary.isAcceptableOrUnknown(data['summary']!, _summaryMeta));
+    } else if (isInserting) {
+      context.missing(_summaryMeta);
+    }
+    if (data.containsKey('tone')) {
+      context.handle(
+          _toneMeta, tone.isAcceptableOrUnknown(data['tone']!, _toneMeta));
+    } else if (isInserting) {
+      context.missing(_toneMeta);
+    }
+    if (data.containsKey('vocabulary_level')) {
+      context.handle(
+          _vocabularyLevelMeta,
+          vocabularyLevel.isAcceptableOrUnknown(
+              data['vocabulary_level']!, _vocabularyLevelMeta));
+    } else if (isInserting) {
+      context.missing(_vocabularyLevelMeta);
+    }
+    if (data.containsKey('dialogue_ratio')) {
+      context.handle(
+          _dialogueRatioMeta,
+          dialogueRatio.isAcceptableOrUnknown(
+              data['dialogue_ratio']!, _dialogueRatioMeta));
+    } else if (isInserting) {
+      context.missing(_dialogueRatioMeta);
+    }
+    if (data.containsKey('sentence_complexity')) {
+      context.handle(
+          _sentenceComplexityMeta,
+          sentenceComplexity.isAcceptableOrUnknown(
+              data['sentence_complexity']!, _sentenceComplexityMeta));
+    } else if (isInserting) {
+      context.missing(_sentenceComplexityMeta);
+    }
+    if (data.containsKey('pacing')) {
+      context.handle(_pacingMeta,
+          pacing.isAcceptableOrUnknown(data['pacing']!, _pacingMeta));
+    } else if (isInserting) {
+      context.missing(_pacingMeta);
+    }
+    if (data.containsKey('rhetorical_devices')) {
+      context.handle(
+          _rhetoricalDevicesMeta,
+          rhetoricalDevices.isAcceptableOrUnknown(
+              data['rhetorical_devices']!, _rhetoricalDevicesMeta));
+    } else if (isInserting) {
+      context.missing(_rhetoricalDevicesMeta);
+    }
+    if (data.containsKey('paragraph_length')) {
+      context.handle(
+          _paragraphLengthMeta,
+          paragraphLength.isAcceptableOrUnknown(
+              data['paragraph_length']!, _paragraphLengthMeta));
+    } else if (isInserting) {
+      context.missing(_paragraphLengthMeta);
+    }
+    if (data.containsKey('keywords')) {
+      context.handle(_keywordsMeta,
+          keywords.isAcceptableOrUnknown(data['keywords']!, _keywordsMeta));
+    } else if (isInserting) {
+      context.missing(_keywordsMeta);
+    }
+    if (data.containsKey('raw_analysis')) {
+      context.handle(
+          _rawAnalysisMeta,
+          rawAnalysis.isAcceptableOrUnknown(
+              data['raw_analysis']!, _rawAnalysisMeta));
+    } else if (isInserting) {
+      context.missing(_rawAnalysisMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StyleProfile map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StyleProfile(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      sceneId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}scene_id']),
+      chapterId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}chapter_id']),
+      workId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}work_id']),
+      summary: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}summary'])!,
+      tone: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tone'])!,
+      vocabularyLevel: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}vocabulary_level'])!,
+      dialogueRatio: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}dialogue_ratio'])!,
+      sentenceComplexity: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}sentence_complexity'])!,
+      pacing: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}pacing'])!,
+      rhetoricalDevices: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}rhetorical_devices'])!,
+      paragraphLength: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}paragraph_length'])!,
+      keywords: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}keywords'])!,
+      rawAnalysis: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}raw_analysis'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $StyleProfilesTable createAlias(String alias) {
+    return $StyleProfilesTable(attachedDatabase, alias);
+  }
+}
+
+class StyleProfile extends DataClass implements Insertable<StyleProfile> {
+  String id;
+  String worldId;
+  String? sceneId;
+  String? chapterId;
+  String? workId;
+  String summary;
+  String tone;
+  String vocabularyLevel;
+  double dialogueRatio;
+  double sentenceComplexity;
+  String pacing;
+  String rhetoricalDevices;
+  double paragraphLength;
+  String keywords;
+  String rawAnalysis;
+  DateTime createdAt;
+  DateTime updatedAt;
+  StyleProfile(
+      {required this.id,
+      required this.worldId,
+      this.sceneId,
+      this.chapterId,
+      this.workId,
+      required this.summary,
+      required this.tone,
+      required this.vocabularyLevel,
+      required this.dialogueRatio,
+      required this.sentenceComplexity,
+      required this.pacing,
+      required this.rhetoricalDevices,
+      required this.paragraphLength,
+      required this.keywords,
+      required this.rawAnalysis,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['world_id'] = Variable<String>(worldId);
+    if (!nullToAbsent || sceneId != null) {
+      map['scene_id'] = Variable<String>(sceneId);
+    }
+    if (!nullToAbsent || chapterId != null) {
+      map['chapter_id'] = Variable<String>(chapterId);
+    }
+    if (!nullToAbsent || workId != null) {
+      map['work_id'] = Variable<String>(workId);
+    }
+    map['summary'] = Variable<String>(summary);
+    map['tone'] = Variable<String>(tone);
+    map['vocabulary_level'] = Variable<String>(vocabularyLevel);
+    map['dialogue_ratio'] = Variable<double>(dialogueRatio);
+    map['sentence_complexity'] = Variable<double>(sentenceComplexity);
+    map['pacing'] = Variable<String>(pacing);
+    map['rhetorical_devices'] = Variable<String>(rhetoricalDevices);
+    map['paragraph_length'] = Variable<double>(paragraphLength);
+    map['keywords'] = Variable<String>(keywords);
+    map['raw_analysis'] = Variable<String>(rawAnalysis);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  StyleProfilesCompanion toCompanion(bool nullToAbsent) {
+    return StyleProfilesCompanion(
+      id: Value(id),
+      worldId: Value(worldId),
+      sceneId: sceneId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sceneId),
+      chapterId: chapterId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(chapterId),
+      workId:
+          workId == null && nullToAbsent ? const Value.absent() : Value(workId),
+      summary: Value(summary),
+      tone: Value(tone),
+      vocabularyLevel: Value(vocabularyLevel),
+      dialogueRatio: Value(dialogueRatio),
+      sentenceComplexity: Value(sentenceComplexity),
+      pacing: Value(pacing),
+      rhetoricalDevices: Value(rhetoricalDevices),
+      paragraphLength: Value(paragraphLength),
+      keywords: Value(keywords),
+      rawAnalysis: Value(rawAnalysis),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory StyleProfile.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StyleProfile(
+      id: serializer.fromJson<String>(json['id']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      sceneId: serializer.fromJson<String?>(json['sceneId']),
+      chapterId: serializer.fromJson<String?>(json['chapterId']),
+      workId: serializer.fromJson<String?>(json['workId']),
+      summary: serializer.fromJson<String>(json['summary']),
+      tone: serializer.fromJson<String>(json['tone']),
+      vocabularyLevel: serializer.fromJson<String>(json['vocabularyLevel']),
+      dialogueRatio: serializer.fromJson<double>(json['dialogueRatio']),
+      sentenceComplexity:
+          serializer.fromJson<double>(json['sentenceComplexity']),
+      pacing: serializer.fromJson<String>(json['pacing']),
+      rhetoricalDevices: serializer.fromJson<String>(json['rhetoricalDevices']),
+      paragraphLength: serializer.fromJson<double>(json['paragraphLength']),
+      keywords: serializer.fromJson<String>(json['keywords']),
+      rawAnalysis: serializer.fromJson<String>(json['rawAnalysis']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'worldId': serializer.toJson<String>(worldId),
+      'sceneId': serializer.toJson<String?>(sceneId),
+      'chapterId': serializer.toJson<String?>(chapterId),
+      'workId': serializer.toJson<String?>(workId),
+      'summary': serializer.toJson<String>(summary),
+      'tone': serializer.toJson<String>(tone),
+      'vocabularyLevel': serializer.toJson<String>(vocabularyLevel),
+      'dialogueRatio': serializer.toJson<double>(dialogueRatio),
+      'sentenceComplexity': serializer.toJson<double>(sentenceComplexity),
+      'pacing': serializer.toJson<String>(pacing),
+      'rhetoricalDevices': serializer.toJson<String>(rhetoricalDevices),
+      'paragraphLength': serializer.toJson<double>(paragraphLength),
+      'keywords': serializer.toJson<String>(keywords),
+      'rawAnalysis': serializer.toJson<String>(rawAnalysis),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  StyleProfile copyWith(
+          {String? id,
+          String? worldId,
+          Value<String?> sceneId = const Value.absent(),
+          Value<String?> chapterId = const Value.absent(),
+          Value<String?> workId = const Value.absent(),
+          String? summary,
+          String? tone,
+          String? vocabularyLevel,
+          double? dialogueRatio,
+          double? sentenceComplexity,
+          String? pacing,
+          String? rhetoricalDevices,
+          double? paragraphLength,
+          String? keywords,
+          String? rawAnalysis,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      StyleProfile(
+        id: id ?? this.id,
+        worldId: worldId ?? this.worldId,
+        sceneId: sceneId.present ? sceneId.value : this.sceneId,
+        chapterId: chapterId.present ? chapterId.value : this.chapterId,
+        workId: workId.present ? workId.value : this.workId,
+        summary: summary ?? this.summary,
+        tone: tone ?? this.tone,
+        vocabularyLevel: vocabularyLevel ?? this.vocabularyLevel,
+        dialogueRatio: dialogueRatio ?? this.dialogueRatio,
+        sentenceComplexity: sentenceComplexity ?? this.sentenceComplexity,
+        pacing: pacing ?? this.pacing,
+        rhetoricalDevices: rhetoricalDevices ?? this.rhetoricalDevices,
+        paragraphLength: paragraphLength ?? this.paragraphLength,
+        keywords: keywords ?? this.keywords,
+        rawAnalysis: rawAnalysis ?? this.rawAnalysis,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  StyleProfile copyWithCompanion(StyleProfilesCompanion data) {
+    return StyleProfile(
+      id: data.id.present ? data.id.value : this.id,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      sceneId: data.sceneId.present ? data.sceneId.value : this.sceneId,
+      chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
+      workId: data.workId.present ? data.workId.value : this.workId,
+      summary: data.summary.present ? data.summary.value : this.summary,
+      tone: data.tone.present ? data.tone.value : this.tone,
+      vocabularyLevel: data.vocabularyLevel.present
+          ? data.vocabularyLevel.value
+          : this.vocabularyLevel,
+      dialogueRatio: data.dialogueRatio.present
+          ? data.dialogueRatio.value
+          : this.dialogueRatio,
+      sentenceComplexity: data.sentenceComplexity.present
+          ? data.sentenceComplexity.value
+          : this.sentenceComplexity,
+      pacing: data.pacing.present ? data.pacing.value : this.pacing,
+      rhetoricalDevices: data.rhetoricalDevices.present
+          ? data.rhetoricalDevices.value
+          : this.rhetoricalDevices,
+      paragraphLength: data.paragraphLength.present
+          ? data.paragraphLength.value
+          : this.paragraphLength,
+      keywords: data.keywords.present ? data.keywords.value : this.keywords,
+      rawAnalysis:
+          data.rawAnalysis.present ? data.rawAnalysis.value : this.rawAnalysis,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StyleProfile(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('sceneId: $sceneId, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('workId: $workId, ')
+          ..write('summary: $summary, ')
+          ..write('tone: $tone, ')
+          ..write('vocabularyLevel: $vocabularyLevel, ')
+          ..write('dialogueRatio: $dialogueRatio, ')
+          ..write('sentenceComplexity: $sentenceComplexity, ')
+          ..write('pacing: $pacing, ')
+          ..write('rhetoricalDevices: $rhetoricalDevices, ')
+          ..write('paragraphLength: $paragraphLength, ')
+          ..write('keywords: $keywords, ')
+          ..write('rawAnalysis: $rawAnalysis, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      worldId,
+      sceneId,
+      chapterId,
+      workId,
+      summary,
+      tone,
+      vocabularyLevel,
+      dialogueRatio,
+      sentenceComplexity,
+      pacing,
+      rhetoricalDevices,
+      paragraphLength,
+      keywords,
+      rawAnalysis,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StyleProfile &&
+          other.id == this.id &&
+          other.worldId == this.worldId &&
+          other.sceneId == this.sceneId &&
+          other.chapterId == this.chapterId &&
+          other.workId == this.workId &&
+          other.summary == this.summary &&
+          other.tone == this.tone &&
+          other.vocabularyLevel == this.vocabularyLevel &&
+          other.dialogueRatio == this.dialogueRatio &&
+          other.sentenceComplexity == this.sentenceComplexity &&
+          other.pacing == this.pacing &&
+          other.rhetoricalDevices == this.rhetoricalDevices &&
+          other.paragraphLength == this.paragraphLength &&
+          other.keywords == this.keywords &&
+          other.rawAnalysis == this.rawAnalysis &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class StyleProfilesCompanion extends UpdateCompanion<StyleProfile> {
+  Value<String> id;
+  Value<String> worldId;
+  Value<String?> sceneId;
+  Value<String?> chapterId;
+  Value<String?> workId;
+  Value<String> summary;
+  Value<String> tone;
+  Value<String> vocabularyLevel;
+  Value<double> dialogueRatio;
+  Value<double> sentenceComplexity;
+  Value<String> pacing;
+  Value<String> rhetoricalDevices;
+  Value<double> paragraphLength;
+  Value<String> keywords;
+  Value<String> rawAnalysis;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  StyleProfilesCompanion({
+    this.id = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.sceneId = const Value.absent(),
+    this.chapterId = const Value.absent(),
+    this.workId = const Value.absent(),
+    this.summary = const Value.absent(),
+    this.tone = const Value.absent(),
+    this.vocabularyLevel = const Value.absent(),
+    this.dialogueRatio = const Value.absent(),
+    this.sentenceComplexity = const Value.absent(),
+    this.pacing = const Value.absent(),
+    this.rhetoricalDevices = const Value.absent(),
+    this.paragraphLength = const Value.absent(),
+    this.keywords = const Value.absent(),
+    this.rawAnalysis = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StyleProfilesCompanion.insert({
+    required String id,
+    required String worldId,
+    this.sceneId = const Value.absent(),
+    this.chapterId = const Value.absent(),
+    this.workId = const Value.absent(),
+    required String summary,
+    required String tone,
+    required String vocabularyLevel,
+    required double dialogueRatio,
+    required double sentenceComplexity,
+    required String pacing,
+    required String rhetoricalDevices,
+    required double paragraphLength,
+    required String keywords,
+    required String rawAnalysis,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        worldId = Value(worldId),
+        summary = Value(summary),
+        tone = Value(tone),
+        vocabularyLevel = Value(vocabularyLevel),
+        dialogueRatio = Value(dialogueRatio),
+        sentenceComplexity = Value(sentenceComplexity),
+        pacing = Value(pacing),
+        rhetoricalDevices = Value(rhetoricalDevices),
+        paragraphLength = Value(paragraphLength),
+        keywords = Value(keywords),
+        rawAnalysis = Value(rawAnalysis),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<StyleProfile> custom({
+    Expression<String>? id,
+    Expression<String>? worldId,
+    Expression<String>? sceneId,
+    Expression<String>? chapterId,
+    Expression<String>? workId,
+    Expression<String>? summary,
+    Expression<String>? tone,
+    Expression<String>? vocabularyLevel,
+    Expression<double>? dialogueRatio,
+    Expression<double>? sentenceComplexity,
+    Expression<String>? pacing,
+    Expression<String>? rhetoricalDevices,
+    Expression<double>? paragraphLength,
+    Expression<String>? keywords,
+    Expression<String>? rawAnalysis,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (worldId != null) 'world_id': worldId,
+      if (sceneId != null) 'scene_id': sceneId,
+      if (chapterId != null) 'chapter_id': chapterId,
+      if (workId != null) 'work_id': workId,
+      if (summary != null) 'summary': summary,
+      if (tone != null) 'tone': tone,
+      if (vocabularyLevel != null) 'vocabulary_level': vocabularyLevel,
+      if (dialogueRatio != null) 'dialogue_ratio': dialogueRatio,
+      if (sentenceComplexity != null) 'sentence_complexity': sentenceComplexity,
+      if (pacing != null) 'pacing': pacing,
+      if (rhetoricalDevices != null) 'rhetorical_devices': rhetoricalDevices,
+      if (paragraphLength != null) 'paragraph_length': paragraphLength,
+      if (keywords != null) 'keywords': keywords,
+      if (rawAnalysis != null) 'raw_analysis': rawAnalysis,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StyleProfilesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? worldId,
+      Value<String?>? sceneId,
+      Value<String?>? chapterId,
+      Value<String?>? workId,
+      Value<String>? summary,
+      Value<String>? tone,
+      Value<String>? vocabularyLevel,
+      Value<double>? dialogueRatio,
+      Value<double>? sentenceComplexity,
+      Value<String>? pacing,
+      Value<String>? rhetoricalDevices,
+      Value<double>? paragraphLength,
+      Value<String>? keywords,
+      Value<String>? rawAnalysis,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return StyleProfilesCompanion(
+      id: id ?? this.id,
+      worldId: worldId ?? this.worldId,
+      sceneId: sceneId ?? this.sceneId,
+      chapterId: chapterId ?? this.chapterId,
+      workId: workId ?? this.workId,
+      summary: summary ?? this.summary,
+      tone: tone ?? this.tone,
+      vocabularyLevel: vocabularyLevel ?? this.vocabularyLevel,
+      dialogueRatio: dialogueRatio ?? this.dialogueRatio,
+      sentenceComplexity: sentenceComplexity ?? this.sentenceComplexity,
+      pacing: pacing ?? this.pacing,
+      rhetoricalDevices: rhetoricalDevices ?? this.rhetoricalDevices,
+      paragraphLength: paragraphLength ?? this.paragraphLength,
+      keywords: keywords ?? this.keywords,
+      rawAnalysis: rawAnalysis ?? this.rawAnalysis,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (sceneId.present) {
+      map['scene_id'] = Variable<String>(sceneId.value);
+    }
+    if (chapterId.present) {
+      map['chapter_id'] = Variable<String>(chapterId.value);
+    }
+    if (workId.present) {
+      map['work_id'] = Variable<String>(workId.value);
+    }
+    if (summary.present) {
+      map['summary'] = Variable<String>(summary.value);
+    }
+    if (tone.present) {
+      map['tone'] = Variable<String>(tone.value);
+    }
+    if (vocabularyLevel.present) {
+      map['vocabulary_level'] = Variable<String>(vocabularyLevel.value);
+    }
+    if (dialogueRatio.present) {
+      map['dialogue_ratio'] = Variable<double>(dialogueRatio.value);
+    }
+    if (sentenceComplexity.present) {
+      map['sentence_complexity'] = Variable<double>(sentenceComplexity.value);
+    }
+    if (pacing.present) {
+      map['pacing'] = Variable<String>(pacing.value);
+    }
+    if (rhetoricalDevices.present) {
+      map['rhetorical_devices'] = Variable<String>(rhetoricalDevices.value);
+    }
+    if (paragraphLength.present) {
+      map['paragraph_length'] = Variable<double>(paragraphLength.value);
+    }
+    if (keywords.present) {
+      map['keywords'] = Variable<String>(keywords.value);
+    }
+    if (rawAnalysis.present) {
+      map['raw_analysis'] = Variable<String>(rawAnalysis.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StyleProfilesCompanion(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('sceneId: $sceneId, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('workId: $workId, ')
+          ..write('summary: $summary, ')
+          ..write('tone: $tone, ')
+          ..write('vocabularyLevel: $vocabularyLevel, ')
+          ..write('dialogueRatio: $dialogueRatio, ')
+          ..write('sentenceComplexity: $sentenceComplexity, ')
+          ..write('pacing: $pacing, ')
+          ..write('rhetoricalDevices: $rhetoricalDevices, ')
+          ..write('paragraphLength: $paragraphLength, ')
+          ..write('keywords: $keywords, ')
+          ..write('rawAnalysis: $rawAnalysis, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorksTable extends Works with TableInfo<$WorksTable, Work> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -10161,6 +10971,7 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
       $ChapterSummariesTable(this);
   late final $VolumeSummariesTable volumeSummaries =
       $VolumeSummariesTable(this);
+  late final $StyleProfilesTable styleProfiles = $StyleProfilesTable(this);
   late final $WorksTable works = $WorksTable(this);
   late final $VolumesTable volumes = $VolumesTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
@@ -10186,6 +10997,7 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
         sceneSummaries,
         chapterSummaries,
         volumeSummaries,
+        styleProfiles,
         works,
         volumes,
         chapters,
@@ -14006,6 +14818,369 @@ typedef $$VolumeSummariesTableProcessedTableManager = ProcessedTableManager<
     ),
     VolumeSummary,
     PrefetchHooks Function()>;
+typedef $$StyleProfilesTableCreateCompanionBuilder = StyleProfilesCompanion
+    Function({
+  required String id,
+  required String worldId,
+  Value<String?> sceneId,
+  Value<String?> chapterId,
+  Value<String?> workId,
+  required String summary,
+  required String tone,
+  required String vocabularyLevel,
+  required double dialogueRatio,
+  required double sentenceComplexity,
+  required String pacing,
+  required String rhetoricalDevices,
+  required double paragraphLength,
+  required String keywords,
+  required String rawAnalysis,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$StyleProfilesTableUpdateCompanionBuilder = StyleProfilesCompanion
+    Function({
+  Value<String> id,
+  Value<String> worldId,
+  Value<String?> sceneId,
+  Value<String?> chapterId,
+  Value<String?> workId,
+  Value<String> summary,
+  Value<String> tone,
+  Value<String> vocabularyLevel,
+  Value<double> dialogueRatio,
+  Value<double> sentenceComplexity,
+  Value<String> pacing,
+  Value<String> rhetoricalDevices,
+  Value<double> paragraphLength,
+  Value<String> keywords,
+  Value<String> rawAnalysis,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$StyleProfilesTableFilterComposer
+    extends Composer<_$WorldDatabase, $StyleProfilesTable> {
+  $$StyleProfilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sceneId => $composableBuilder(
+      column: $table.sceneId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get workId => $composableBuilder(
+      column: $table.workId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tone => $composableBuilder(
+      column: $table.tone, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get vocabularyLevel => $composableBuilder(
+      column: $table.vocabularyLevel,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get dialogueRatio => $composableBuilder(
+      column: $table.dialogueRatio, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get sentenceComplexity => $composableBuilder(
+      column: $table.sentenceComplexity,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get pacing => $composableBuilder(
+      column: $table.pacing, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get rhetoricalDevices => $composableBuilder(
+      column: $table.rhetoricalDevices,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get paragraphLength => $composableBuilder(
+      column: $table.paragraphLength,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get rawAnalysis => $composableBuilder(
+      column: $table.rawAnalysis, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$StyleProfilesTableOrderingComposer
+    extends Composer<_$WorldDatabase, $StyleProfilesTable> {
+  $$StyleProfilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sceneId => $composableBuilder(
+      column: $table.sceneId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get chapterId => $composableBuilder(
+      column: $table.chapterId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get workId => $composableBuilder(
+      column: $table.workId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get summary => $composableBuilder(
+      column: $table.summary, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tone => $composableBuilder(
+      column: $table.tone, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get vocabularyLevel => $composableBuilder(
+      column: $table.vocabularyLevel,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get dialogueRatio => $composableBuilder(
+      column: $table.dialogueRatio,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get sentenceComplexity => $composableBuilder(
+      column: $table.sentenceComplexity,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pacing => $composableBuilder(
+      column: $table.pacing, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get rhetoricalDevices => $composableBuilder(
+      column: $table.rhetoricalDevices,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get paragraphLength => $composableBuilder(
+      column: $table.paragraphLength,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keywords => $composableBuilder(
+      column: $table.keywords, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get rawAnalysis => $composableBuilder(
+      column: $table.rawAnalysis, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$StyleProfilesTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $StyleProfilesTable> {
+  $$StyleProfilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get sceneId =>
+      $composableBuilder(column: $table.sceneId, builder: (column) => column);
+
+  GeneratedColumn<String> get chapterId =>
+      $composableBuilder(column: $table.chapterId, builder: (column) => column);
+
+  GeneratedColumn<String> get workId =>
+      $composableBuilder(column: $table.workId, builder: (column) => column);
+
+  GeneratedColumn<String> get summary =>
+      $composableBuilder(column: $table.summary, builder: (column) => column);
+
+  GeneratedColumn<String> get tone =>
+      $composableBuilder(column: $table.tone, builder: (column) => column);
+
+  GeneratedColumn<String> get vocabularyLevel => $composableBuilder(
+      column: $table.vocabularyLevel, builder: (column) => column);
+
+  GeneratedColumn<double> get dialogueRatio => $composableBuilder(
+      column: $table.dialogueRatio, builder: (column) => column);
+
+  GeneratedColumn<double> get sentenceComplexity => $composableBuilder(
+      column: $table.sentenceComplexity, builder: (column) => column);
+
+  GeneratedColumn<String> get pacing =>
+      $composableBuilder(column: $table.pacing, builder: (column) => column);
+
+  GeneratedColumn<String> get rhetoricalDevices => $composableBuilder(
+      column: $table.rhetoricalDevices, builder: (column) => column);
+
+  GeneratedColumn<double> get paragraphLength => $composableBuilder(
+      column: $table.paragraphLength, builder: (column) => column);
+
+  GeneratedColumn<String> get keywords =>
+      $composableBuilder(column: $table.keywords, builder: (column) => column);
+
+  GeneratedColumn<String> get rawAnalysis => $composableBuilder(
+      column: $table.rawAnalysis, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$StyleProfilesTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $StyleProfilesTable,
+    StyleProfile,
+    $$StyleProfilesTableFilterComposer,
+    $$StyleProfilesTableOrderingComposer,
+    $$StyleProfilesTableAnnotationComposer,
+    $$StyleProfilesTableCreateCompanionBuilder,
+    $$StyleProfilesTableUpdateCompanionBuilder,
+    (
+      StyleProfile,
+      BaseReferences<_$WorldDatabase, $StyleProfilesTable, StyleProfile>
+    ),
+    StyleProfile,
+    PrefetchHooks Function()> {
+  $$StyleProfilesTableTableManager(
+      _$WorldDatabase db, $StyleProfilesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StyleProfilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StyleProfilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StyleProfilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String?> sceneId = const Value.absent(),
+            Value<String?> chapterId = const Value.absent(),
+            Value<String?> workId = const Value.absent(),
+            Value<String> summary = const Value.absent(),
+            Value<String> tone = const Value.absent(),
+            Value<String> vocabularyLevel = const Value.absent(),
+            Value<double> dialogueRatio = const Value.absent(),
+            Value<double> sentenceComplexity = const Value.absent(),
+            Value<String> pacing = const Value.absent(),
+            Value<String> rhetoricalDevices = const Value.absent(),
+            Value<double> paragraphLength = const Value.absent(),
+            Value<String> keywords = const Value.absent(),
+            Value<String> rawAnalysis = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StyleProfilesCompanion(
+            id: id,
+            worldId: worldId,
+            sceneId: sceneId,
+            chapterId: chapterId,
+            workId: workId,
+            summary: summary,
+            tone: tone,
+            vocabularyLevel: vocabularyLevel,
+            dialogueRatio: dialogueRatio,
+            sentenceComplexity: sentenceComplexity,
+            pacing: pacing,
+            rhetoricalDevices: rhetoricalDevices,
+            paragraphLength: paragraphLength,
+            keywords: keywords,
+            rawAnalysis: rawAnalysis,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String worldId,
+            Value<String?> sceneId = const Value.absent(),
+            Value<String?> chapterId = const Value.absent(),
+            Value<String?> workId = const Value.absent(),
+            required String summary,
+            required String tone,
+            required String vocabularyLevel,
+            required double dialogueRatio,
+            required double sentenceComplexity,
+            required String pacing,
+            required String rhetoricalDevices,
+            required double paragraphLength,
+            required String keywords,
+            required String rawAnalysis,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StyleProfilesCompanion.insert(
+            id: id,
+            worldId: worldId,
+            sceneId: sceneId,
+            chapterId: chapterId,
+            workId: workId,
+            summary: summary,
+            tone: tone,
+            vocabularyLevel: vocabularyLevel,
+            dialogueRatio: dialogueRatio,
+            sentenceComplexity: sentenceComplexity,
+            pacing: pacing,
+            rhetoricalDevices: rhetoricalDevices,
+            paragraphLength: paragraphLength,
+            keywords: keywords,
+            rawAnalysis: rawAnalysis,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$StyleProfilesTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $StyleProfilesTable,
+    StyleProfile,
+    $$StyleProfilesTableFilterComposer,
+    $$StyleProfilesTableOrderingComposer,
+    $$StyleProfilesTableAnnotationComposer,
+    $$StyleProfilesTableCreateCompanionBuilder,
+    $$StyleProfilesTableUpdateCompanionBuilder,
+    (
+      StyleProfile,
+      BaseReferences<_$WorldDatabase, $StyleProfilesTable, StyleProfile>
+    ),
+    StyleProfile,
+    PrefetchHooks Function()>;
 typedef $$WorksTableCreateCompanionBuilder = WorksCompanion Function({
   required String id,
   required String worldId,
@@ -15068,6 +16243,8 @@ class $WorldDatabaseManager {
       $$ChapterSummariesTableTableManager(_db, _db.chapterSummaries);
   $$VolumeSummariesTableTableManager get volumeSummaries =>
       $$VolumeSummariesTableTableManager(_db, _db.volumeSummaries);
+  $$StyleProfilesTableTableManager get styleProfiles =>
+      $$StyleProfilesTableTableManager(_db, _db.styleProfiles);
   $$WorksTableTableManager get works =>
       $$WorksTableTableManager(_db, _db.works);
   $$VolumesTableTableManager get volumes =>
