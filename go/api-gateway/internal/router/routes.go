@@ -61,6 +61,10 @@ func RegisterTimelineRoutes(r *gin.RouterGroup, target string) {
 	r.Any("/timeline/*path", proxy(target+"/api/v1/timeline"))
 }
 
+func RegisterMemoryRoutes(r *gin.RouterGroup, target string) {
+	r.Any("/memory/*path", proxy(target+"/api/v1/memory"))
+}
+
 func RegisterModelRoutes(r *gin.RouterGroup, target string) {
 	r.Any("/models/*path", proxy(target+"/api/v1/models"))
 }

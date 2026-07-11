@@ -342,6 +342,24 @@ services:
       qdrant:
         condition: service_healthy
 
+  memory-service:
+    build:
+      context: ./rust/memory-service
+      dockerfile: Dockerfile
+    ports:
+      - "8100:8100"
+    environment:
+      - PORT=8100
+      - AI_PROVIDER_URL=http://ai-provider:8081
+      - STORAGE_SERVICE_URL=http://storage-service:8089
+    networks:
+      - lingbi_network
+    depends_on:
+      ai-provider:
+        condition: service_healthy
+      storage-service:
+        condition: service_healthy
+
   model-discovery:
     build:
       context: ./go/model-discovery
