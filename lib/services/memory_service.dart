@@ -12,7 +12,6 @@ import '../data/database/world_database.dart';
 import '../services/interfaces/i_memory_service.dart';
 import '../services/ai_service.dart';
 import '../services/document_service.dart';
-import '../core/models/document.dart';
 import '../utils/memory_prompt_templates.dart';
 import 'generation/context_builder.dart';
 import 'embedding_service.dart';
@@ -248,11 +247,11 @@ class MemoryService implements IMemoryService {
     if (_documentService == null) {
       throw StateError('DocumentService required for summarization');
     }
-    final doc = await _documentService!.getDocumentBySceneId(sceneId);
+    final doc = await _documentService.getDocumentBySceneId(sceneId);
     if (doc == null) {
       throw StateError('No document found for scene $sceneId');
     }
-    final text = await _documentService!.readContent(doc.filePath);
+    final text = await _documentService.readContent(doc.filePath);
     if (text.isEmpty) {
       throw StateError('Empty content for scene $sceneId');
     }
@@ -297,7 +296,7 @@ class MemoryService implements IMemoryService {
       }
     }
 
-    final summary = createSceneSummary(
+    final result = await createSceneSummary(
       sceneId: sceneId,
       chapterId: doc.currentSceneId ?? '',
       worldId: worldId,
@@ -318,6 +317,26 @@ class MemoryService implements IMemoryService {
       wordCount: text.length,
       sceneOrder: 0,
     );
+
+    // 推送 embedding 到 Qdrant
+    if (_embeddingService != null && _storageClient != null && worldId.isNotEmpty) {
+      try {
+        final vector = await _embeddingService.embed(result.summary);
+        await _storageClient.upsertVector(
+          id: result.id,
+          vector: vector,
+          payload: {
+            'worldId': worldId,
+            'sceneId': sceneId,
+            'summary': result.summary,
+            'keywords': result.keywords,
+            'mood': result.mood,
+          },
+        );
+      } catch (_) {}
+    }
+
+    return result;
   }
 
   @override
@@ -383,8 +402,8 @@ class MemoryService implements IMemoryService {
     // 推送 embedding
     if (_embeddingService != null && _storageClient != null) {
       try {
-        final vector = await _embeddingService!.embed(result.summary);
-        await _storageClient!.upsertVector(
+        final vector = await _embeddingService.embed(result.summary);
+        await _storageClient.upsertVector(
           id: result.id,
           vector: vector,
           payload: {
@@ -573,6 +592,7 @@ class MemoryService implements IMemoryService {
   // ═════════════════════════════════════
 
   /// 语义搜索记忆 — 优先使用向量检索，降级到关键词搜索
+  @override
   Future<List<SummaryMeta>> semanticSearchMemories(
     String worldId,
     String query, {
@@ -581,8 +601,8 @@ class MemoryService implements IMemoryService {
     // 1. 尝试语义搜索
     if (_embeddingService != null && _storageClient != null) {
       try {
-        final vector = await _embeddingService!.embed(query);
-        final results = await _storageClient!.searchVectors(
+        final vector = await _embeddingService.embed(query);
+        final results = await _storageClient.searchVectors(
           vector: vector,
           limit: limit,
         );
