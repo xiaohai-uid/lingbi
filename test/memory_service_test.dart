@@ -89,6 +89,7 @@ void main() {
       expect(row.conflictType, '人物');
       expect(row.wordCount, 1500);
       expect(row.sceneOrder, 1);
+    expect(row.embeddingId, isNull); // 新字段默认为空
     });
 
     test('更新 SceneSummary', () async {

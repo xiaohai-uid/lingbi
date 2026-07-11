@@ -327,6 +327,7 @@ class SceneSummaries extends Table {
   TextColumn get keyDialogues => text()();
   TextColumn get signatureMoments => text()();
   TextColumn get foreshadowingIds => text()();
+  TextColumn get embeddingId => text().nullable()(); // Qdrant point ID
 
   // ── 元数据 ──
   IntColumn get wordCount => integer()();

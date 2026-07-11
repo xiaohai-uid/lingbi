@@ -5813,6 +5813,12 @@ class $SceneSummariesTable extends SceneSummaries
   late final GeneratedColumn<String> foreshadowingIds = GeneratedColumn<String>(
       'foreshadowing_ids', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _embeddingIdMeta =
+      const VerificationMeta('embeddingId');
+  @override
+  late final GeneratedColumn<String> embeddingId = GeneratedColumn<String>(
+      'embedding_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _wordCountMeta =
       const VerificationMeta('wordCount');
   @override
@@ -5857,6 +5863,7 @@ class $SceneSummariesTable extends SceneSummaries
         keyDialogues,
         signatureMoments,
         foreshadowingIds,
+        embeddingId,
         wordCount,
         sceneOrder,
         createdAt,
@@ -5999,6 +6006,12 @@ class $SceneSummariesTable extends SceneSummaries
     } else if (isInserting) {
       context.missing(_foreshadowingIdsMeta);
     }
+    if (data.containsKey('embedding_id')) {
+      context.handle(
+          _embeddingIdMeta,
+          embeddingId.isAcceptableOrUnknown(
+              data['embedding_id']!, _embeddingIdMeta));
+    }
     if (data.containsKey('word_count')) {
       context.handle(_wordCountMeta,
           wordCount.isAcceptableOrUnknown(data['word_count']!, _wordCountMeta));
@@ -6070,6 +6083,8 @@ class $SceneSummariesTable extends SceneSummaries
           DriftSqlType.string, data['${effectivePrefix}signature_moments'])!,
       foreshadowingIds: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}foreshadowing_ids'])!,
+      embeddingId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}embedding_id']),
       wordCount: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}word_count'])!,
       sceneOrder: attachedDatabase.typeMapping
@@ -6106,6 +6121,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
   String keyDialogues;
   String signatureMoments;
   String foreshadowingIds;
+  String? embeddingId;
   int wordCount;
   int sceneOrder;
   DateTime createdAt;
@@ -6129,6 +6145,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
       required this.keyDialogues,
       required this.signatureMoments,
       required this.foreshadowingIds,
+      this.embeddingId,
       required this.wordCount,
       required this.sceneOrder,
       required this.createdAt,
@@ -6154,6 +6171,9 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
     map['key_dialogues'] = Variable<String>(keyDialogues);
     map['signature_moments'] = Variable<String>(signatureMoments);
     map['foreshadowing_ids'] = Variable<String>(foreshadowingIds);
+    if (!nullToAbsent || embeddingId != null) {
+      map['embedding_id'] = Variable<String>(embeddingId);
+    }
     map['word_count'] = Variable<int>(wordCount);
     map['scene_order'] = Variable<int>(sceneOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -6181,6 +6201,9 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
       keyDialogues: Value(keyDialogues),
       signatureMoments: Value(signatureMoments),
       foreshadowingIds: Value(foreshadowingIds),
+      embeddingId: embeddingId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(embeddingId),
       wordCount: Value(wordCount),
       sceneOrder: Value(sceneOrder),
       createdAt: Value(createdAt),
@@ -6210,6 +6233,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
       keyDialogues: serializer.fromJson<String>(json['keyDialogues']),
       signatureMoments: serializer.fromJson<String>(json['signatureMoments']),
       foreshadowingIds: serializer.fromJson<String>(json['foreshadowingIds']),
+      embeddingId: serializer.fromJson<String?>(json['embeddingId']),
       wordCount: serializer.fromJson<int>(json['wordCount']),
       sceneOrder: serializer.fromJson<int>(json['sceneOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -6238,6 +6262,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
       'keyDialogues': serializer.toJson<String>(keyDialogues),
       'signatureMoments': serializer.toJson<String>(signatureMoments),
       'foreshadowingIds': serializer.toJson<String>(foreshadowingIds),
+      'embeddingId': serializer.toJson<String?>(embeddingId),
       'wordCount': serializer.toJson<int>(wordCount),
       'sceneOrder': serializer.toJson<int>(sceneOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -6264,6 +6289,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
           String? keyDialogues,
           String? signatureMoments,
           String? foreshadowingIds,
+          Value<String?> embeddingId = const Value.absent(),
           int? wordCount,
           int? sceneOrder,
           DateTime? createdAt,
@@ -6287,6 +6313,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
         keyDialogues: keyDialogues ?? this.keyDialogues,
         signatureMoments: signatureMoments ?? this.signatureMoments,
         foreshadowingIds: foreshadowingIds ?? this.foreshadowingIds,
+        embeddingId: embeddingId.present ? embeddingId.value : this.embeddingId,
         wordCount: wordCount ?? this.wordCount,
         sceneOrder: sceneOrder ?? this.sceneOrder,
         createdAt: createdAt ?? this.createdAt,
@@ -6328,6 +6355,8 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
       foreshadowingIds: data.foreshadowingIds.present
           ? data.foreshadowingIds.value
           : this.foreshadowingIds,
+      embeddingId:
+          data.embeddingId.present ? data.embeddingId.value : this.embeddingId,
       wordCount: data.wordCount.present ? data.wordCount.value : this.wordCount,
       sceneOrder:
           data.sceneOrder.present ? data.sceneOrder.value : this.sceneOrder,
@@ -6357,6 +6386,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
           ..write('keyDialogues: $keyDialogues, ')
           ..write('signatureMoments: $signatureMoments, ')
           ..write('foreshadowingIds: $foreshadowingIds, ')
+          ..write('embeddingId: $embeddingId, ')
           ..write('wordCount: $wordCount, ')
           ..write('sceneOrder: $sceneOrder, ')
           ..write('createdAt: $createdAt, ')
@@ -6385,6 +6415,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
         keyDialogues,
         signatureMoments,
         foreshadowingIds,
+        embeddingId,
         wordCount,
         sceneOrder,
         createdAt,
@@ -6412,6 +6443,7 @@ class SceneSummary extends DataClass implements Insertable<SceneSummary> {
           other.keyDialogues == this.keyDialogues &&
           other.signatureMoments == this.signatureMoments &&
           other.foreshadowingIds == this.foreshadowingIds &&
+          other.embeddingId == this.embeddingId &&
           other.wordCount == this.wordCount &&
           other.sceneOrder == this.sceneOrder &&
           other.createdAt == this.createdAt &&
@@ -6437,6 +6469,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
   Value<String> keyDialogues;
   Value<String> signatureMoments;
   Value<String> foreshadowingIds;
+  Value<String?> embeddingId;
   Value<int> wordCount;
   Value<int> sceneOrder;
   Value<DateTime> createdAt;
@@ -6461,6 +6494,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
     this.keyDialogues = const Value.absent(),
     this.signatureMoments = const Value.absent(),
     this.foreshadowingIds = const Value.absent(),
+    this.embeddingId = const Value.absent(),
     this.wordCount = const Value.absent(),
     this.sceneOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -6486,6 +6520,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
     required String keyDialogues,
     required String signatureMoments,
     required String foreshadowingIds,
+    this.embeddingId = const Value.absent(),
     required int wordCount,
     required int sceneOrder,
     required DateTime createdAt,
@@ -6532,6 +6567,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
     Expression<String>? keyDialogues,
     Expression<String>? signatureMoments,
     Expression<String>? foreshadowingIds,
+    Expression<String>? embeddingId,
     Expression<int>? wordCount,
     Expression<int>? sceneOrder,
     Expression<DateTime>? createdAt,
@@ -6557,6 +6593,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
       if (keyDialogues != null) 'key_dialogues': keyDialogues,
       if (signatureMoments != null) 'signature_moments': signatureMoments,
       if (foreshadowingIds != null) 'foreshadowing_ids': foreshadowingIds,
+      if (embeddingId != null) 'embedding_id': embeddingId,
       if (wordCount != null) 'word_count': wordCount,
       if (sceneOrder != null) 'scene_order': sceneOrder,
       if (createdAt != null) 'created_at': createdAt,
@@ -6584,6 +6621,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
       Value<String>? keyDialogues,
       Value<String>? signatureMoments,
       Value<String>? foreshadowingIds,
+      Value<String?>? embeddingId,
       Value<int>? wordCount,
       Value<int>? sceneOrder,
       Value<DateTime>? createdAt,
@@ -6608,6 +6646,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
       keyDialogues: keyDialogues ?? this.keyDialogues,
       signatureMoments: signatureMoments ?? this.signatureMoments,
       foreshadowingIds: foreshadowingIds ?? this.foreshadowingIds,
+      embeddingId: embeddingId ?? this.embeddingId,
       wordCount: wordCount ?? this.wordCount,
       sceneOrder: sceneOrder ?? this.sceneOrder,
       createdAt: createdAt ?? this.createdAt,
@@ -6673,6 +6712,9 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
     if (foreshadowingIds.present) {
       map['foreshadowing_ids'] = Variable<String>(foreshadowingIds.value);
     }
+    if (embeddingId.present) {
+      map['embedding_id'] = Variable<String>(embeddingId.value);
+    }
     if (wordCount.present) {
       map['word_count'] = Variable<int>(wordCount.value);
     }
@@ -6712,6 +6754,7 @@ class SceneSummariesCompanion extends UpdateCompanion<SceneSummary> {
           ..write('keyDialogues: $keyDialogues, ')
           ..write('signatureMoments: $signatureMoments, ')
           ..write('foreshadowingIds: $foreshadowingIds, ')
+          ..write('embeddingId: $embeddingId, ')
           ..write('wordCount: $wordCount, ')
           ..write('sceneOrder: $sceneOrder, ')
           ..write('createdAt: $createdAt, ')
@@ -12928,6 +12971,7 @@ typedef $$SceneSummariesTableCreateCompanionBuilder = SceneSummariesCompanion
   required String keyDialogues,
   required String signatureMoments,
   required String foreshadowingIds,
+  Value<String?> embeddingId,
   required int wordCount,
   required int sceneOrder,
   required DateTime createdAt,
@@ -12954,6 +12998,7 @@ typedef $$SceneSummariesTableUpdateCompanionBuilder = SceneSummariesCompanion
   Value<String> keyDialogues,
   Value<String> signatureMoments,
   Value<String> foreshadowingIds,
+  Value<String?> embeddingId,
   Value<int> wordCount,
   Value<int> sceneOrder,
   Value<DateTime> createdAt,
@@ -13026,6 +13071,9 @@ class $$SceneSummariesTableFilterComposer
   ColumnFilters<String> get foreshadowingIds => $composableBuilder(
       column: $table.foreshadowingIds,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get embeddingId => $composableBuilder(
+      column: $table.embeddingId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get wordCount => $composableBuilder(
       column: $table.wordCount, builder: (column) => ColumnFilters(column));
@@ -13109,6 +13157,9 @@ class $$SceneSummariesTableOrderingComposer
       column: $table.foreshadowingIds,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get embeddingId => $composableBuilder(
+      column: $table.embeddingId, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get wordCount => $composableBuilder(
       column: $table.wordCount, builder: (column) => ColumnOrderings(column));
 
@@ -13185,6 +13236,9 @@ class $$SceneSummariesTableAnnotationComposer
   GeneratedColumn<String> get foreshadowingIds => $composableBuilder(
       column: $table.foreshadowingIds, builder: (column) => column);
 
+  GeneratedColumn<String> get embeddingId => $composableBuilder(
+      column: $table.embeddingId, builder: (column) => column);
+
   GeneratedColumn<int> get wordCount =>
       $composableBuilder(column: $table.wordCount, builder: (column) => column);
 
@@ -13243,6 +13297,7 @@ class $$SceneSummariesTableTableManager extends RootTableManager<
             Value<String> keyDialogues = const Value.absent(),
             Value<String> signatureMoments = const Value.absent(),
             Value<String> foreshadowingIds = const Value.absent(),
+            Value<String?> embeddingId = const Value.absent(),
             Value<int> wordCount = const Value.absent(),
             Value<int> sceneOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -13268,6 +13323,7 @@ class $$SceneSummariesTableTableManager extends RootTableManager<
             keyDialogues: keyDialogues,
             signatureMoments: signatureMoments,
             foreshadowingIds: foreshadowingIds,
+            embeddingId: embeddingId,
             wordCount: wordCount,
             sceneOrder: sceneOrder,
             createdAt: createdAt,
@@ -13293,6 +13349,7 @@ class $$SceneSummariesTableTableManager extends RootTableManager<
             required String keyDialogues,
             required String signatureMoments,
             required String foreshadowingIds,
+            Value<String?> embeddingId = const Value.absent(),
             required int wordCount,
             required int sceneOrder,
             required DateTime createdAt,
@@ -13318,6 +13375,7 @@ class $$SceneSummariesTableTableManager extends RootTableManager<
             keyDialogues: keyDialogues,
             signatureMoments: signatureMoments,
             foreshadowingIds: foreshadowingIds,
+            embeddingId: embeddingId,
             wordCount: wordCount,
             sceneOrder: sceneOrder,
             createdAt: createdAt,
