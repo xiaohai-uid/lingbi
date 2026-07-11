@@ -321,17 +321,134 @@ class MemoryService implements IMemoryService {
   }
 
   @override
-  Future<ChapterSummary> summarizeChapter(String chapterId) async {
-    // 从场景摘要聚合生成章级摘要
-    // TODO: 需要 worldId 参数
-    throw UnimplementedError('summarizeChapter requires worldId parameter');
+  Future<ChapterSummary> summarizeChapter(String chapterId, String worldId) async {
+    final db = await _db(worldId);
+
+    // 获取本章所有场景摘要
+    final scenes = await (db.select(db.sceneSummaries)
+      ..where((t) => t.chapterId.equals(chapterId))
+      ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)])
+    ).get();
+
+    if (scenes.isEmpty) {
+      throw StateError('No scene summaries found for chapter $chapterId');
+    }
+
+    // 获取章节信息
+    final chapters = await (db.select(db.chapters)
+      ..where((t) => t.id.equals(chapterId))).get();
+    final chapterTitle = chapters.isNotEmpty ? chapters.first.title : '';
+
+    // 格式化场景摘要为 JSON
+    final sceneJson = jsonEncode(scenes.map((s) => {
+      'sceneOrder': s.sceneOrder,
+      'summary': s.summary,
+      'keywords': s.keywords,
+      'mood': s.mood,
+    }).toList());
+
+    // 调用 LLM 生成章摘要
+    final prompt = chapterSummaryPrompt(chapterTitle, sceneJson);
+    final chunks = <String>[];
+    await for (final chunk in _aiService.chat(
+      message: '基于场景摘要生成章摘要',
+      systemPrompt: prompt,
+    )) {
+      chunks.add(chunk);
+    }
+    final response = chunks.join('');
+    final json = jsonDecode(response) as Map<String, dynamic>;
+
+    // 获取 volumeId
+    String volumeId = '';
+    if (chapters.isNotEmpty) {
+      volumeId = chapters.first.volumeId;
+    }
+
+    // 存储章摘要
+    final result = await createChapterSummary(
+      chapterId: chapterId,
+      volumeId: volumeId,
+      worldId: worldId,
+      summary: json['summary'] as String? ?? '',
+      hook: json['hook'] as String? ?? '',
+      majorEvents: jsonEncode(json['majorEvents'] ?? []),
+      characterArcs: jsonEncode(json['characterArcs'] ?? {}),
+      conflictResolution: json['conflictResolution'] as String? ?? '',
+      emotionalClimax: json['emotionalClimax'] as String? ?? '',
+      unansweredQuestions: jsonEncode(json['unansweredQuestions'] ?? []),
+      sceneCount: scenes.length,
+    );
+
+    // 推送 embedding
+    if (_embeddingService != null && _storageClient != null) {
+      try {
+        final vector = await _embeddingService!.embed(result.summary);
+        await _storageClient!.upsertVector(
+          id: result.id,
+          vector: vector,
+          payload: {
+            'worldId': worldId,
+            'chapterId': chapterId,
+            'summary': result.summary,
+            'type': 'chapter',
+          },
+        );
+      } catch (_) {}
+    }
+
+    return result;
   }
 
   @override
-  Future<VolumeSummary> summarizeVolume(String volumeId) async {
-    // 从章节摘要聚合生成卷级摘要
-    // TODO: 需要 worldId 参数
-    throw UnimplementedError('summarizeVolume requires worldId parameter');
+  Future<VolumeSummary> summarizeVolume(String volumeId, String worldId) async {
+    final db = await _db(worldId);
+
+    // 获取本卷所有章摘要
+    final chapters = await (db.select(db.chapterSummaries)
+      ..where((t) => t.volumeId.equals(volumeId))
+    ).get();
+
+    if (chapters.isEmpty) {
+      throw StateError('No chapter summaries found for volume $volumeId');
+    }
+
+    // 获取卷信息
+    final volumes = await (db.select(db.volumes)
+      ..where((t) => t.id.equals(volumeId))).get();
+    final volumeTitle = volumes.isNotEmpty ? volumes.first.title : '';
+
+    // 格式化章摘要
+    final chapterJson = jsonEncode(chapters.map((c) => {
+      'summary': c.summary,
+      'hook': c.hook,
+      'majorEvents': c.majorEvents,
+    }).toList());
+
+    // 调用 LLM
+    final prompt = volumeSummaryPrompt(volumeTitle, chapterJson);
+    final chunks = <String>[];
+    await for (final chunk in _aiService.chat(
+      message: '基于章摘要生成卷摘要',
+      systemPrompt: prompt,
+    )) {
+      chunks.add(chunk);
+    }
+    final response = chunks.join('');
+    final json = jsonDecode(response) as Map<String, dynamic>;
+
+    // 存储
+    return createVolumeSummary(
+      volumeId: volumeId,
+      worldId: worldId,
+      summary: json['summary'] as String? ?? '',
+      status: 'completed',
+      mainCharacters: jsonEncode(json['mainCharacters'] ?? {}),
+      storyArc: json['storyArc'] as String? ?? '',
+      majorPlotPoints: jsonEncode(json['majorPlotPoints'] ?? []),
+      unresolvedThreads: jsonEncode(json['unresolvedThreads'] ?? []),
+      chapterCount: chapters.length,
+    );
   }
 
   // ═════════════════════════════════════

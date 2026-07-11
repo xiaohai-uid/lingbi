@@ -20,6 +20,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:lingbi/services/memory_service.dart';
 
 const _uuid = Uuid();
 
@@ -273,7 +274,7 @@ class WorldService {
     // 所有场景都有摘要时才触发章摘要
     if (scenes.isNotEmpty && scenes.length == summaries.length) {
       try {
-        await memoryService!.summarizeChapter(chapterId);
+        await memoryService!.summarizeChapter(chapterId, worldId);
       } catch (_) {}
     }
   }
@@ -288,7 +289,7 @@ class WorldService {
         ..where((t) => t.volumeId.equals(volumeId))).get();
     if (chapters.isNotEmpty && chapters.length == summaries.length) {
       try {
-        await memoryService!.summarizeVolume(volumeId);
+        await memoryService!.summarizeVolume(volumeId, worldId);
       } catch (_) {}
     }
   }

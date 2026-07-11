@@ -76,12 +76,126 @@ class StyleDetectionService implements IStyleDetectionService {
 
   @override
   Future<StyleProfile> analyzeChapter(String chapterId, String worldId) async {
-    throw UnimplementedError('analyzeChapter: aggregate scene styles');
+    final db = await _db(worldId);
+
+    // 获取本章所有场景的风格画像
+    final profiles = await (db.select(db.styleProfiles)
+      ..where((t) => t.chapterId.equals(chapterId))).get();
+
+    if (profiles.isEmpty) {
+      throw StateError('No style profiles found for chapter $chapterId');
+    }
+
+    // 聚合：分类取众数，数值取平均
+    final toneCount = <String, int>{};
+    final vocabCount = <String, int>{};
+    final pacingCount = <String, int>{};
+    double avgDialogue = 0, avgComplexity = 0, avgParagraph = 0;
+
+    for (final p in profiles) {
+      toneCount[p.tone] = (toneCount[p.tone] ?? 0) + 1;
+      vocabCount[p.vocabularyLevel] = (vocabCount[p.vocabularyLevel] ?? 0) + 1;
+      pacingCount[p.pacing] = (pacingCount[p.pacing] ?? 0) + 1;
+      avgDialogue += p.dialogueRatio;
+      avgComplexity += p.sentenceComplexity;
+      avgParagraph += p.paragraphLength;
+    }
+
+    if (profiles.isNotEmpty) {
+      avgDialogue /= profiles.length;
+      avgComplexity /= profiles.length;
+      avgParagraph /= profiles.length;
+    }
+
+    // 取出现次数最多的作为聚合值
+    String mostFrequent(Map<String, int> counts) {
+      return counts.entries.fold('', (a, b) => b.value > (counts[a] ?? 0) ? b.key : a);
+    }
+
+    final now = DateTime.now();
+    final id = _uuid.v4();
+    await db.into(db.styleProfiles).insert(StyleProfilesCompanion.insert(
+      id: id, worldId: worldId,
+      chapterId: Value(chapterId),
+      summary: 'Chapter aggregate: ${profiles.length} scenes',
+      tone: mostFrequent(toneCount),
+      vocabularyLevel: mostFrequent(vocabCount),
+      dialogueRatio: avgDialogue,
+      sentenceComplexity: avgComplexity,
+      pacing: mostFrequent(pacingCount),
+      rhetoricalDevices: profiles.first.rhetoricalDevices,
+      paragraphLength: avgParagraph,
+      keywords: profiles.first.keywords,
+      rawAnalysis: 'Aggregated from ${profiles.length} scene profiles',
+      createdAt: now, updatedAt: now,
+    ));
+
+    return (await db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
   }
 
   @override
   Future<StyleProfile> analyzeWork(String workId, String worldId) async {
-    throw UnimplementedError('analyzeWork: aggregate chapter/volume styles');
+    final db = await _db(worldId);
+
+    // 获取作品下所有章的 style profiles（通过 workId 关联 chapter 的 profile）
+    final vols = await (db.select(db.volumes)..where((t) => t.workId.equals(workId))).get();
+    final profiles = <StyleProfile>[];
+    for (final vol in vols) {
+      final chs = await (db.select(db.chapters)..where((t) => t.volumeId.equals(vol.id))).get();
+      for (final ch in chs) {
+        final ps = await (db.select(db.styleProfiles)..where((t) => t.chapterId.equals(ch.id))).get();
+        profiles.addAll(ps);
+      }
+    }
+
+    if (profiles.isEmpty) {
+      throw StateError('No style profiles found for work $workId');
+    }
+
+    // Same aggregation logic as analyzeChapter
+    final toneCount = <String, int>{};
+    final vocabCount = <String, int>{};
+    final pacingCount = <String, int>{};
+    double avgDialogue = 0, avgComplexity = 0, avgParagraph = 0;
+
+    for (final p in profiles) {
+      toneCount[p.tone] = (toneCount[p.tone] ?? 0) + 1;
+      vocabCount[p.vocabularyLevel] = (vocabCount[p.vocabularyLevel] ?? 0) + 1;
+      pacingCount[p.pacing] = (pacingCount[p.pacing] ?? 0) + 1;
+      avgDialogue += p.dialogueRatio;
+      avgComplexity += p.sentenceComplexity;
+      avgParagraph += p.paragraphLength;
+    }
+
+    if (profiles.isNotEmpty) {
+      avgDialogue /= profiles.length;
+      avgComplexity /= profiles.length;
+      avgParagraph /= profiles.length;
+    }
+
+    String mostFrequent(Map<String, int> counts) {
+      return counts.entries.fold('', (a, b) => b.value > (counts[a] ?? 0) ? b.key : a);
+    }
+
+    final now = DateTime.now();
+    final id = _uuid.v4();
+    await db.into(db.styleProfiles).insert(StyleProfilesCompanion.insert(
+      id: id, worldId: worldId,
+      workId: Value(workId),
+      summary: 'Work aggregate: ${profiles.length} scene profiles',
+      tone: mostFrequent(toneCount),
+      vocabularyLevel: mostFrequent(vocabCount),
+      dialogueRatio: avgDialogue,
+      sentenceComplexity: avgComplexity,
+      pacing: mostFrequent(pacingCount),
+      rhetoricalDevices: profiles.first.rhetoricalDevices,
+      paragraphLength: avgParagraph,
+      keywords: profiles.first.keywords,
+      rawAnalysis: 'Aggregated from ${profiles.length} scene profiles across work',
+      createdAt: now, updatedAt: now,
+    ));
+
+    return (await db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
   }
 
   @override

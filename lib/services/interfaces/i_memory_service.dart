@@ -61,10 +61,10 @@ abstract class IMemoryService {
   Future<SceneSummary> summarizeScene(String sceneId);
 
   /// 聚合本章所有场景摘要，生成章级摘要
-  Future<ChapterSummary> summarizeChapter(String chapterId);
+  Future<ChapterSummary> summarizeChapter(String chapterId, String worldId);
 
   /// 聚合本卷所有章摘要，生成卷级摘要
-  Future<VolumeSummary> summarizeVolume(String volumeId);
+  Future<VolumeSummary> summarizeVolume(String volumeId, String worldId);
 
   /// 为当前生成位置构建记忆上下文文本
   Future<String> buildMemoryContext({
