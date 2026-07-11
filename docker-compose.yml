@@ -342,6 +342,24 @@ services:
       qdrant:
         condition: service_healthy
 
+  skill-service:
+    build:
+      context: ./rust/skill-service
+      dockerfile: Dockerfile
+    ports:
+      - "8097:8097"
+    environment:
+      - PORT=8097
+      - DATABASE_URL=postgres://lingbi:lingbi@postgres:5432/lingbi
+      - AI_PROVIDER_URL=http://ai-provider:8081
+    networks:
+      - lingbi_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-provider:
+        condition: service_healthy
+
 volumes:
   pg_data:
   redis_data:

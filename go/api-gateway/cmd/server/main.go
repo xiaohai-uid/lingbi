@@ -79,6 +79,7 @@ func main() {
 		router.RegisterExportRoutes(api, "http://export-service:8085")
 		router.RegisterTimelineRoutes(api, "http://timeline-service:8094")
 		router.RegisterFactionRoutes(api, "http://faction-service:8095")
+		router.RegisterSkillRoutes(api, "http://skill-service:8097")
 	}
 
 	// Server

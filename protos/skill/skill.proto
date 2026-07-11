@@ -1,0 +1,61 @@
+syntax = "proto3";
+package lingbi.skill;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/skill";
+
+import "common/common.proto";
+
+message Skill {
+  string id = 1;
+  string name = 2;
+  string version = 3;
+  string type = 4;
+  string author = 5;
+  string description = 6;
+  string icon = 7;
+  string prompt_template = 8;
+  map<string, string> variables = 9;
+  string category = 10;
+  int32 downloads = 11;
+  float rating = 12;
+  string source = 13;
+  lingbi.common.Timestamp created_at = 14;
+  lingbi.common.Timestamp updated_at = 15;
+}
+
+message SkillList {
+  repeated Skill skills = 1;
+  int32 total = 2;
+}
+
+message ExecuteRequest {
+  string skill_id = 1;
+  map<string, string> variables = 2;
+  string context = 3;
+}
+
+message ExecuteResponse {
+  string result = 1;
+  string skill_id = 2;
+  int32 tokens_used = 3;
+}
+
+message DistillRequest {
+  string text = 1;
+  string name = 2;
+  string author = 3;
+}
+
+message DistillResponse {
+  Skill skill = 1;
+  string skill_json = 2;
+}
+
+service SkillService {
+  rpc ListSkills(lingbi.common.Pagination) returns (SkillList);
+  rpc GetSkill(lingbi.common.UUID) returns (Skill);
+  rpc CreateSkill(Skill) returns (Skill);
+  rpc UpdateSkill(Skill) returns (Skill);
+  rpc DeleteSkill(lingbi.common.UUID) returns (lingbi.common.Empty);
+  rpc ExecuteSkill(ExecuteRequest) returns (ExecuteResponse);
+  rpc DistillStyle(DistillRequest) returns (DistillResponse);
+}

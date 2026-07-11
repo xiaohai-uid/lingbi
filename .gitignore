@@ -47,3 +47,5 @@ analyze_result.txt
 coverage/
 tmp/
 *.g.dart.tmp
+target/
+# Rust build
