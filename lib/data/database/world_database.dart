@@ -406,6 +406,40 @@ class StyleProfiles extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// 每日写作统计表
+@DataClassName('DailyWritingStat')
+class DailyWritingStats extends Table {
+  TextColumn get id => text()();
+  TextColumn get worldId => text()();
+  TextColumn get date => text()();
+  IntColumn get wordCount => integer()();
+  IntColumn get sessionCount => integer()();
+  IntColumn get aiCallCount => integer()();
+  IntColumn get minutesSpent => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 写作目标表
+@DataClassName('WritingGoal')
+class WritingGoals extends Table {
+  TextColumn get id => text()();
+  TextColumn get worldId => text()();
+  TextColumn get type => text()();
+  IntColumn get targetWordCount => integer()();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  BoolColumn get isActive => boolean()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // ============================================================
 // 数据库定义
 // ============================================================
@@ -428,6 +462,8 @@ class StyleProfiles extends Table {
     ChapterSummaries,
     VolumeSummaries,
     StyleProfiles,
+    DailyWritingStats,
+    WritingGoals,
     Works,
     Volumes,
     Chapters,
@@ -439,7 +475,7 @@ class WorldDatabase extends _$WorldDatabase {
   WorldDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy();

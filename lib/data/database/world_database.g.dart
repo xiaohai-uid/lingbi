@@ -8876,6 +8876,958 @@ class StyleProfilesCompanion extends UpdateCompanion<StyleProfile> {
   }
 }
 
+class $DailyWritingStatsTable extends DailyWritingStats
+    with TableInfo<$DailyWritingStatsTable, DailyWritingStat> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyWritingStatsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+      'date', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _wordCountMeta =
+      const VerificationMeta('wordCount');
+  @override
+  late final GeneratedColumn<int> wordCount = GeneratedColumn<int>(
+      'word_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _sessionCountMeta =
+      const VerificationMeta('sessionCount');
+  @override
+  late final GeneratedColumn<int> sessionCount = GeneratedColumn<int>(
+      'session_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _aiCallCountMeta =
+      const VerificationMeta('aiCallCount');
+  @override
+  late final GeneratedColumn<int> aiCallCount = GeneratedColumn<int>(
+      'ai_call_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _minutesSpentMeta =
+      const VerificationMeta('minutesSpent');
+  @override
+  late final GeneratedColumn<int> minutesSpent = GeneratedColumn<int>(
+      'minutes_spent', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        worldId,
+        date,
+        wordCount,
+        sessionCount,
+        aiCallCount,
+        minutesSpent,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_writing_stats';
+  @override
+  VerificationContext validateIntegrity(Insertable<DailyWritingStat> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('word_count')) {
+      context.handle(_wordCountMeta,
+          wordCount.isAcceptableOrUnknown(data['word_count']!, _wordCountMeta));
+    } else if (isInserting) {
+      context.missing(_wordCountMeta);
+    }
+    if (data.containsKey('session_count')) {
+      context.handle(
+          _sessionCountMeta,
+          sessionCount.isAcceptableOrUnknown(
+              data['session_count']!, _sessionCountMeta));
+    } else if (isInserting) {
+      context.missing(_sessionCountMeta);
+    }
+    if (data.containsKey('ai_call_count')) {
+      context.handle(
+          _aiCallCountMeta,
+          aiCallCount.isAcceptableOrUnknown(
+              data['ai_call_count']!, _aiCallCountMeta));
+    } else if (isInserting) {
+      context.missing(_aiCallCountMeta);
+    }
+    if (data.containsKey('minutes_spent')) {
+      context.handle(
+          _minutesSpentMeta,
+          minutesSpent.isAcceptableOrUnknown(
+              data['minutes_spent']!, _minutesSpentMeta));
+    } else if (isInserting) {
+      context.missing(_minutesSpentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DailyWritingStat map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyWritingStat(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      date: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      wordCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}word_count'])!,
+      sessionCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}session_count'])!,
+      aiCallCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}ai_call_count'])!,
+      minutesSpent: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}minutes_spent'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $DailyWritingStatsTable createAlias(String alias) {
+    return $DailyWritingStatsTable(attachedDatabase, alias);
+  }
+}
+
+class DailyWritingStat extends DataClass
+    implements Insertable<DailyWritingStat> {
+  String id;
+  String worldId;
+  String date;
+  int wordCount;
+  int sessionCount;
+  int aiCallCount;
+  int minutesSpent;
+  DateTime createdAt;
+  DateTime updatedAt;
+  DailyWritingStat(
+      {required this.id,
+      required this.worldId,
+      required this.date,
+      required this.wordCount,
+      required this.sessionCount,
+      required this.aiCallCount,
+      required this.minutesSpent,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['world_id'] = Variable<String>(worldId);
+    map['date'] = Variable<String>(date);
+    map['word_count'] = Variable<int>(wordCount);
+    map['session_count'] = Variable<int>(sessionCount);
+    map['ai_call_count'] = Variable<int>(aiCallCount);
+    map['minutes_spent'] = Variable<int>(minutesSpent);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  DailyWritingStatsCompanion toCompanion(bool nullToAbsent) {
+    return DailyWritingStatsCompanion(
+      id: Value(id),
+      worldId: Value(worldId),
+      date: Value(date),
+      wordCount: Value(wordCount),
+      sessionCount: Value(sessionCount),
+      aiCallCount: Value(aiCallCount),
+      minutesSpent: Value(minutesSpent),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DailyWritingStat.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyWritingStat(
+      id: serializer.fromJson<String>(json['id']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      date: serializer.fromJson<String>(json['date']),
+      wordCount: serializer.fromJson<int>(json['wordCount']),
+      sessionCount: serializer.fromJson<int>(json['sessionCount']),
+      aiCallCount: serializer.fromJson<int>(json['aiCallCount']),
+      minutesSpent: serializer.fromJson<int>(json['minutesSpent']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'worldId': serializer.toJson<String>(worldId),
+      'date': serializer.toJson<String>(date),
+      'wordCount': serializer.toJson<int>(wordCount),
+      'sessionCount': serializer.toJson<int>(sessionCount),
+      'aiCallCount': serializer.toJson<int>(aiCallCount),
+      'minutesSpent': serializer.toJson<int>(minutesSpent),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DailyWritingStat copyWith(
+          {String? id,
+          String? worldId,
+          String? date,
+          int? wordCount,
+          int? sessionCount,
+          int? aiCallCount,
+          int? minutesSpent,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      DailyWritingStat(
+        id: id ?? this.id,
+        worldId: worldId ?? this.worldId,
+        date: date ?? this.date,
+        wordCount: wordCount ?? this.wordCount,
+        sessionCount: sessionCount ?? this.sessionCount,
+        aiCallCount: aiCallCount ?? this.aiCallCount,
+        minutesSpent: minutesSpent ?? this.minutesSpent,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  DailyWritingStat copyWithCompanion(DailyWritingStatsCompanion data) {
+    return DailyWritingStat(
+      id: data.id.present ? data.id.value : this.id,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      date: data.date.present ? data.date.value : this.date,
+      wordCount: data.wordCount.present ? data.wordCount.value : this.wordCount,
+      sessionCount: data.sessionCount.present
+          ? data.sessionCount.value
+          : this.sessionCount,
+      aiCallCount:
+          data.aiCallCount.present ? data.aiCallCount.value : this.aiCallCount,
+      minutesSpent: data.minutesSpent.present
+          ? data.minutesSpent.value
+          : this.minutesSpent,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyWritingStat(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('date: $date, ')
+          ..write('wordCount: $wordCount, ')
+          ..write('sessionCount: $sessionCount, ')
+          ..write('aiCallCount: $aiCallCount, ')
+          ..write('minutesSpent: $minutesSpent, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, worldId, date, wordCount, sessionCount,
+      aiCallCount, minutesSpent, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyWritingStat &&
+          other.id == this.id &&
+          other.worldId == this.worldId &&
+          other.date == this.date &&
+          other.wordCount == this.wordCount &&
+          other.sessionCount == this.sessionCount &&
+          other.aiCallCount == this.aiCallCount &&
+          other.minutesSpent == this.minutesSpent &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class DailyWritingStatsCompanion extends UpdateCompanion<DailyWritingStat> {
+  Value<String> id;
+  Value<String> worldId;
+  Value<String> date;
+  Value<int> wordCount;
+  Value<int> sessionCount;
+  Value<int> aiCallCount;
+  Value<int> minutesSpent;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  DailyWritingStatsCompanion({
+    this.id = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.wordCount = const Value.absent(),
+    this.sessionCount = const Value.absent(),
+    this.aiCallCount = const Value.absent(),
+    this.minutesSpent = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyWritingStatsCompanion.insert({
+    required String id,
+    required String worldId,
+    required String date,
+    required int wordCount,
+    required int sessionCount,
+    required int aiCallCount,
+    required int minutesSpent,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        worldId = Value(worldId),
+        date = Value(date),
+        wordCount = Value(wordCount),
+        sessionCount = Value(sessionCount),
+        aiCallCount = Value(aiCallCount),
+        minutesSpent = Value(minutesSpent),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<DailyWritingStat> custom({
+    Expression<String>? id,
+    Expression<String>? worldId,
+    Expression<String>? date,
+    Expression<int>? wordCount,
+    Expression<int>? sessionCount,
+    Expression<int>? aiCallCount,
+    Expression<int>? minutesSpent,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (worldId != null) 'world_id': worldId,
+      if (date != null) 'date': date,
+      if (wordCount != null) 'word_count': wordCount,
+      if (sessionCount != null) 'session_count': sessionCount,
+      if (aiCallCount != null) 'ai_call_count': aiCallCount,
+      if (minutesSpent != null) 'minutes_spent': minutesSpent,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyWritingStatsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? worldId,
+      Value<String>? date,
+      Value<int>? wordCount,
+      Value<int>? sessionCount,
+      Value<int>? aiCallCount,
+      Value<int>? minutesSpent,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return DailyWritingStatsCompanion(
+      id: id ?? this.id,
+      worldId: worldId ?? this.worldId,
+      date: date ?? this.date,
+      wordCount: wordCount ?? this.wordCount,
+      sessionCount: sessionCount ?? this.sessionCount,
+      aiCallCount: aiCallCount ?? this.aiCallCount,
+      minutesSpent: minutesSpent ?? this.minutesSpent,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (wordCount.present) {
+      map['word_count'] = Variable<int>(wordCount.value);
+    }
+    if (sessionCount.present) {
+      map['session_count'] = Variable<int>(sessionCount.value);
+    }
+    if (aiCallCount.present) {
+      map['ai_call_count'] = Variable<int>(aiCallCount.value);
+    }
+    if (minutesSpent.present) {
+      map['minutes_spent'] = Variable<int>(minutesSpent.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyWritingStatsCompanion(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('date: $date, ')
+          ..write('wordCount: $wordCount, ')
+          ..write('sessionCount: $sessionCount, ')
+          ..write('aiCallCount: $aiCallCount, ')
+          ..write('minutesSpent: $minutesSpent, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WritingGoalsTable extends WritingGoals
+    with TableInfo<$WritingGoalsTable, WritingGoal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WritingGoalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _worldIdMeta =
+      const VerificationMeta('worldId');
+  @override
+  late final GeneratedColumn<String> worldId = GeneratedColumn<String>(
+      'world_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _targetWordCountMeta =
+      const VerificationMeta('targetWordCount');
+  @override
+  late final GeneratedColumn<int> targetWordCount = GeneratedColumn<int>(
+      'target_word_count', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _startDateMeta =
+      const VerificationMeta('startDate');
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+      'start_date', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _endDateMeta =
+      const VerificationMeta('endDate');
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+      'end_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: true,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        worldId,
+        type,
+        targetWordCount,
+        startDate,
+        endDate,
+        isActive,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'writing_goals';
+  @override
+  VerificationContext validateIntegrity(Insertable<WritingGoal> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('world_id')) {
+      context.handle(_worldIdMeta,
+          worldId.isAcceptableOrUnknown(data['world_id']!, _worldIdMeta));
+    } else if (isInserting) {
+      context.missing(_worldIdMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('target_word_count')) {
+      context.handle(
+          _targetWordCountMeta,
+          targetWordCount.isAcceptableOrUnknown(
+              data['target_word_count']!, _targetWordCountMeta));
+    } else if (isInserting) {
+      context.missing(_targetWordCountMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(_startDateMeta,
+          startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta));
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(_endDateMeta,
+          endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    } else if (isInserting) {
+      context.missing(_isActiveMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WritingGoal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WritingGoal(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      worldId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}world_id'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      targetWordCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}target_word_count'])!,
+      startDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}start_date'])!,
+      endDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}end_date']),
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $WritingGoalsTable createAlias(String alias) {
+    return $WritingGoalsTable(attachedDatabase, alias);
+  }
+}
+
+class WritingGoal extends DataClass implements Insertable<WritingGoal> {
+  String id;
+  String worldId;
+  String type;
+  int targetWordCount;
+  DateTime startDate;
+  DateTime? endDate;
+  bool isActive;
+  DateTime createdAt;
+  DateTime updatedAt;
+  WritingGoal(
+      {required this.id,
+      required this.worldId,
+      required this.type,
+      required this.targetWordCount,
+      required this.startDate,
+      this.endDate,
+      required this.isActive,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['world_id'] = Variable<String>(worldId);
+    map['type'] = Variable<String>(type);
+    map['target_word_count'] = Variable<int>(targetWordCount);
+    map['start_date'] = Variable<DateTime>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  WritingGoalsCompanion toCompanion(bool nullToAbsent) {
+    return WritingGoalsCompanion(
+      id: Value(id),
+      worldId: Value(worldId),
+      type: Value(type),
+      targetWordCount: Value(targetWordCount),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      isActive: Value(isActive),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory WritingGoal.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WritingGoal(
+      id: serializer.fromJson<String>(json['id']),
+      worldId: serializer.fromJson<String>(json['worldId']),
+      type: serializer.fromJson<String>(json['type']),
+      targetWordCount: serializer.fromJson<int>(json['targetWordCount']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'worldId': serializer.toJson<String>(worldId),
+      'type': serializer.toJson<String>(type),
+      'targetWordCount': serializer.toJson<int>(targetWordCount),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'isActive': serializer.toJson<bool>(isActive),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  WritingGoal copyWith(
+          {String? id,
+          String? worldId,
+          String? type,
+          int? targetWordCount,
+          DateTime? startDate,
+          Value<DateTime?> endDate = const Value.absent(),
+          bool? isActive,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      WritingGoal(
+        id: id ?? this.id,
+        worldId: worldId ?? this.worldId,
+        type: type ?? this.type,
+        targetWordCount: targetWordCount ?? this.targetWordCount,
+        startDate: startDate ?? this.startDate,
+        endDate: endDate.present ? endDate.value : this.endDate,
+        isActive: isActive ?? this.isActive,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  WritingGoal copyWithCompanion(WritingGoalsCompanion data) {
+    return WritingGoal(
+      id: data.id.present ? data.id.value : this.id,
+      worldId: data.worldId.present ? data.worldId.value : this.worldId,
+      type: data.type.present ? data.type.value : this.type,
+      targetWordCount: data.targetWordCount.present
+          ? data.targetWordCount.value
+          : this.targetWordCount,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WritingGoal(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('type: $type, ')
+          ..write('targetWordCount: $targetWordCount, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, worldId, type, targetWordCount, startDate,
+      endDate, isActive, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WritingGoal &&
+          other.id == this.id &&
+          other.worldId == this.worldId &&
+          other.type == this.type &&
+          other.targetWordCount == this.targetWordCount &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.isActive == this.isActive &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class WritingGoalsCompanion extends UpdateCompanion<WritingGoal> {
+  Value<String> id;
+  Value<String> worldId;
+  Value<String> type;
+  Value<int> targetWordCount;
+  Value<DateTime> startDate;
+  Value<DateTime?> endDate;
+  Value<bool> isActive;
+  Value<DateTime> createdAt;
+  Value<DateTime> updatedAt;
+  Value<int> rowid;
+  WritingGoalsCompanion({
+    this.id = const Value.absent(),
+    this.worldId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.targetWordCount = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WritingGoalsCompanion.insert({
+    required String id,
+    required String worldId,
+    required String type,
+    required int targetWordCount,
+    required DateTime startDate,
+    this.endDate = const Value.absent(),
+    required bool isActive,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        worldId = Value(worldId),
+        type = Value(type),
+        targetWordCount = Value(targetWordCount),
+        startDate = Value(startDate),
+        isActive = Value(isActive),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<WritingGoal> custom({
+    Expression<String>? id,
+    Expression<String>? worldId,
+    Expression<String>? type,
+    Expression<int>? targetWordCount,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<bool>? isActive,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (worldId != null) 'world_id': worldId,
+      if (type != null) 'type': type,
+      if (targetWordCount != null) 'target_word_count': targetWordCount,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (isActive != null) 'is_active': isActive,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WritingGoalsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? worldId,
+      Value<String>? type,
+      Value<int>? targetWordCount,
+      Value<DateTime>? startDate,
+      Value<DateTime?>? endDate,
+      Value<bool>? isActive,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return WritingGoalsCompanion(
+      id: id ?? this.id,
+      worldId: worldId ?? this.worldId,
+      type: type ?? this.type,
+      targetWordCount: targetWordCount ?? this.targetWordCount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (worldId.present) {
+      map['world_id'] = Variable<String>(worldId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (targetWordCount.present) {
+      map['target_word_count'] = Variable<int>(targetWordCount.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WritingGoalsCompanion(')
+          ..write('id: $id, ')
+          ..write('worldId: $worldId, ')
+          ..write('type: $type, ')
+          ..write('targetWordCount: $targetWordCount, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $WorksTable extends Works with TableInfo<$WorksTable, Work> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -10972,6 +11924,9 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
   late final $VolumeSummariesTable volumeSummaries =
       $VolumeSummariesTable(this);
   late final $StyleProfilesTable styleProfiles = $StyleProfilesTable(this);
+  late final $DailyWritingStatsTable dailyWritingStats =
+      $DailyWritingStatsTable(this);
+  late final $WritingGoalsTable writingGoals = $WritingGoalsTable(this);
   late final $WorksTable works = $WorksTable(this);
   late final $VolumesTable volumes = $VolumesTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
@@ -10998,6 +11953,8 @@ abstract class _$WorldDatabase extends GeneratedDatabase {
         chapterSummaries,
         volumeSummaries,
         styleProfiles,
+        dailyWritingStats,
+        writingGoals,
         works,
         volumes,
         chapters,
@@ -15181,6 +16138,478 @@ typedef $$StyleProfilesTableProcessedTableManager = ProcessedTableManager<
     ),
     StyleProfile,
     PrefetchHooks Function()>;
+typedef $$DailyWritingStatsTableCreateCompanionBuilder
+    = DailyWritingStatsCompanion Function({
+  required String id,
+  required String worldId,
+  required String date,
+  required int wordCount,
+  required int sessionCount,
+  required int aiCallCount,
+  required int minutesSpent,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$DailyWritingStatsTableUpdateCompanionBuilder
+    = DailyWritingStatsCompanion Function({
+  Value<String> id,
+  Value<String> worldId,
+  Value<String> date,
+  Value<int> wordCount,
+  Value<int> sessionCount,
+  Value<int> aiCallCount,
+  Value<int> minutesSpent,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$DailyWritingStatsTableFilterComposer
+    extends Composer<_$WorldDatabase, $DailyWritingStatsTable> {
+  $$DailyWritingStatsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get wordCount => $composableBuilder(
+      column: $table.wordCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sessionCount => $composableBuilder(
+      column: $table.sessionCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get aiCallCount => $composableBuilder(
+      column: $table.aiCallCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get minutesSpent => $composableBuilder(
+      column: $table.minutesSpent, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$DailyWritingStatsTableOrderingComposer
+    extends Composer<_$WorldDatabase, $DailyWritingStatsTable> {
+  $$DailyWritingStatsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get wordCount => $composableBuilder(
+      column: $table.wordCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sessionCount => $composableBuilder(
+      column: $table.sessionCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get aiCallCount => $composableBuilder(
+      column: $table.aiCallCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get minutesSpent => $composableBuilder(
+      column: $table.minutesSpent,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$DailyWritingStatsTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $DailyWritingStatsTable> {
+  $$DailyWritingStatsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<int> get wordCount =>
+      $composableBuilder(column: $table.wordCount, builder: (column) => column);
+
+  GeneratedColumn<int> get sessionCount => $composableBuilder(
+      column: $table.sessionCount, builder: (column) => column);
+
+  GeneratedColumn<int> get aiCallCount => $composableBuilder(
+      column: $table.aiCallCount, builder: (column) => column);
+
+  GeneratedColumn<int> get minutesSpent => $composableBuilder(
+      column: $table.minutesSpent, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$DailyWritingStatsTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $DailyWritingStatsTable,
+    DailyWritingStat,
+    $$DailyWritingStatsTableFilterComposer,
+    $$DailyWritingStatsTableOrderingComposer,
+    $$DailyWritingStatsTableAnnotationComposer,
+    $$DailyWritingStatsTableCreateCompanionBuilder,
+    $$DailyWritingStatsTableUpdateCompanionBuilder,
+    (
+      DailyWritingStat,
+      BaseReferences<_$WorldDatabase, $DailyWritingStatsTable, DailyWritingStat>
+    ),
+    DailyWritingStat,
+    PrefetchHooks Function()> {
+  $$DailyWritingStatsTableTableManager(
+      _$WorldDatabase db, $DailyWritingStatsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyWritingStatsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DailyWritingStatsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DailyWritingStatsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String> date = const Value.absent(),
+            Value<int> wordCount = const Value.absent(),
+            Value<int> sessionCount = const Value.absent(),
+            Value<int> aiCallCount = const Value.absent(),
+            Value<int> minutesSpent = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              DailyWritingStatsCompanion(
+            id: id,
+            worldId: worldId,
+            date: date,
+            wordCount: wordCount,
+            sessionCount: sessionCount,
+            aiCallCount: aiCallCount,
+            minutesSpent: minutesSpent,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String worldId,
+            required String date,
+            required int wordCount,
+            required int sessionCount,
+            required int aiCallCount,
+            required int minutesSpent,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              DailyWritingStatsCompanion.insert(
+            id: id,
+            worldId: worldId,
+            date: date,
+            wordCount: wordCount,
+            sessionCount: sessionCount,
+            aiCallCount: aiCallCount,
+            minutesSpent: minutesSpent,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$DailyWritingStatsTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $DailyWritingStatsTable,
+    DailyWritingStat,
+    $$DailyWritingStatsTableFilterComposer,
+    $$DailyWritingStatsTableOrderingComposer,
+    $$DailyWritingStatsTableAnnotationComposer,
+    $$DailyWritingStatsTableCreateCompanionBuilder,
+    $$DailyWritingStatsTableUpdateCompanionBuilder,
+    (
+      DailyWritingStat,
+      BaseReferences<_$WorldDatabase, $DailyWritingStatsTable, DailyWritingStat>
+    ),
+    DailyWritingStat,
+    PrefetchHooks Function()>;
+typedef $$WritingGoalsTableCreateCompanionBuilder = WritingGoalsCompanion
+    Function({
+  required String id,
+  required String worldId,
+  required String type,
+  required int targetWordCount,
+  required DateTime startDate,
+  Value<DateTime?> endDate,
+  required bool isActive,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$WritingGoalsTableUpdateCompanionBuilder = WritingGoalsCompanion
+    Function({
+  Value<String> id,
+  Value<String> worldId,
+  Value<String> type,
+  Value<int> targetWordCount,
+  Value<DateTime> startDate,
+  Value<DateTime?> endDate,
+  Value<bool> isActive,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$WritingGoalsTableFilterComposer
+    extends Composer<_$WorldDatabase, $WritingGoalsTable> {
+  $$WritingGoalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get targetWordCount => $composableBuilder(
+      column: $table.targetWordCount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$WritingGoalsTableOrderingComposer
+    extends Composer<_$WorldDatabase, $WritingGoalsTable> {
+  $$WritingGoalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get worldId => $composableBuilder(
+      column: $table.worldId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get targetWordCount => $composableBuilder(
+      column: $table.targetWordCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+      column: $table.startDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+      column: $table.endDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$WritingGoalsTableAnnotationComposer
+    extends Composer<_$WorldDatabase, $WritingGoalsTable> {
+  $$WritingGoalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get worldId =>
+      $composableBuilder(column: $table.worldId, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<int> get targetWordCount => $composableBuilder(
+      column: $table.targetWordCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$WritingGoalsTableTableManager extends RootTableManager<
+    _$WorldDatabase,
+    $WritingGoalsTable,
+    WritingGoal,
+    $$WritingGoalsTableFilterComposer,
+    $$WritingGoalsTableOrderingComposer,
+    $$WritingGoalsTableAnnotationComposer,
+    $$WritingGoalsTableCreateCompanionBuilder,
+    $$WritingGoalsTableUpdateCompanionBuilder,
+    (
+      WritingGoal,
+      BaseReferences<_$WorldDatabase, $WritingGoalsTable, WritingGoal>
+    ),
+    WritingGoal,
+    PrefetchHooks Function()> {
+  $$WritingGoalsTableTableManager(_$WorldDatabase db, $WritingGoalsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WritingGoalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WritingGoalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WritingGoalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> worldId = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<int> targetWordCount = const Value.absent(),
+            Value<DateTime> startDate = const Value.absent(),
+            Value<DateTime?> endDate = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WritingGoalsCompanion(
+            id: id,
+            worldId: worldId,
+            type: type,
+            targetWordCount: targetWordCount,
+            startDate: startDate,
+            endDate: endDate,
+            isActive: isActive,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String worldId,
+            required String type,
+            required int targetWordCount,
+            required DateTime startDate,
+            Value<DateTime?> endDate = const Value.absent(),
+            required bool isActive,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              WritingGoalsCompanion.insert(
+            id: id,
+            worldId: worldId,
+            type: type,
+            targetWordCount: targetWordCount,
+            startDate: startDate,
+            endDate: endDate,
+            isActive: isActive,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$WritingGoalsTableProcessedTableManager = ProcessedTableManager<
+    _$WorldDatabase,
+    $WritingGoalsTable,
+    WritingGoal,
+    $$WritingGoalsTableFilterComposer,
+    $$WritingGoalsTableOrderingComposer,
+    $$WritingGoalsTableAnnotationComposer,
+    $$WritingGoalsTableCreateCompanionBuilder,
+    $$WritingGoalsTableUpdateCompanionBuilder,
+    (
+      WritingGoal,
+      BaseReferences<_$WorldDatabase, $WritingGoalsTable, WritingGoal>
+    ),
+    WritingGoal,
+    PrefetchHooks Function()>;
 typedef $$WorksTableCreateCompanionBuilder = WorksCompanion Function({
   required String id,
   required String worldId,
@@ -16245,6 +17674,10 @@ class $WorldDatabaseManager {
       $$VolumeSummariesTableTableManager(_db, _db.volumeSummaries);
   $$StyleProfilesTableTableManager get styleProfiles =>
       $$StyleProfilesTableTableManager(_db, _db.styleProfiles);
+  $$DailyWritingStatsTableTableManager get dailyWritingStats =>
+      $$DailyWritingStatsTableTableManager(_db, _db.dailyWritingStats);
+  $$WritingGoalsTableTableManager get writingGoals =>
+      $$WritingGoalsTableTableManager(_db, _db.writingGoals);
   $$WorksTableTableManager get works =>
       $$WorksTableTableManager(_db, _db.works);
   $$VolumesTableTableManager get volumes =>
