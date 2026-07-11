@@ -1,0 +1,163 @@
+syntax = "proto3";
+package lingbi.project;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/project";
+
+import "common/common.proto";
+
+service ProjectService {
+  rpc CreateWorld(CreateWorldRequest) returns (World);
+  rpc GetWorld(GetWorldRequest) returns (World);
+  rpc ListWorlds(ListWorldsRequest) returns (ListWorldsResponse);
+  rpc UpdateWorld(UpdateWorldRequest) returns (World);
+  rpc DeleteWorld(DeleteWorldRequest) returns (common.Empty);
+
+  rpc CreateWork(CreateWorkRequest) returns (Work);
+  rpc GetWork(GetWorkRequest) returns (Work);
+  rpc ListWorks(ListWorksRequest) returns (ListWorksResponse);
+  rpc UpdateWork(UpdateWorkRequest) returns (Work);
+  rpc DeleteWork(DeleteWorkRequest) returns (common.Empty);
+
+  rpc CreateVolume(CreateVolumeRequest) returns (Volume);
+  rpc ListVolumes(ListVolumesRequest) returns (ListVolumesResponse);
+  rpc ReorderVolumes(ReorderVolumesRequest) returns (common.Empty);
+
+  rpc CreateChapter(CreateChapterRequest) returns (Chapter);
+  rpc ListChapters(ListChaptersRequest) returns (ListChaptersResponse);
+  rpc ReorderChapters(ReorderChaptersRequest) returns (common.Empty);
+
+  rpc CreateScene(CreateSceneRequest) returns (Scene);
+  rpc ListScenes(ListScenesRequest) returns (ListScenesResponse);
+  rpc ReorderScenes(ReorderScenesRequest) returns (common.Empty);
+
+  rpc GetWorldTree(GetWorldTreeRequest) returns (WorldTree);
+}
+
+message World {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string genres = 4;
+  int64 created_at = 5;
+  int64 updated_at = 6;
+}
+
+message Work {
+  string id = 1;
+  string world_id = 2;
+  string title = 3;
+  string description = 4;
+  int32 volume_count = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message Volume {
+  string id = 1;
+  string work_id = 2;
+  string title = 3;
+  string summary = 4;
+  int32 chapter_count = 5;
+  int32 sort_order = 6;
+}
+
+message Chapter {
+  string id = 1;
+  string volume_id = 2;
+  string title = 3;
+  string summary = 4;
+  int32 scene_count = 5;
+  int32 sort_order = 6;
+}
+
+message Scene {
+  string id = 1;
+  string chapter_id = 2;
+  string title = 3;
+  string summary = 4;
+  string document_id = 5;
+  int32 sort_order = 6;
+}
+
+message WorldTree {
+  repeated Work works = 1;
+  map<string, Volumes> volumes = 2;
+  map<string, Chapters> chapters = 3;
+  map<string, Scenes> scenes = 4;
+}
+
+message Volumes { repeated Volume items = 1; }
+message Chapters { repeated Chapter items = 1; }
+message Scenes { repeated Scene items = 1; }
+
+message CreateWorldRequest {
+  string name = 1;
+  string description = 2;
+  repeated string genres = 3;
+}
+
+message GetWorldRequest { string id = 1; }
+message ListWorldsRequest { common.Pagination pagination = 1; }
+message ListWorldsResponse {
+  repeated World worlds = 1;
+  common.PaginatedResponse pagination = 2;
+}
+message UpdateWorldRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  repeated string genres = 4;
+}
+message DeleteWorldRequest { string id = 1; }
+
+message CreateWorkRequest {
+  string world_id = 1;
+  string title = 2;
+  string description = 3;
+}
+message GetWorkRequest { string id = 1; }
+message ListWorksRequest { string world_id = 1; }
+message ListWorksResponse { repeated Work works = 1; }
+message UpdateWorkRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+}
+message DeleteWorkRequest { string id = 1; }
+
+message CreateVolumeRequest {
+  string work_id = 1;
+  string title = 2;
+  string summary = 3;
+}
+message ListVolumesRequest { string work_id = 1; }
+message ListVolumesResponse { repeated Volume volumes = 1; }
+message ReorderVolumesRequest {
+  string work_id = 1;
+  repeated string volume_ids = 2;
+}
+
+message CreateChapterRequest {
+  string volume_id = 1;
+  string title = 2;
+  string summary = 3;
+}
+message ListChaptersRequest { string volume_id = 1; }
+message ListChaptersResponse { repeated Chapter chapters = 1; }
+message ReorderChaptersRequest {
+  string volume_id = 1;
+  repeated string chapter_ids = 2;
+}
+
+message CreateSceneRequest {
+  string chapter_id = 1;
+  string title = 2;
+  string summary = 3;
+}
+message ListScenesRequest { string chapter_id = 1; }
+message ListScenesResponse { repeated Scene scenes = 1; }
+message ReorderScenesRequest {
+  string chapter_id = 1;
+  repeated string scene_ids = 2;
+}
+
+message GetWorldTreeRequest { string world_id = 1; }

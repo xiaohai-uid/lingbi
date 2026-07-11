@@ -1,0 +1,150 @@
+syntax = "proto3";
+package lingbi.canon;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/canon";
+
+import "common/common.proto";
+
+service CanonService {
+  rpc CreateCharacter(CreateCharacterRequest) returns (Character);
+  rpc GetCharacter(GetCharacterRequest) returns (Character);
+  rpc ListCharacters(ListCharactersRequest) returns (ListCharactersResponse);
+  rpc UpdateCharacter(UpdateCharacterRequest) returns (Character);
+  rpc DeleteCharacter(DeleteCharacterRequest) returns (common.Empty);
+
+  rpc CreateLocation(CreateLocationRequest) returns (Location);
+  rpc ListLocations(ListLocationsRequest) returns (ListLocationsResponse);
+
+  rpc CreateLore(CreateLoreRequest) returns (Lore);
+  rpc ListLores(ListLoresRequest) returns (ListLoresResponse);
+
+  rpc CreateWorldRule(CreateWorldRuleRequest) returns (WorldRule);
+  rpc ListWorldRules(ListWorldRulesRequest) returns (ListWorldRulesResponse);
+
+  rpc GetRelations(GetRelationsRequest) returns (CharacterGraph);
+  rpc AddRelation(AddRelationRequest) returns (CharacterEdge);
+  rpc RemoveRelation(RemoveRelationRequest) returns (common.Empty);
+
+  rpc SearchCanon(SearchCanonRequest) returns (SearchCanonResponse);
+
+  rpc CreateTimelineEvent(CreateTimelineEventRequest) returns (TimelineEvent);
+  rpc ListTimelineEvents(ListTimelineEventsRequest) returns (ListTimelineEventsResponse);
+}
+
+message Character {
+  string id = 1;
+  string world_id = 2;
+  string name = 3;
+  string description = 4;
+  repeated Identity identities = 5;
+  string arc = 6;
+  int32 weight = 7;
+}
+
+message Identity {
+  string id = 1;
+  string character_id = 2;
+  string name = 3;
+  string period = 4;
+  string description = 5;
+}
+
+message Location {
+  string id = 1;
+  string world_id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message Lore {
+  string id = 1;
+  string world_id = 2;
+  string title = 3;
+  string content = 4;
+  string category = 5;
+}
+
+message WorldRule {
+  string id = 1;
+  string world_id = 2;
+  string name = 3;
+  string description = 4;
+  string scope = 5;
+}
+
+message CharacterEdge {
+  string source_id = 1;
+  string target_id = 2;
+  RelationshipType type = 3;
+  int32 strength = 4;
+}
+
+enum RelationshipType {
+  UNKNOWN = 0; ALLY = 1; RIVAL = 2; FAMILY = 3;
+  ROMANCE = 4; MASTER = 5; SUBORDINATE = 6; NEUTRAL = 7;
+}
+
+message CharacterGraph {
+  repeated Character characters = 1;
+  repeated CharacterEdge edges = 2;
+}
+
+message TimelineEvent {
+  string id = 1;
+  string world_id = 2;
+  string title = 3;
+  string description = 4;
+  int64 story_time = 5;
+  repeated string involved_character_ids = 6;
+}
+
+message CreateCharacterRequest {
+  string world_id = 1; string name = 2; string description = 3;
+}
+message GetCharacterRequest { string id = 1; }
+message ListCharactersRequest { string world_id = 1; }
+message ListCharactersResponse { repeated Character characters = 1; }
+message UpdateCharacterRequest {
+  string id = 1; string name = 2; string description = 3; int32 weight = 4;
+}
+message DeleteCharacterRequest { string id = 1; }
+
+message CreateLocationRequest {
+  string world_id = 1; string name = 2; string description = 3;
+}
+message ListLocationsRequest { string world_id = 1; }
+message ListLocationsResponse { repeated Location locations = 1; }
+
+message CreateLoreRequest {
+  string world_id = 1; string title = 2; string content = 3; string category = 4;
+}
+message ListLoresRequest { string world_id = 1; }
+message ListLoresResponse { repeated Lore lores = 1; }
+
+message CreateWorldRuleRequest {
+  string world_id = 1; string name = 2; string description = 3; string scope = 4;
+}
+message ListWorldRulesRequest { string world_id = 1; }
+message ListWorldRulesResponse { repeated WorldRule rules = 1; }
+
+message GetRelationsRequest { string world_id = 1; }
+message AddRelationRequest {
+  string source_id = 1; string target_id = 2;
+  RelationshipType type = 3; int32 strength = 4;
+}
+message RemoveRelationRequest { string edge_id = 1; }
+
+message SearchCanonRequest {
+  string world_id = 1; string query = 2; int32 limit = 3;
+}
+message SearchCanonResponse {
+  repeated Character characters = 1;
+  repeated Location locations = 2;
+  repeated Lore lores = 3;
+}
+
+message CreateTimelineEventRequest {
+  string world_id = 1; string title = 2; string description = 3;
+  int64 story_time = 4; repeated string character_ids = 5;
+}
+message ListTimelineEventsRequest { string world_id = 1; }
+message ListTimelineEventsResponse { repeated TimelineEvent events = 1; }

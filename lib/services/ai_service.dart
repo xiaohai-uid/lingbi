@@ -263,20 +263,34 @@ class AIService implements IAIService {
     return _provider.streamText(request);
   }
 
-  /// 三层生成 — 梗概 (Layer1)
+  /// 三层生成 — 完整小说（梗概 + 大纲 + 第一章正文）
   Future<String> generateNovel(String idea,
       {String genre = '', String style = ''}) async {
     final request = LLMRequest(
       messages: [
         const LLMMessage(
             role: 'system',
-            content: '你是专业小说创作助手。根据用户提供的创意、类型和风格，生成一个完整的小说梗概。'
-                '梗概必须包含：\n1. 故事设定（世界观、时代背景）\n2. 核心主题\n3. 主要人物（至少2-3个，含性格特点）\n'
-                '4. 故事主线（起承转合）\n5. 第一卷的章节大纲（至少5章）\n\n'
-                '如果创意信息不足，在梗概开头注明"建议补充"并列出需要补充的信息。'),
+            content: '你是专业小说创作助手。根据用户提供的创意、类型和风格，完成以下三项任务：\n\n'
+                '【任务1：故事设定】\n'
+                '世界观、时代背景、核心主题、主要人物（含性格特点）\n\n'
+                '【任务2：第一卷大纲】\n'
+                '第1章到第5章的章节标题和内容概要\n\n'
+                '【任务3：第一章正文】\n'
+                '基于以上设定和大纲，写出第一章的完整正文（不少于2000字）。\n'
+                '要求：描写生动、对话自然、节奏紧凑、人物性格鲜明。\n\n'
+                '输出格式：\n'
+                '---\n'
+                '## 故事设定\n'
+                '...\n\n'
+                '## 大纲\n'
+                '### 第1章：xxx\n'
+                '### 第2章：xxx\n'
+                '...\n\n'
+                '## 正文\n'
+                '第1章正文内容...\n'),
         LLMMessage(role: 'user', content: '创意：$idea\n类型：$genre\n风格：$style'),
       ],
-      maxTokens: 4096,
+      maxTokens: 8192,
       temperature: 0.8,
     );
     return _provider.generateText(request);

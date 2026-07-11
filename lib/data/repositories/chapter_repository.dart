@@ -60,6 +60,19 @@ class ChapterRepository {
     await (db.update(db.chapters)..where((t) => t.id.equals(id))).write(entry);
   }
 
+  /// 重新排序章节（拖拽后更新序号）
+  Future<void> reorderChapters(String volumeId, List<String> chapterIds,
+      {String worldId = 'default'}) async {
+    final db = await _db(worldId);
+    for (var i = 0; i < chapterIds.length; i++) {
+      await (db.update(db.chapters)..where((t) => t.id.equals(chapterIds[i])))
+          .write(ChaptersCompanion(
+        chapterNumber: Value(i + 1),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
+  }
+
   /// 删除章节（级联删除场景）
   Future<void> deleteChapter(String id, {String worldId = 'default'}) async {
     final db = await _db(worldId);

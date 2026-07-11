@@ -1,0 +1,18 @@
+syntax = "proto3";
+package lingbi.document;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/document";
+
+service DocumentService {
+  rpc GetDocument(GetDocumentRequest) returns (Document);
+  rpc SaveDocument(SaveDocumentRequest) returns (Document);
+  rpc GetWordCount(GetWordCountRequest) returns (WordCount);
+  rpc SearchDocuments(SearchDocumentsRequest) returns (SearchDocumentsResponse);
+}
+
+message Document { string id = 1; string scene_id = 2; string content = 3; int32 word_count = 4; int64 created_at = 5; int64 updated_at = 6; }
+message GetDocumentRequest { string id = 1; }
+message SaveDocumentRequest { string id = 1; string scene_id = 2; string content = 3; }
+message WordCount { int32 count = 1; }
+message GetWordCountRequest { string document_id = 1; }
+message SearchDocumentsRequest { string query = 1; string world_id = 2; int32 limit = 3; }
+message SearchDocumentsResponse { repeated Document documents = 1; }

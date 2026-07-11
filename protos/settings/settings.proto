@@ -1,0 +1,18 @@
+syntax = "proto3";
+package lingbi.settings;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/settings";
+
+service SettingsService {
+  rpc GetSetting(SettingRequest) returns (Setting);
+  rpc SetSetting(SetSettingRequest) returns (Setting);
+  rpc GetAllSettings(GetAllRequest) returns (SettingsMap);
+  rpc ResetSettings(ResetAllRequest) returns (Empty);
+}
+
+message Setting { string key = 1; string value = 2; }
+message SettingRequest { string key = 1; }
+message SetSettingRequest { string key = 1; string value = 2; }
+message GetAllRequest {}
+message SettingsMap { map<string, string> settings = 1; }
+message ResetAllRequest {}
+message Empty {}

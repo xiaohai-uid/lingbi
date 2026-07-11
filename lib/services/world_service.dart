@@ -244,6 +244,21 @@ class WorldService {
     return p.join(appDir.path, '灵笔', 'Worlds');
   }
 
+  /// 通过 Chapter→Scene→Document 链路获取章节对应的文档记录
+  ///
+  /// 修复 P0-2 Bug: 替代取所有文档第一个的错误做法
+  Future<Document?> getDocumentForChapter(
+      String chapterId, String worldId) async {
+    final db = await databaseManager.getDatabase(worldId);
+    final scenes = await (db.select(db.scenes)
+          ..where((t) => t.chapterId.equals(chapterId)))
+        .get();
+    if (scenes.isEmpty) return null;
+    return (db.select(db.documents)
+          ..where((t) => t.id.equals(scenes.first.documentId)))
+        .getSingleOrNull();
+  }
+
   Future<Directory> _getWorldsDir() async {
     return Directory(await _getWorldsDirPath());
   }

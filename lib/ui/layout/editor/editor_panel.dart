@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lingbi/utils/word_counter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'editor_toolbar.dart';
@@ -337,7 +338,7 @@ class _EditorPanelState extends State<EditorPanel> {
                   child: Row(
                     children: [
                       Text(
-                        '字数: ${_currentContent.length}',
+                        '字数: ${countWords(_currentContent)}',
                         style: theme.textTheme.labelSmall,
                       ),
                       const SizedBox(width: 16),

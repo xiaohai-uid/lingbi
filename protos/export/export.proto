@@ -1,0 +1,22 @@
+syntax = "proto3";
+package lingbi.export;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/export";
+
+import "common/common.proto";
+
+service ExportService {
+  rpc ExportMarkdown(ExportRequest) returns (ExportResponse);
+  rpc ExportPDF(ExportRequest) returns (ExportResponse);
+  rpc ExportEPUB(ExportRequest) returns (ExportResponse);
+  rpc ExportTXT(ExportRequest) returns (ExportResponse);
+}
+
+message ExportRequest {
+  string world_id = 1; repeated string scene_ids = 2;
+  ExportFormat format = 3;
+}
+enum ExportFormat { MARKDOWN = 0; PDF = 1; EPUB = 2; TXT = 3; }
+message ExportResponse {
+  bytes data = 1; string filename = 2;
+  int32 page_count = 3; int32 word_count = 4;
+}

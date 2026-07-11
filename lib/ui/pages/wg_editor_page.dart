@@ -9,6 +9,7 @@ import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/data/database/world_database.dart' as db;
 import 'package:lingbi/services/identity/identity_detector.dart';
 import 'package:lingbi/services/butterfly_analyzer.dart';
+import 'package:lingbi/services/generation/text_refinement.dart';
 import 'package:lingbi/ui/components/butterfly_analysis_dialog.dart';
 
 /// WgEditorPage — 精确匹配 Open Design editor.html
@@ -51,8 +52,7 @@ class _WgEditorPageState extends State<WgEditorPage> {
   void initState() {
     super.initState();
     _isDark = _settings.themeMode == ThemeMode.dark;
-    _loadDocument();
-    _loadChapters();
+    _loadChapters().then((_) => _loadDocumentForFirstChapter());
     _loadCharacters();
   }
 
@@ -121,20 +121,24 @@ class _WgEditorPageState extends State<WgEditorPage> {
     }
   }
 
-  Future<void> _loadDocument() async {
+  /// 按章节加载对应的文档内容（替代旧方法取第一个文档的错误做法）
+  Future<void> _loadDocumentForFirstChapter() async {
+    if (_chapters.isEmpty) return;
+    await _loadDocumentForChapter(_chapters[0]);
+  }
+
+  /// 通过 Chapter→Scene→Document 链路获取章节正文
+  Future<void> _loadDocumentForChapter(db_model.Chapter chapter) async {
     try {
-      final db = await ServiceLocator.instance.databaseManager
-          .getDatabase(widget.world.id);
-      final docs = await db.select(db.documents).get();
-      if (docs.isNotEmpty) {
-        final doc = docs.first;
-        final content = await _documentService.readContent(doc.filePath);
-        if (mounted) {
-          setState(() {
-            _currentDocument = doc;
-            _editorContent = content;
-          });
-        }
+      final doc = await _worldService
+          .getDocumentForChapter(chapter.id, widget.world.id);
+      if (doc == null) return;
+      final content = await _documentService.readContent(doc.filePath);
+      if (mounted) {
+        setState(() {
+          _currentDocument = doc;
+          _editorContent = content;
+        });
       }
     } catch (_) {}
   }
@@ -272,7 +276,10 @@ class _WgEditorPageState extends State<WgEditorPage> {
                                 : const Color(0xFFE8A838);
                             final label = hasSynopsis ? '已规划' : '待编写';
                             return InkWell(
-                              onTap: () => setState(() => _currentChapter = i),
+                              onTap: () {
+                                setState(() => _currentChapter = i);
+                                _loadDocumentForChapter(c);
+                              },
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 padding: const EdgeInsets.all(10),
@@ -992,7 +999,23 @@ class _WgEditorPageState extends State<WgEditorPage> {
   void _startGeneration() {
     setState(() => _isGenerating = true);
     final aiService = ServiceLocator.instance.aiService;
-    aiService.generateNovel('续写当前段落').then((result) {
+
+    // 根据当前模式构建正确的 prompt
+    final mode = _genMode;
+    final selectedText = _editorContent;
+    final prompt = TextRefinementService.buildPrompt(
+        mode: mode == '续写'
+            ? 'continue'
+            : mode == '润色'
+                ? 'polish'
+                : mode == '扩写'
+                    ? 'expand'
+                    : mode == '改写'
+                        ? 'rewrite'
+                        : 'continue',
+        text: selectedText);
+
+    aiService.generateNovel(prompt).then((result) {
       if (!mounted) return;
       setState(() {
         _isGenerating = false;

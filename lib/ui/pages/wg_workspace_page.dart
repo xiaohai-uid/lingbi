@@ -3,10 +3,13 @@ import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/services/generation/controller.dart';
+import 'package:lingbi/services/generation/state_machine.dart';
 import 'package:lingbi/core/models/world.dart' show World;
 import 'package:lingbi/data/database/world_database.dart';
 import 'package:lingbi/ui/pages/wg_editor_page.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
+import 'package:lingbi/ui/components/name_generator_dialog.dart';
 
 /// WgWorkspacePage — 精确匹配 Open Design workspace.html
 /// 已对接 v4.0 真实数据 (WorldService)
@@ -908,6 +911,26 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
             _badgeField('创作状态', '连载中'),
           ]),
           const SizedBox(height: 20),
+          _section('AI 辅助', [
+            InkWell(
+              onTap: () => showNameGeneratorDialog(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(children: [
+                  Text('🎭', style: TextStyle(fontSize: 16)),
+                  SizedBox(width: 8),
+                  Text('AI 取名',
+                      style: TextStyle(
+                          fontSize: 13, color: Color(0xFF3D3529))),
+                  Spacer(),
+                  Text('→',
+                      style: TextStyle(
+                          fontSize: 12, color: Color(0xFF8A7B68))),
+                ]),
+              ),
+            ),
+          ]),
         ]),
       ),
     );
@@ -967,6 +990,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
     final ideaCtrl = TextEditingController();
     String genre = '玄幻';
     String style = '起点爆款';
+    bool showParams = false;
+    double temperature = 0.8;
+    double topP = 0.9;
+    double repPenalty = 1.1;
+    int maxTokens = 8192;
     showDialog(
         context: context,
         builder: (ctx) => StatefulBuilder(builder: (ctx, setDlgState) {
@@ -999,16 +1027,8 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                             decoration: const InputDecoration(
                                 border: OutlineInputBorder()),
                             items: [
-                              '玄幻',
-                              '仙侠',
-                              '武侠',
-                              '奇幻',
-                              '都市',
-                              '科幻',
-                              '悬疑',
-                              '历史',
-                              '言情',
-                              '轻小说'
+                              '玄幻', '仙侠', '武侠', '奇幻', '都市',
+                              '科幻', '悬疑', '历史', '言情', '轻小说'
                             ]
                                 .map((g) =>
                                     DropdownMenuItem(value: g, child: Text(g)))
@@ -1034,6 +1054,25 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                               if (v != null) setDlgState(() => style = v);
                             },
                           ),
+                          const SizedBox(height: 12),
+                          // 参数设置折叠
+          InkWell(
+            onTap: () => setDlgState(() => showParams = !showParams),
+            child: Row(children: [
+              Text(showParams ? '▼' : '▶',
+                  style: const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
+              const SizedBox(width: 8),
+              const Text('生成参数',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
+            ]),
+          ),
+          if (showParams) ...[
+            const SizedBox(height: 8),
+            _paramSlider('温度', temperature, 0.0, 2.0, (v) => setDlgState(() => temperature = v)),
+            _paramSlider('Top-P', topP, 0.0, 1.0, (v) => setDlgState(() => topP = v)),
+            _paramSlider('重复惩罚', repPenalty, 0.0, 2.0, (v) => setDlgState(() => repPenalty = v)),
+            _paramSlider('最大长度', maxTokens.toDouble(), 100, 32000, (v) => setDlgState(() => maxTokens = v.toInt())),
+          ],
                         ])),
                 actions: [
                   TextButton(
@@ -1053,19 +1092,236 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
   }
 
   void _doGenerate(String idea, String genre, String style) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('AI 正在创作…'), duration: Duration(seconds: 30)));
+    final ctrl = GenerationController();
+    ctrl.setInput(GenerationInput(idea: idea, genre: genre, style: style));
+    ctrl.startGeneration();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StreamBuilder<GenerationState>(
+        stream: ctrl.stateStream,
+        builder: (ctx, snapshot) {
+          final state = snapshot.data ?? ctrl.currentState;
+          final isStreaming = state is GeneratingSynopsisState ||
+              state is GeneratingOutlineState ||
+              state is GeneratingContentState;
+          final content = state is GeneratingSynopsisState
+              ? state.meta.streamedContent
+              : state is GeneratingOutlineState
+                  ? state.meta.streamedContent
+                  : '';
+          final wordCount = state.streamedWordCount;
+          final progressText = state.progressLabel;
+
+          return AlertDialog(
+            title: Row(children: [
+              if (isStreaming)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Color(0xFFE8A838)),
+                ),
+              if (isStreaming) const SizedBox(width: 12),
+              Text(state is CompletedState
+                  ? '生成完成'
+                  : state is ErrorState
+                      ? '生成出错'
+                      : 'AI 小说生成'),
+            ]),
+            content: SizedBox(
+              width: 500,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0x1AE8A838),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(progressText,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFFE8A838))),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F0E8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: content.isEmpty
+                          ? const Center(
+                              child: Text('等待 AI 输出…',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF8A7B68))))
+                          : SingleChildScrollView(
+                              child: Text(content,
+                                  style: const TextStyle(
+                                      fontSize: 14, height: 1.8)),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _statChip('📝 $wordCount 字', const Color(0xFFE8A838)),
+                    const SizedBox(width: 8),
+                    if (isStreaming)
+                      _statChip('⏳ 生成中…', const Color(0xFF5B8C5A)),
+                    if (state is CompletedState)
+                      _statChip('✅ 完成', const Color(0xFF5B8C5A)),
+                    if (state is ErrorState)
+                      _statChip('❌ ${(state).error.message}',
+                          const Color(0xFFD4856B)),
+                  ]),
+                ],
+              ),
+            ),
+            actions: [
+              if (isStreaming)
+                TextButton(
+                  onPressed: () {
+                    ctrl.cancel();
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('取消生成',
+                      style: TextStyle(color: Color(0xFFE8A838))),
+                ),
+              if (state is CompletedState)
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showResultDialog(state.result.chapters.isNotEmpty
+                        ? state.result.chapters.first.content
+                        : '生成完成');
+                  },
+                  child: const Text('查看结果',
+                      style: TextStyle(color: Color(0xFFE8A838))),
+                ),
+              if (state is ErrorState)
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _doGenerate(idea, genre, style);
+                  },
+                  child: const Text('重试',
+                      style: TextStyle(color: Color(0xFFE8A838))),
+                ),
+              if (state is CancelledState)
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('关闭'),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+
     _aiService.generateNovel(idea, genre: genre, style: style).then((result) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showResultDialog(result);
-    }).catchError((e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('生成失败: $e'), backgroundColor: Colors.red.shade400));
+      final chunks = <String>[];
+      for (var i = 0; i < result.length; i += 20) {
+        chunks.add(result.substring(
+            i, i + 20 > result.length ? result.length : i + 20));
       }
+      var idx = 0;
+      Future.doWhile(() async {
+        if (idx >= chunks.length || ctrl.currentState is CancelledState) {
+          return false;
+        }
+        ctrl.streamChunk(chunks[idx]);
+        idx++;
+        await Future.delayed(const Duration(milliseconds: 30));
+        return true;
+      }).then((_) {
+        if (ctrl.currentState is! CancelledState &&
+            ctrl.currentState is! ErrorState) {
+          ctrl.phaseComplete(SynopsisResult(
+            synopsis: result,
+            characters: [
+              CharacterBrief(
+                  name: '主角', role: 'protagonist', personality: '', arc: '')
+            ],
+            worldSettings: '',
+            coreTheme: '',
+          ));
+          ctrl.completeAll(NovelResult(
+            synopsis: SynopsisResult(
+              synopsis: result,
+              characters: [
+                CharacterBrief(
+                    name: '主角', role: 'protagonist', personality: '', arc: '')
+              ],
+              worldSettings: '',
+              coreTheme: '',
+            ),
+            outline: OutlineResult(volumes: []),
+            chapters: [
+              ChapterContent(
+                  number: 1,
+                  title: '第一章',
+                  content: result,
+                  wordCount: result.length,
+                  generatedAt: DateTime.now().millisecondsSinceEpoch)
+            ],
+          ));
+        }
+      });
+    }).catchError((e) {
+      ctrl.error(GenerationError(
+          code: 'UNKNOWN', message: e.toString(), retryable: true));
     });
+  }
+
+  Widget _statChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 11, color: color)),
+    );
+  }
+
+  Widget _paramSlider(String label, double value, double min, double max,
+      ValueChanged<double> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        SizedBox(
+          width: 70,
+          child: Text(label,
+              style:
+                  const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
+        ),
+        Expanded(
+          child: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: 100,
+            activeColor: const Color(0xFFE8A838),
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(
+          width: 50,
+          child: Text(value.toStringAsFixed(1),
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFFE8A838),
+                  fontFamily: 'JetBrainsMono')),
+        ),
+      ]),
+    );
   }
 
   void _showResultDialog(String content) {

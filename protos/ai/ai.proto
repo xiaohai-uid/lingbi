@@ -1,0 +1,151 @@
+syntax = "proto3";
+package lingbi.ai;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/ai";
+
+import "common/common.proto";
+
+service AIProviderService {
+  rpc GenerateText(GenerateTextRequest) returns (GenerateTextResponse);
+  rpc StreamText(StreamTextRequest) returns (stream StreamChunk);
+  rpc GenerateStructured(GenerateStructuredRequest) returns (GenerateStructuredResponse);
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse);
+  rpc GetModelConfig(GetModelConfigRequest) returns (ModelConfig);
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+}
+
+message GenerateTextRequest {
+  string provider = 1;
+  string model = 2;
+  string system_prompt = 3;
+  string user_prompt = 4;
+  double temperature = 5;
+  int32 max_tokens = 6;
+}
+
+message GenerateTextResponse {
+  string text = 1;
+  int32 prompt_tokens = 2;
+  int32 completion_tokens = 3;
+  int64 latency_ms = 4;
+}
+
+message StreamTextRequest {
+  string provider = 1;
+  string model = 2;
+  string system_prompt = 3;
+  string user_prompt = 4;
+  double temperature = 5;
+  int32 max_tokens = 6;
+}
+
+message StreamChunk {
+  string text = 1;
+  bool done = 2;
+  int32 prompt_tokens = 3;
+  int32 completion_tokens = 4;
+}
+
+message GenerateStructuredRequest {
+  string provider = 1;
+  string model = 2;
+  string system_prompt = 3;
+  string user_prompt = 4;
+  string schema_json = 5;
+  double temperature = 6;
+}
+
+message GenerateStructuredResponse {
+  string json = 1;
+  int32 prompt_tokens = 2;
+  int32 completion_tokens = 3;
+}
+
+message ListModelsRequest {}
+message ListModelsResponse { repeated ModelInfo models = 1; }
+message ModelInfo {
+  string name = 1;
+  string provider = 2;
+  bool supports_stream = 3;
+  bool supports_structured = 4;
+}
+
+message GetModelConfigRequest { string provider = 1; }
+message ModelConfig {
+  string api_key = 1;
+  string base_url = 2;
+  string default_model = 3;
+}
+
+message EmbedRequest {
+  string provider = 1;
+  string model = 2;
+  repeated string texts = 3;
+}
+message EmbedResponse { repeated Embedding embeddings = 1; }
+message Embedding { repeated float values = 1; }
+
+// Novel Engine
+service NovelEngineService {
+  rpc GenerateLayer1(GenerateLayer1Request) returns (SynopsisAndCharacters);
+  rpc GenerateLayer2(GenerateLayer2Request) returns (ChapterOutline);
+  rpc StreamLayer3(StreamLayer3Request) returns (stream StreamChunk);
+  rpc ContinueWriting(ContinueWritingRequest) returns (stream StreamChunk);
+}
+
+message GenerateLayer1Request {
+  string user_idea = 1;
+  string genre = 2;
+  string style = 3;
+  int32 num_characters = 4;
+}
+
+message SynopsisAndCharacters {
+  string synopsis = 1;
+  repeated CharacterBrief characters = 2;
+}
+
+message CharacterBrief {
+  string name = 1;
+  string role = 2;
+  string description = 3;
+  string arc = 4;
+}
+
+message GenerateLayer2Request {
+  string synopsis = 1;
+  repeated CharacterBrief characters = 2;
+  int32 chapter_count = 3;
+}
+
+message ChapterOutline { repeated ChapterSummary chapters = 1; }
+
+message ChapterSummary {
+  string title = 1;
+  string summary = 2;
+  repeated string characters = 3;
+  string location = 4;
+  string mood = 5;
+  string conflict = 6;
+}
+
+message StreamLayer3Request {
+  SceneOutline scene = 1;
+  string synopsis = 2;
+  string character_context = 3;
+  string chapter_context = 4;
+}
+
+message SceneOutline {
+  string title = 1;
+  string summary = 2;
+  repeated string characters = 3;
+  string location = 4;
+  string mood = 5;
+  string conflict = 6;
+}
+
+message ContinueWritingRequest {
+  string text = 1;
+  string context = 2;
+  int32 max_new_tokens = 3;
+}

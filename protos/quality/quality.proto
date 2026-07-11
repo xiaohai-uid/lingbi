@@ -1,0 +1,25 @@
+syntax = "proto3";
+package lingbi.quality;
+option go_package = "github.com/xiaohai-uid/lingbi/protos/quality";
+
+service QualityReviewService {
+  rpc ReviewChapter(ReviewChapterRequest) returns (ReviewReport);
+  rpc CheckCharacterConsistency(CheckConsistencyRequest) returns (ConsistencyReport);
+  rpc AnalyzeHooks(AnalyzeHooksRequest) returns (HookAnalysis);
+}
+
+message ReviewChapterRequest { string chapter_id = 1; string content = 2; }
+message ReviewReport {
+  double overall_score = 1; repeated string issues = 2;
+  ConsistencyReport consistency = 3; HookAnalysis hooks = 4; StyleAnalysis style = 5;
+}
+message CheckConsistencyRequest { string world_id = 1; string chapter_content = 2; }
+message ConsistencyReport { double score = 1; repeated string inconsistencies = 2; }
+message AnalyzeHooksRequest { string content = 1; string genre = 2; }
+message HookAnalysis {
+  double density = 1; repeated Hook hooks = 2;
+  message Hook { int32 position = 1; string type = 2; int32 intensity = 3; }
+}
+message StyleAnalysis {
+  double grammar_score = 1; double readability_score = 2; repeated string suggestions = 3;
+}
