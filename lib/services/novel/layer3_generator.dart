@@ -4,6 +4,7 @@ import '../../core/ai/llm_factory.dart';
 import '../../core/ai/llm_models.dart';
 import '../prompt_service.dart';
 import '../memory_service.dart';
+import '../style_detection_service.dart';
 import 'package:drift/drift.dart' hide isNull;
 
 /// Layer 3 生成器 — 逐场景正文生成（流式）
@@ -14,10 +15,13 @@ class Layer3Generator {
   Layer3Generator({
     PromptService? promptService,
     MemoryService? memoryService,
+    StyleDetectionService? styleService,
   })  : _promptService = promptService ?? PromptService(),
-        _memoryService = memoryService;
+        _memoryService = memoryService,
+        _styleService = styleService;
   final PromptService _promptService;
   final MemoryService? _memoryService;
+  final StyleDetectionService? _styleService;
   String providerName = 'free';
 
   /// 生成单个场景的正文（流式）
