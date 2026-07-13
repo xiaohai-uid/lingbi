@@ -6,6 +6,7 @@ import 'package:lingbi/ui/components/character_graph_view.dart';
 import 'package:lingbi/ui/components/faction_view.dart';
 import 'package:lingbi/ui/components/timeline_view.dart';
 import 'package:lingbi/core/models/character_edge.dart';
+import 'package:uuid/uuid.dart';
 import '../../data/database/world_database.dart';
 
 /// 世界正典页 — Canon 知识库
@@ -77,10 +78,83 @@ class _CanonPageState extends State<CanonPage>
         ]);
         _factions = more[0] as List<Faction>;
         _timelineEvents = more[1] as List<TimelineEvent>;
+        _edges = await _loadRelations();
         _loading = false;
       }
     } catch (_) {
       if (mounted) _loading = false;
+    }
+  }
+
+  // ─── 角色关系(知识图谱)持久化 ───
+
+  Future<List<CharacterEdge>> _loadRelations() async {
+    try {
+      final db = await ServiceLocator.instance.databaseManager
+          .getDatabase(widget.worldId);
+      final rows = await db.select(db.characterRelations).get();
+      return rows
+          .map((r) => CharacterEdge(
+                id: r.id,
+                sourceId: r.characterId,
+                targetId: r.relatedCharacterId,
+                type: RelationshipType.fromString(r.relationType),
+                strength: r.intimacy,
+                description: r.description ?? '',
+              ))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _addRelation(
+    String sourceId,
+    String targetId,
+    RelationshipType type,
+    int strength,
+  ) async {
+    final id = const Uuid().v4();
+    try {
+      final db = await ServiceLocator.instance.databaseManager
+          .getDatabase(widget.worldId);
+      await db.into(db.characterRelations).insert(
+            CharacterRelationsCompanion.insert(
+              id: id,
+              characterId: sourceId,
+              relatedCharacterId: targetId,
+              relationType: type.value,
+              intimacy: strength,
+              description: '',
+            ),
+          );
+    } catch (_) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _edges.add(CharacterEdge(
+            id: id,
+            sourceId: sourceId,
+            targetId: targetId,
+            type: type,
+            strength: strength,
+          )));
+    }
+  }
+
+  Future<void> _deleteRelation(CharacterEdge edge) async {
+    if (edge.id.isEmpty) return;
+    try {
+      final db = await ServiceLocator.instance.databaseManager
+          .getDatabase(widget.worldId);
+      await (db.delete(db.characterRelations)
+            ..where((t) => t.id.equals(edge.id)))
+          .go();
+    } catch (_) {
+      return;
+    }
+    if (mounted) {
+      setState(() => _edges.removeWhere((e) => e.id == edge.id));
     }
   }
 
@@ -867,7 +941,7 @@ class _CanonPageState extends State<CanonPage>
                 unselectedLabelColor: isDark ? WgTokens.darkFg3 : WgTokens.fg3,
                 tabs: const [
                   Tab(icon: Icon(Icons.person, size: 18), text: '角色'),
-                  Tab(icon: Icon(Icons.hub, size: 18), text: '关系图谱'),
+                  Tab(icon: Icon(Icons.hub, size: 18), text: '知识图谱'),
                   Tab(icon: Icon(Icons.flag, size: 18), text: '势力'),
                   Tab(icon: Icon(Icons.timeline, size: 18), text: '时间线'),
                   Tab(icon: Icon(Icons.place, size: 18), text: '地点'),
@@ -893,9 +967,9 @@ class _CanonPageState extends State<CanonPage>
                       .map((c) => CharacterLike(id: c.id, name: c.name, role: c.role))
                       .toList(),
                   edges: _edges,
-                  onAddEdge: (s, t, type) =>
-                      setState(() => _edges.add(CharacterEdge(
-                          sourceId: s, targetId: t, type: type))),
+                  onAddEdge: (s, t, type, strength) =>
+                      _addRelation(s, t, type, strength),
+                  onDeleteEdge: _deleteRelation,
                 ),
                 FactionView(
                   factions: _factions,

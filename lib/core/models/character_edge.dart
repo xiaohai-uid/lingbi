@@ -30,12 +30,14 @@ class CharacterEdge {
     required this.sourceId,
     required this.targetId,
     required this.type,
+    this.id = '',
     this.strength = 5,
     this.description = '',
     this.events = const [],
   });
 
   factory CharacterEdge.fromJson(Map<String, dynamic> json) => CharacterEdge(
+        id: json['id'] as String? ?? '',
         sourceId: json['sourceId'] as String,
         targetId: json['targetId'] as String,
         type: RelationshipType.fromString(json['type'] as String? ?? ''),
@@ -43,6 +45,7 @@ class CharacterEdge {
         description: json['description'] as String? ?? '',
         events: (json['events'] as List?)?.cast<String>() ?? [],
       );
+  final String id;
   final String sourceId;
   final String targetId;
   final RelationshipType type;
@@ -52,6 +55,7 @@ class CharacterEdge {
 
   /// 反转方向
   CharacterEdge reverse() => CharacterEdge(
+        id: id,
         sourceId: targetId,
         targetId: sourceId,
         type: type,
@@ -61,6 +65,7 @@ class CharacterEdge {
       );
 
   Map<String, dynamic> toJson() => {
+        'id': id,
         'sourceId': sourceId,
         'targetId': targetId,
         'type': type.value,

@@ -12,11 +12,14 @@ class CharacterGraphView extends StatefulWidget {
     required this.characters,
     this.edges = const [],
     this.onAddEdge,
+    this.onDeleteEdge,
   });
   final List<CharacterLike> characters;
   final List<CharacterEdge> edges;
-  final void Function(String sourceId, String targetId, RelationshipType type)?
+  final void Function(
+          String sourceId, String targetId, RelationshipType type, int strength)?
       onAddEdge;
+  final void Function(CharacterEdge edge)? onDeleteEdge;
 
   @override
   State<CharacterGraphView> createState() => _CharacterGraphViewState();
@@ -120,21 +123,68 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
 
   void _onTap(TapUpDetails details) {
     final p = details.localPosition;
-    String? hit;
+    // 先命中节点
     for (final c in widget.characters) {
       final pos = _positions[c.id];
       if (pos != null && (pos - p).distance < 26) {
-        hit = c.id;
-        break;
+        setState(() => _selectedId = c.id);
+        return;
       }
     }
-    setState(() => _selectedId = hit);
+    // 再命中边（点到边中点一定半径内）
+    for (final e in widget.edges) {
+      final a = _positions[e.sourceId];
+      final b = _positions[e.targetId];
+      if (a == null || b == null) continue;
+      final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
+      if ((mid - p).distance < 24) {
+        _showEdgeDetailDialog(e);
+        return;
+      }
+    }
+    setState(() => _selectedId = null);
+  }
+
+  void _showEdgeDetailDialog(CharacterEdge edge) {
+    String nameOf(String id) => widget.characters
+        .firstWhere((c) => c.id == id,
+            orElse: () => const CharacterLike(id: '', name: '?'))
+        .name;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('关系详情'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${nameOf(edge.sourceId)} → ${nameOf(edge.targetId)}'),
+            const SizedBox(height: 8),
+            Text('类型：${edge.type.displayName}'),
+            Text('强度：${edge.strength} / 10'),
+            if (edge.description.isNotEmpty) Text('描述：${edge.description}'),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+          if (widget.onDeleteEdge != null)
+            TextButton(
+              onPressed: () {
+                widget.onDeleteEdge!.call(edge);
+                Navigator.pop(ctx);
+              },
+              child: const Text('删除', style: TextStyle(color: Colors.red)),
+            ),
+        ],
+      ),
+    );
   }
 
   void _showAddEdgeDialog() {
     CharacterLike? source = widget.characters.isEmpty ? null : widget.characters.first;
     CharacterLike? target = widget.characters.length > 1 ? widget.characters[1] : null;
     var type = RelationshipType.neutral;
+    var strength = 5;
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -169,6 +219,23 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
                 onChanged: (v) => setSt(() => type = v ?? RelationshipType.neutral),
                 decoration: const InputDecoration(labelText: '关系类型'),
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Text('强度'),
+                  Expanded(
+                    child: Slider(
+                      value: strength.toDouble(),
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      label: '$strength',
+                      onChanged: (v) => setSt(() => strength = v.round()),
+                    ),
+                  ),
+                  Text('$strength'),
+                ],
+              ),
             ],
           ),
           actions: [
@@ -176,7 +243,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
             FilledButton(
               onPressed: () {
                 if (source != null && target != null && source!.id != target!.id) {
-                  widget.onAddEdge?.call(source!.id, target!.id, type);
+                  widget.onAddEdge?.call(source!.id, target!.id, type, strength);
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
               },
@@ -205,13 +272,14 @@ class _GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final edgePaint = Paint()..strokeWidth = 2..style = PaintingStyle.stroke;
+    final edgePaint = Paint()..style = PaintingStyle.stroke;
     for (final e in edges) {
       final a = positions[e.sourceId];
       final b = positions[e.targetId];
       if (a == null || b == null) continue;
       final active = selectedId == e.sourceId || selectedId == e.targetId;
       edgePaint.color = active ? Colors.orange : Colors.grey.withValues(alpha: 0.5);
+      edgePaint.strokeWidth = 1.0 + e.strength * 0.4;
       canvas.drawLine(a, b, edgePaint);
       final mid = Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
       final tp = TextPainter(
