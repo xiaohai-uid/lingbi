@@ -12,6 +12,7 @@ import '../data/database/world_database.dart';
 import '../services/interfaces/i_memory_service.dart';
 import '../services/ai_service.dart';
 import '../services/document_service.dart';
+import '../core/ai/schema_processor.dart';
 import '../utils/memory_prompt_templates.dart';
 import 'generation/context_builder.dart';
 import 'embedding_service.dart';
@@ -265,10 +266,14 @@ class MemoryService implements IMemoryService {
       chunks.add(chunk);
     }
     final response = chunks.join('');
-    final json = jsonDecode(response) as Map<String, dynamic>;
+    final json = SchemaProcessor().extractJsonBlock(response);
+    if (json == null) {
+      throw StateError('无法从模型响应中解析 JSON 摘要');
+    }
 
-    // 从 Document 关联的 Scene 获取 worldId
+    // 从 Document 关联的 Scene 获取 worldId 与 chapterId
     String worldId = '';
+    String chapterId = '';
     if (doc.currentSceneId != null && doc.currentSceneId!.isNotEmpty) {
       try {
         final db = await _databaseManager.getDatabase('default');
@@ -276,6 +281,7 @@ class MemoryService implements IMemoryService {
           ..where((t) => t.id.equals(doc.currentSceneId!))).get();
         if (scenes.isNotEmpty) {
           final scene = scenes.first;
+          chapterId = scene.chapterId;
           // 通过 Scene -> Chapter -> Volume -> Work 获取 worldId
           final chapters = await (db.select(db.chapters)
             ..where((t) => t.id.equals(scene.chapterId))).get();
@@ -298,7 +304,7 @@ class MemoryService implements IMemoryService {
 
     final result = await createSceneSummary(
       sceneId: sceneId,
-      chapterId: doc.currentSceneId ?? '',
+      chapterId: chapterId,
       worldId: worldId,
       summary: json['summary'] as String? ?? '',
       keywords: (json['keywords'] as List?)?.join(',') ?? '',
@@ -376,7 +382,10 @@ class MemoryService implements IMemoryService {
       chunks.add(chunk);
     }
     final response = chunks.join('');
-    final json = jsonDecode(response) as Map<String, dynamic>;
+    final json = SchemaProcessor().extractJsonBlock(response);
+    if (json == null) {
+      throw StateError('无法从模型响应中解析 JSON 摘要');
+    }
 
     // 获取 volumeId
     String volumeId = '';
@@ -454,7 +463,10 @@ class MemoryService implements IMemoryService {
       chunks.add(chunk);
     }
     final response = chunks.join('');
-    final json = jsonDecode(response) as Map<String, dynamic>;
+    final json = SchemaProcessor().extractJsonBlock(response);
+    if (json == null) {
+      throw StateError('无法从模型响应中解析 JSON 摘要');
+    }
 
     // 存储
     return createVolumeSummary(
@@ -493,10 +505,20 @@ class MemoryService implements IMemoryService {
     var chaptersQuery = db.select(db.chapterSummaries);
     final allChapterSummaries = (await chaptersQuery.get()).where((c) => !excludeIds.contains(c.id)).toList();
 
+    // 仅当请求卷摘要时，按 currentChapterId -> volumeId 查出卷摘要
+    VolumeSummary? volumeSummary;
+    if (includeVolumeSummary) {
+      final chapters = await (db.select(db.chapters)
+        ..where((t) => t.id.equals(currentChapterId))).get();
+      if (chapters.isNotEmpty) {
+        volumeSummary = await getVolumeSummary(chapters.first.volumeId, worldId: worldId);
+      }
+    }
+
     final result = MemoryContextBuilder.build(
       sceneSummaries: sceneSummaries,
       chapterSummaries: allChapterSummaries,
-      volumeSummary: includeVolumeSummary ? null : null,
+      volumeSummary: volumeSummary,
       previousChaptersLimit: previousChaptersLimit,
     );
 
@@ -607,7 +629,12 @@ class MemoryService implements IMemoryService {
           limit: limit,
         );
 
-        return results.map((r) => SummaryMeta(
+        // 仅保留属于当前世界的记忆（存储后端未做 worldId 过滤时，此处兜底）
+        final scoped = results
+            .where((r) => (r.payload['worldId'] as String? ?? '') == worldId)
+            .toList();
+
+        return scoped.map((r) => SummaryMeta(
           id: r.id,
           type: SummaryType.scene,
           parentId: r.payload['sceneId'] as String? ?? '',

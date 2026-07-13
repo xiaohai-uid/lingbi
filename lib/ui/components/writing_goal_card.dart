@@ -4,6 +4,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import '../../data/database/world_database.dart';
 import '../../services/writing_goal_service.dart';
 
 class WritingGoalCard extends StatelessWidget {

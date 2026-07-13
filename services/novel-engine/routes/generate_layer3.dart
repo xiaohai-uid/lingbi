@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:lingbi_novel_engine/llm_client.dart';
 import 'package:lingbi_novel_engine/prompt_service.dart';
+import 'package:lingbi_novel_engine/fallback_chain.dart';
 import '../models/novel_models.dart';
 
 /// GET /generate-layer3 — 流式正文生成 (SSE)
@@ -13,48 +14,47 @@ import '../models/novel_models.dart';
 ///   characters?, genre?, style?, synopsis?, previousSceneSummary?
 /// 返回 Server-Sent Events 流
 Future<Response> onRequest(RequestContext context) async {
-  if (context.request.method != HttpMethod.get) {
+  if (context.request.method != HttpMethod.post) {
     return Response(statusCode: 405);
   }
 
   final llmClient = LLMClient();
+  final fallback = FallbackChain(client: llmClient, models: fallbackModelList());
   final promptService = PromptService();
 
   try {
-    final uri = context.request.uri;
-    final chapterTitle = uri.queryParameters['chapterTitle'] ?? '';
-    final sceneOutline = uri.queryParameters['sceneOutline'] ?? '';
-    final characters =
-        uri.queryParameters['characters']?.split(',').toList() ?? [];
-    final genre = uri.queryParameters['genre'] ?? 'fantasy';
-    final style = uri.queryParameters['style'] ?? 'qidian';
-    final synopsis = uri.queryParameters['synopsis'] ?? '';
-    final previousSceneSummary =
-        uri.queryParameters['previousSceneSummary'] ?? '无';
+    final body =
+        jsonDecode(await context.request.body()) as Map<String, dynamic>;
+    final request = Layer3Request.fromJson(body);
 
-    if (chapterTitle.isEmpty || sceneOutline.isEmpty) {
+    if (request.chapterTitle.isEmpty || request.sceneOutline.isEmpty) {
       return Response.json(
         statusCode: 400,
         body: {'error': 'chapterTitle and sceneOutline are required'},
       );
     }
 
-    // 渲染 Prompt
+    // 渲染 Prompt（location/mood/conflict 取自 Layer2 场景对象，不再写死）
     final prompt = promptService.renderPrompt('stream_scene', {
-      'sceneTitle': chapterTitle,
-      'sceneSummary': sceneOutline,
-      'characters': characters.join('、'),
-      'location': '（见上文）',
-      'mood': '（见上文）',
-      'conflict': '（见上文）',
-      'synopsis': synopsis,
-      'previousSceneSummary': previousSceneSummary,
-      'genre': genre,
-      'style': style,
+      'sceneTitle': request.chapterTitle,
+      'sceneSummary': request.sceneOutline,
+      'characters': request.characters.join('、'),
+      'location':
+          request.location.isNotEmpty ? request.location : '（见上文）',
+      'mood': request.mood.isNotEmpty ? request.mood : '（见上文）',
+      'conflict':
+          request.conflict.isNotEmpty ? request.conflict : '（见上文）',
+      'synopsis':
+          request.synopsis.isNotEmpty ? request.synopsis : request.context,
+      'previousSceneSummary': request.previousSceneSummary.isNotEmpty
+          ? request.previousSceneSummary
+          : '无',
+      'genre': request.genre,
+      'style': request.style,
     });
 
     // 调用 LLM 流式接口
-    final llmResponse = await llmClient.chatStream(
+    final llmResponse = await fallback.chatStreamWithFallback(
       messages: [
         {'role': 'system', 'content': prompt},
       ],

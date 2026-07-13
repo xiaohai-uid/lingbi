@@ -106,7 +106,12 @@ class Layer2Response {
 class Layer3Request {
   final String chapterTitle;
   final String sceneOutline;
+  final String location;
+  final String mood;
+  final String conflict;
   final String context;
+  final String synopsis;
+  final String previousSceneSummary;
   final List<String> characters;
   final String genre;
   final String style;
@@ -114,7 +119,12 @@ class Layer3Request {
   const Layer3Request({
     required this.chapterTitle,
     required this.sceneOutline,
+    this.location = '',
+    this.mood = '',
+    this.conflict = '',
     this.context = '',
+    this.synopsis = '',
+    this.previousSceneSummary = '',
     this.characters = const [],
     this.genre = 'fantasy',
     this.style = 'qidian',
@@ -123,9 +133,30 @@ class Layer3Request {
   Map<String, dynamic> toJson() => {
         'chapterTitle': chapterTitle,
         'sceneOutline': sceneOutline,
+        'location': location,
+        'mood': mood,
+        'conflict': conflict,
         'context': context,
+        'synopsis': synopsis,
+        'previousSceneSummary': previousSceneSummary,
         'characters': characters,
         'genre': genre,
         'style': style,
       };
+
+  factory Layer3Request.fromJson(Map<String, dynamic> json) => Layer3Request(
+        chapterTitle: json['chapterTitle'] as String,
+        sceneOutline: json['sceneOutline'] as String,
+        location: json['location'] as String? ?? '',
+        mood: json['mood'] as String? ?? '',
+        conflict: json['conflict'] as String? ?? '',
+        context: json['context'] as String? ?? '',
+        synopsis: json['synopsis'] as String? ?? '',
+        previousSceneSummary:
+            json['previousSceneSummary'] as String? ?? '',
+        characters:
+            (json['characters'] as List?)?.cast<String>() ?? const [],
+        genre: json['genre'] as String? ?? 'fantasy',
+        style: json['style'] as String? ?? 'qidian',
+      );
 }

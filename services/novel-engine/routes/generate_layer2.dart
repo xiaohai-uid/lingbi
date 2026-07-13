@@ -3,6 +3,7 @@ import 'package:dart_frog/dart_frog.dart';
 import 'package:lingbi_novel_engine/llm_client.dart';
 import 'package:lingbi_novel_engine/prompt_service.dart';
 import 'package:lingbi_novel_engine/generation_cache.dart';
+import 'package:lingbi_novel_engine/fallback_chain.dart';
 import '../models/novel_models.dart';
 
 /// POST /generate-layer2 — 细纲展开
@@ -15,6 +16,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   final llmClient = LLMClient();
+  final fallback = FallbackChain(client: llmClient, models: fallbackModelList());
   final promptService = PromptService();
   final cache = GenerationCache();
 
@@ -53,13 +55,14 @@ Future<Response> onRequest(RequestContext context) async {
     });
 
     // 调用 LLM
-    final content = await llmClient.chat(
+    final content = (await fallback.chatWithFallback(
       messages: [
         {'role': 'system', 'content': prompt},
       ],
       temperature: 0.7,
       maxTokens: 4096,
-    );
+    ))
+        .content;
 
     // 解析 LLM 返回的 JSON
     Map<String, dynamic> resultJson;

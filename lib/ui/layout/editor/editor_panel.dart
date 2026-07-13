@@ -78,17 +78,17 @@ class _EditorPanelState extends State<EditorPanel> {
     _contentLoaded = true;
 
     _changesSubscription = _controller.document.changes.listen(_onDocChanged);
-    _controller.selectionChanges.listen(_onSelectionChanged);
+    _controller.addListener(_onSelectionChanged);
 
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       _autoSave();
     });
   }
 
-  void _onSelectionChanged(_) {
+  void _onSelectionChanged() {
     final sel = _controller.selection;
     if (sel.isValid && !sel.isCollapsed) {
-      final text = _controller.document.sublist(sel.start, sel.end);
+      final text = _controller.document.toPlainText().substring(sel.start, sel.end);
       setState(() {
         _selectedText = text;
         _selectionStart = sel.start;

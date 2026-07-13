@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../services/interfaces/i_memory_service.dart';
+import '../../services/interfaces/i_memory_service.dart';
 
 /// 记忆上下文面板
 class MemoryPanel extends StatefulWidget {

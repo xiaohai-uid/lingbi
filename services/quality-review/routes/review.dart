@@ -9,7 +9,7 @@ import 'package:lingbi_quality_review/llm_client.dart';
 
 /// POST /review — 质量审查
 ///
-/// Body: { text, genre?, characters?, useLlmoolean? }
+/// Body: { text, genre?, characters?, useLlm? }
 /// Returns: { overallScore, wordCount, modules: [...] }
 Future<Response> onRequest(RequestContext context) async {
   if (context.request.method != HttpMethod.post) {
@@ -29,8 +29,8 @@ Future<Response> onRequest(RequestContext context) async {
     }
 
     // 可选 LLM 增强
-    final useLlmoolean = body['useLlmoolean'] as bool? ?? false;
-    final llmClient = useLlmoolean ? LLMClient() : null;
+    final useLlm = body['useLlm'] as bool? ?? false;
+    final llmClient = useLlm ? LLMClient() : null;
 
     final pipeline = ReviewPipeline(
       characterConsistency: CharacterConsistency(

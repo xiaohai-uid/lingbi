@@ -5,7 +5,24 @@
 library llm_client;
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+
+/// 解析回退模型列表。
+///
+/// 读取环境变量 LINGBI_FALLBACK_MODELS（逗号分隔的模型名，
+/// 如 "deepseek-chat,gpt-4o,claude-3-5-sonnet"），按顺序尝试。
+/// 未配置时回退到 [defaultModel]，保持单模型行为（与旧逻辑一致）。
+List<String> fallbackModelList([String defaultModel = 'deepseek-chat']) {
+  final raw = Platform.environment['LINGBI_FALLBACK_MODELS'];
+  if (raw == null || raw.trim().isEmpty) return [defaultModel];
+  final models = raw
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  return models.isNotEmpty ? models : [defaultModel];
+}
 
 /// LiteLLM 配置
 class LiteLLMConfig {

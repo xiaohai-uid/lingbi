@@ -9,7 +9,7 @@ class GenerationParams {
 
   const GenerationParams({
     this.temperature = 0.8,
-    this.maxTokens = [redacted],
+    this.maxTokens = 4096,
     this.topP = 0.9,
     this.repetitionPenalty = 1.1,
   });

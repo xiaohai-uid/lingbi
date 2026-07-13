@@ -4,6 +4,8 @@
 /// 直到某个模型成功或所有模型耗尽。
 library fallback_chain;
 
+import 'dart:async';
+import 'package:http/http.dart' as http;
 import 'llm_client.dart';
 
 /// 回退链结果
@@ -66,6 +68,46 @@ class FallbackChain {
     }
     throw FallbackExhaustedException(
       'All ${models.length} models failed',
+      lastError,
+    );
+  }
+
+  /// 流式回退：依次尝试 [models]，返回第一个成功建立（HTTP 2xx）的流。
+  ///
+  /// 若某模型连接失败或返回非 2xx，关闭该流并尝试下一个；
+  /// 全部失败抛出 [FallbackExhaustedException]。
+  /// 注意：仅能在“建流前”阶段切换模型，流中途出错无法重试。
+  Future<http.StreamedResponse> chatStreamWithFallback({
+    required List<Map<String, String>> messages,
+    double temperature = 0.7,
+    int maxTokens = 4096,
+  }) async {
+    if (models.isEmpty) {
+      throw FallbackExhaustedException('No models configured', null);
+    }
+    Object? lastError;
+    for (var i = 0; i < models.length; i++) {
+      final model = models[i];
+      for (var attempt = 0; attempt < maxRetriesPerModel; attempt++) {
+        try {
+          final response = await client.chatStream(
+            messages: messages,
+            model: model,
+            temperature: temperature,
+            maxTokens: maxTokens,
+          );
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            return response;
+          }
+          await response.stream.drain();
+          lastError = Exception('Model $model returned ${response.statusCode}');
+        } catch (e) {
+          lastError = e;
+        }
+      }
+    }
+    throw FallbackExhaustedException(
+      'All ${models.length} models failed (stream)',
       lastError,
     );
   }

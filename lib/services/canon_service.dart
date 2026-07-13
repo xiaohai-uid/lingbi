@@ -107,8 +107,9 @@ class CanonService {
     String? description,
   }) async {
     final companion = LocationsCompanion(
-      name: Value(name ?? ''),
-      description: Value(description ?? ''),
+      name: name != null ? Value(name) : const Value.absent(),
+      description: description != null ? Value(description) : const Value.absent(),
+      updatedAt: Value(DateTime.now()),
     );
     await canonRepository.updateLocation(id, companion);
   }
@@ -125,8 +126,9 @@ class CanonService {
     String? description,
   }) async {
     final companion = LoresCompanion(
-      name: Value(name ?? ''),
-      description: Value(description ?? ''),
+      name: name != null ? Value(name) : const Value.absent(),
+      description: description != null ? Value(description) : const Value.absent(),
+      updatedAt: Value(DateTime.now()),
     );
     await canonRepository.updateLore(id, companion);
   }
@@ -144,9 +146,10 @@ class CanonService {
     String? scope,
   }) async {
     final companion = WorldRulesCompanion(
-      name: Value(name ?? ''),
-      description: Value(description ?? ''),
-      scope: Value(scope ?? ''),
+      name: name != null ? Value(name) : const Value.absent(),
+      description: description != null ? Value(description) : const Value.absent(),
+      scope: scope != null ? Value(scope) : const Value.absent(),
+      updatedAt: Value(DateTime.now()),
     );
     await canonRepository.updateWorldRule(id, companion);
   }
@@ -230,13 +233,17 @@ class CanonService {
   Future<void> createLore({
     required String worldId,
     required String name,
+    String type = 'location',
     String description = '',
   }) async {
     await canonRepository.createLore(LoresCompanion.insert(
       id: _uuid.v4(),
       worldId: worldId,
       name: name,
+      type: type,
       description: description,
+      triggerKeywords: '',
+      enabled: true,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ));

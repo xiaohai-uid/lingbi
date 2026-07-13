@@ -1,6 +1,6 @@
 /// MemoryStorageClient — 调用 Storage Service 操作 Qdrant 向量
 ///
-/// HTTP POST http://localhost:8089/api/v1/storage/{upsert|search|delete}
+/// HTTP POST http://localhost:8100/api/v1/storage/{upsert|search|delete}
 library;
 
 import 'dart:convert';
@@ -9,7 +9,7 @@ import 'interfaces/i_memory_storage.dart';
 
 class MemoryStorageClient implements IMemoryStorage {
   MemoryStorageClient({
-    this.baseUrl = 'http://localhost:8089',
+    this.baseUrl = 'http://localhost:8100',
     http.Client? client,
   }) : _client = client ?? http.Client();
 

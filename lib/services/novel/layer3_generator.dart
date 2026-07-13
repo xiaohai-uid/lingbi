@@ -70,7 +70,7 @@ class Layer3Generator {
     final request = LLMRequest(
       messages: [LLMMessage(role: 'system', content: prompt)],
       temperature: 0.8,
-      maxTokens: [redacted],
+      maxTokens: 4096,
     );
 
     yield* LLMFactory.create(providerName).streamText(request);
