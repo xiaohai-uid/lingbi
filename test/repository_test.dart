@@ -315,7 +315,10 @@ void main() {
             id: 'lo1',
             worldId: 'world1',
             name: '古老传说',
+            type: 'location',
             description: '星辰预言',
+            triggerKeywords: '',
+            enabled: true,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
           ));
