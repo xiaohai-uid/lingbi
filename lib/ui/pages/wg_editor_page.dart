@@ -11,6 +11,9 @@ import 'package:lingbi/services/identity/identity_detector.dart';
 import 'package:lingbi/services/butterfly_analyzer.dart';
 import 'package:lingbi/services/generation/text_refinement.dart';
 import 'package:lingbi/ui/components/butterfly_analysis_dialog.dart';
+import 'dart:async';
+import 'package:lingbi/services/quality_service.dart';
+import 'package:lingbi/core/models/quality_report.dart';
 
 /// WgEditorPage — 精确匹配 Open Design editor.html
 /// 已集成 flutter_quill 真实编辑器
@@ -38,6 +41,13 @@ class _WgEditorPageState extends State<WgEditorPage> {
   bool _isGenerating = false;
   String _saveStatus = '已自动保存';
   String _editorContent = '';
+  QualityReport _qualityReport = const QualityReport(dimensions: [
+    QualityDimension(label: '情节密度', score: 0),
+    QualityDimension(label: '人物深度', score: 0),
+    QualityDimension(label: '节奏控制', score: 0),
+    QualityDimension(label: '钩子密度', score: 0),
+  ]);
+  Timer? _qualityTimer;
   db_model.Document? _currentDocument;
 
   List<db_model.Chapter> _chapters = [];
@@ -56,12 +66,31 @@ class _WgEditorPageState extends State<WgEditorPage> {
     _loadCharacters();
   }
 
+  @override
+  void dispose() {
+    _qualityTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadCharacters() async {
     try {
       _characters =
           await ServiceLocator.instance.canonService.getCharacters(widget.world.id);
       if (mounted) setState(() {});
     } catch (_) {}
+  }
+
+  void _runQuality() {
+    final report = const QualityService().analyze(
+      _editorContent,
+      characterNames: _characters.map((c) => c.name).toList(),
+    );
+    if (mounted) setState(() => _qualityReport = report);
+  }
+
+  void _scheduleQuality() {
+    _qualityTimer?.cancel();
+    _qualityTimer = Timer(const Duration(milliseconds: 800), _runQuality);
   }
 
   Future<void> _openButterflyDialog() async {
@@ -139,6 +168,7 @@ class _WgEditorPageState extends State<WgEditorPage> {
           _currentDocument = doc;
           _editorContent = content;
         });
+        _runQuality();
       }
     } catch (_) {}
   }
@@ -209,6 +239,10 @@ class _WgEditorPageState extends State<WgEditorPage> {
                         onIgnoreAllIdentities: () {
                           _identityDetector.invalidateScene(
                               _currentDocument?.id ?? '');
+                        },
+                        onContentChanged: (text) {
+                          setState(() => _editorContent = text);
+                          _scheduleQuality();
                         },
                       ),
                     ),
@@ -516,13 +550,13 @@ class _WgEditorPageState extends State<WgEditorPage> {
                   children: [
                     _sectionTitle('质量面板'),
                     const SizedBox(height: 12),
-                    _qualityBar('情节密度', '-/10', 0, 'low'),
+                    _qualityBarFor('情节密度'),
                     const SizedBox(height: 12),
-                    _qualityBar('人物深度', '-/10', 0, 'low'),
+                    _qualityBarFor('人物深度'),
                     const SizedBox(height: 12),
-                    _qualityBar('节奏控制', '-/10', 0, 'low'),
+                    _qualityBarFor('节奏控制'),
                     const SizedBox(height: 12),
-                    _qualityBar('钩子密度', '-/10', 0, 'low'),
+                    _qualityBarFor('钩子密度'),
                   ]),
             ),
             Container(
@@ -534,9 +568,15 @@ class _WgEditorPageState extends State<WgEditorPage> {
                   children: [
                     _sectionTitle('优化建议'),
                     const SizedBox(height: 12),
-                    _suggestion('💡 增加悬念钩子', '本章钩子密度偏低', 'accent'),
-                    _suggestion('✍ 人物时刻建议', '陈曦的背景回忆可以再展开', 'info'),
-                    _suggestion('📊 风格一致', '第三人称有限视角保持稳定', 'neutral'),
+                    ..._qualityReport.suggestions.isNotEmpty
+                        ? _qualityReport.suggestions
+                            .map((s) => _suggestion(s, '', 'accent'))
+                            .toList()
+                        : [
+                            _suggestion('💡 增加悬念钩子', '本章钩子密度偏低', 'accent'),
+                            _suggestion('✍ 人物时刻建议', '陈曦的背景回忆可以再展开', 'info'),
+                            _suggestion('📊 风格一致', '第三人称有限视角保持稳定', 'neutral'),
+                          ],
                   ]),
             ),
             Container(
@@ -596,6 +636,12 @@ class _WgEditorPageState extends State<WgEditorPage> {
           fontWeight: FontWeight.w600,
           letterSpacing: 0.6,
           color: Color(0xFF8A7B68)));
+
+  Widget _qualityBarFor(String label) {
+    final d = _qualityReport.byLabel(label);
+    if (d == null) return const SizedBox.shrink();
+    return _qualityBar(label, d.display, d.pct, d.level);
+  }
 
   Widget _qualityBar(String label, String score, double pct, String level) {
     final color = level == 'high'
