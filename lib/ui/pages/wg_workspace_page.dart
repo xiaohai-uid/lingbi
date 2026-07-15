@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/services/canon_service.dart';
@@ -9,7 +10,6 @@ import 'package:lingbi/core/models/world.dart' show World;
 import 'package:lingbi/data/database/world_database.dart';
 import 'package:lingbi/ui/components/memory_panel.dart';
 import 'package:lingbi/ui/components/style_panel.dart';
-import 'package:lingbi/services/interfaces/i_memory_service.dart';
 import 'package:lingbi/ui/pages/wg_editor_page.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
 import 'package:lingbi/ui/components/name_generator_dialog.dart';
@@ -137,19 +137,19 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 color: isDark
                     ? const Color(0xFF7A6C5C)
                     : const Color(0xFF8A7B68))),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Text('/',
             style: TextStyle(
                 color: isDark
                     ? const Color(0xFFA89880)
                     : const Color(0xFF8B7D6B))),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Text(widget.world.name,
             style: TextStyle(
                 color: isDark
                     ? const Color(0xFFA89880)
                     : const Color(0xFF8B7D6B))),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Text('创作工作区',
             style: TextStyle(
                 fontFamily: 'NotoSerifSC',
@@ -170,7 +170,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 gradient: const LinearGradient(
                     colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
                 borderRadius: BorderRadius.circular(8)),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text('✍', style: TextStyle(fontSize: 14)),
               SizedBox(width: 4),
               Text('全屏写作',
@@ -181,14 +181,14 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
             ]),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Container(
           width: 32,
           height: 32,
           decoration: BoxDecoration(
               color: const Color(0x1AE8A838),
               borderRadius: BorderRadius.circular(16)),
-          child: const Center(
+          child: Center(
               child: Text('吾',
                   style: TextStyle(
                       fontSize: 12,
@@ -207,11 +207,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
           color: isDark ? const Color(0xD92C261E) : const Color(0xBFFFFFFF),
           border: Border(right: BorderSide(color: border))),
       child: _loadingWorks
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: Color(0xFFE8A838)))
           : _works.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text('暂无作品',
                       style: TextStyle(fontSize: 13, color: Color(0xFF8A7B68))))
               : ListView(
@@ -221,7 +221,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                       InkWell(
                         onTap: _showAddChapterDialog,
                         borderRadius: BorderRadius.circular(8),
-                        child: const Padding(
+                        child: Padding(
                           padding:
                               EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           child: Row(children: [
@@ -264,9 +264,9 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
               Text(isExpanded ? '▼' : '▶',
                   style:
                       const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               const Text('📁', style: TextStyle(fontSize: 13)),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                   child: Text(work.title,
                       style: const TextStyle(
@@ -313,9 +313,9 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 Text(isExpanded ? '▼' : '▶',
                     style: const TextStyle(
                         fontSize: 10, color: Color(0xFF8A7B68))),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 const Text('📄', style: TextStyle(fontSize: 11)),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                     child: Text(vol.title,
                         style: const TextStyle(
@@ -344,7 +344,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                           horizontal: 12, vertical: 6),
                       child: Row(children: [
                         const Text('📝', style: TextStyle(fontSize: 11)),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                             child: Text(ch.title,
                                 style: const TextStyle(
@@ -420,7 +420,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                             ? const Color(0xFFE8A838)
                             : const Color(0xFF8B7D6B))),
                 if (badges[i].isNotEmpty) ...[
-                  const SizedBox(width: 6),
+                  SizedBox(width: 6),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -444,13 +444,13 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
 
   Widget _buildOutlineTab() {
     if (_loadingTabs) {
-      return const Center(
+      return Center(
           child: CircularProgressIndicator(
               strokeWidth: 2, color: Color(0xFFE8A838)));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (_works.isEmpty)
-        const Padding(
+        Padding(
             padding: EdgeInsets.all(40),
             child: Text('暂无作品',
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
@@ -466,7 +466,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF3D3529))),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
@@ -520,20 +520,20 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 fontFamily: 'JetBrainsMono',
                 fontSize: 11,
                 color: Color(0xFF8A7B68))),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(title,
             style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: Color(0xFF3D3529))),
         if (desc.isNotEmpty) ...[
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(desc,
               style: const TextStyle(
                   fontSize: 12, color: Color(0xFF8B7D6B), height: 1.5)),
         ],
         if (meta.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Wrap(
               spacing: 12,
               runSpacing: 4,
@@ -549,7 +549,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
 
   Widget _buildCharactersTab() {
     if (_loadingTabs) {
-      return const Center(
+      return Center(
           child: CircularProgressIndicator(
               strokeWidth: 2, color: Color(0xFFE8A838)));
     }
@@ -563,7 +563,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 color: Color(0xFF3D3529))),
         InkWell(
           onTap: _showAddCharacterDialog,
-          child: const Padding(
+          child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Text('＋',
@@ -578,9 +578,9 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
           ),
         ),
       ]),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       if (_characters.isEmpty)
-        const Padding(
+        Padding(
             padding: EdgeInsets.all(40),
             child: Text('暂无角色',
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
@@ -632,7 +632,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                               fontWeight: FontWeight.w600,
                               fontFamily: 'NotoSerifSC',
                               color: Color(0xFFE8A838))))),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,11 +642,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF3D3529))),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(role,
                         style: const TextStyle(
                             fontSize: 12, color: Color(0xFF8A7B68))),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Wrap(
                         spacing: 4,
                         runSpacing: 4,
@@ -665,7 +665,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                                 ))
                             .toList()),
                     if (arc.isNotEmpty) ...[
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.only(top: 12),
                         decoration: const BoxDecoration(
@@ -677,7 +677,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                               const Text('背景',
                                   style: TextStyle(
                                       fontSize: 11, color: Color(0xFF8A7B68))),
-                              const SizedBox(height: 2),
+                              SizedBox(height: 2),
                               Text(arc,
                                   style: const TextStyle(
                                       fontSize: 13,
@@ -694,7 +694,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
 
   Widget _buildChaptersTab() {
     if (_loadingTabs) {
-      return const Center(
+      return Center(
           child: CircularProgressIndicator(
               strokeWidth: 2, color: Color(0xFFE8A838)));
     }
@@ -721,9 +721,9 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                         fontWeight: FontWeight.w500,
                         color: Color(0xFFFFFFFF))))),
       ]),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       if (_works.isEmpty)
-        const Padding(
+        Padding(
             padding: EdgeInsets.all(40),
             child: Text('暂无章节',
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
@@ -771,12 +771,12 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
 
   Widget _buildTimelineTab() {
     if (_loadingTabs) {
-      return const Center(
+      return Center(
           child: CircularProgressIndicator(
               strokeWidth: 2, color: Color(0xFFE8A838)));
     }
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Padding(
+      Padding(
           padding: EdgeInsets.only(bottom: 16),
           child: Text('故事时间线',
               style: TextStyle(
@@ -785,7 +785,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF3D3529)))),
       if (_timelineEvents.isEmpty)
-        const Padding(
+        Padding(
             padding: EdgeInsets.all(40),
             child: Text('暂无时间线事件',
                 style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
@@ -818,7 +818,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                       color: Color(0xFF3D3529))),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -832,7 +832,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                           hintStyle: TextStyle(color: Color(0xFF8A7B68)),
                           border: InputBorder.none,
                           isDense: true))),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Row(children: [
                 InkWell(
                     onTap: () {
@@ -850,7 +850,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFFFFFFFF))))),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 InkWell(
                     onTap: () => Navigator.push(
                         context,
@@ -869,7 +869,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF3D3529))))),
               ]),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               // ── 记忆上下文面板 ──
               Container(
                 decoration: BoxDecoration(
@@ -878,12 +878,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                   border: Border.all(color: const Color(0xFFE8E0D6)),
                 ),
                 padding: const EdgeInsets.all(12),
-                child: MemoryPanel(
-                  entries: const [],
-                  customContext: '',
+                child: const MemoryPanel(
+                  entries: [],
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // ── 文风分析面板 ──
               Container(
                 decoration: BoxDecoration(
@@ -894,7 +893,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                 padding: const EdgeInsets.all(12),
                 child: const StylePanel(),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -938,13 +937,13 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                     : '未分类'),
             _badgeField('创作状态', '连载中'),
           ]),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           _section('AI 辅助', [
             InkWell(
               onTap: () => showNameGeneratorDialog(context),
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: EdgeInsets.symmetric(vertical: 8),
                 child: Row(children: [
                   Text('🎭', style: TextStyle(fontSize: 16)),
                   SizedBox(width: 8),
@@ -984,7 +983,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label,
               style: const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(value,
               style: TextStyle(
                   fontSize: 13,
@@ -999,7 +998,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label,
               style: const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
@@ -1027,7 +1026,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
         context: context,
         builder: (ctx) => StatefulBuilder(builder: (ctx, setDlgState) {
               return AlertDialog(
-                title: const Text('AI 小说生成'),
+                title: Text(AppLocalizations.of(context)!.s1),
                 content: SizedBox(
                     width: 450,
                     child: Column(
@@ -1037,7 +1036,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                           const Text('你的灵感',
                               style: TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           TextField(
                               controller: ideaCtrl,
                               decoration: const InputDecoration(
@@ -1045,11 +1044,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                                   border: OutlineInputBorder()),
                               maxLines: 3,
                               autofocus: true),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           const Text('小说类型',
                               style: TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           DropdownButtonFormField<String>(
                             value: genre,
                             decoration: const InputDecoration(
@@ -1065,11 +1064,11 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                               if (v != null) setDlgState(() => genre = v);
                             },
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16),
                           const Text('写作风格',
                               style: TextStyle(
                                   fontSize: 13, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           DropdownButtonFormField<String>(
                             value: style,
                             decoration: const InputDecoration(
@@ -1082,30 +1081,30 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                               if (v != null) setDlgState(() => style = v);
                             },
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 12),
                           // 参数设置折叠
           InkWell(
             onTap: () => setDlgState(() => showParams = !showParams),
             child: Row(children: [
               Text(showParams ? '▼' : '▶',
                   style: const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               const Text('生成参数',
                   style: TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
             ]),
           ),
           if (showParams) ...[
-            const SizedBox(height: 8),
-            _paramSlider('温度', temperature, 0.0, 2.0, (v) => setDlgState(() => temperature = v)),
-            _paramSlider('Top-P', topP, 0.0, 1.0, (v) => setDlgState(() => topP = v)),
-            _paramSlider('重复惩罚', repPenalty, 0.0, 2.0, (v) => setDlgState(() => repPenalty = v)),
+            SizedBox(height: 8),
+            _paramSlider('温度', temperature, 0, 2, (v) => setDlgState(() => temperature = v)),
+            _paramSlider('Top-P', topP, 0, 1, (v) => setDlgState(() => topP = v)),
+            _paramSlider('重复惩罚', repPenalty, 0, 2, (v) => setDlgState(() => repPenalty = v)),
             _paramSlider('最大长度', maxTokens.toDouble(), 100, 32000, (v) => setDlgState(() => maxTokens = v.toInt())),
           ],
                         ])),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('取消')),
+                      child: Text(AppLocalizations.of(context)!.s33)),
                   FilledButton(
                       onPressed: () {
                         if (ideaCtrl.text.isNotEmpty) {
@@ -1113,7 +1112,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                           _doGenerate(ideaCtrl.text.trim(), genre, style);
                         }
                       },
-                      child: const Text('生成小说')),
+                      child: Text(AppLocalizations.of(context)!.s78)),
                 ],
               );
             }));
@@ -1145,13 +1144,13 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
           return AlertDialog(
             title: Row(children: [
               if (isStreaming)
-                const SizedBox(
+                SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Color(0xFFE8A838)),
                 ),
-              if (isStreaming) const SizedBox(width: 12),
+              if (isStreaming) SizedBox(width: 12),
               Text(state is CompletedState
                   ? '生成完成'
                   : state is ErrorState
@@ -1175,7 +1174,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                         style: const TextStyle(
                             fontSize: 11, color: Color(0xFFE8A838))),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -1184,7 +1183,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: content.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text('等待 AI 输出…',
                                   style: TextStyle(
                                       fontSize: 13,
@@ -1196,16 +1195,16 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(children: [
                     _statChip('📝 $wordCount 字', const Color(0xFFE8A838)),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     if (isStreaming)
                       _statChip('⏳ 生成中…', const Color(0xFF5B8C5A)),
                     if (state is CompletedState)
                       _statChip('✅ 完成', const Color(0xFF5B8C5A)),
                     if (state is ErrorState)
-                      _statChip('❌ ${(state).error.message}',
+                      _statChip('❌ ${state.error.message}',
                           const Color(0xFFD4856B)),
                   ]),
                 ],
@@ -1244,7 +1243,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
               if (state is CancelledState)
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('关闭'),
+                  child: Text(AppLocalizations.of(context)!.s22),
                 ),
             ],
           );
@@ -1274,23 +1273,19 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
           ctrl.phaseComplete(SynopsisResult(
             synopsis: result,
             characters: [
-              CharacterBrief(
-                  name: '主角', role: 'protagonist', personality: '', arc: '')
+              const CharacterBrief(
+                  name: '主角')
             ],
-            worldSettings: '',
-            coreTheme: '',
           ));
           ctrl.completeAll(NovelResult(
             synopsis: SynopsisResult(
               synopsis: result,
               characters: [
-                CharacterBrief(
-                    name: '主角', role: 'protagonist', personality: '', arc: '')
+                const CharacterBrief(
+                    name: '主角')
               ],
-              worldSettings: '',
-              coreTheme: '',
             ),
-            outline: OutlineResult(volumes: []),
+            outline: const OutlineResult(),
             chapters: [
               ChapterContent(
                   number: 1,
@@ -1356,7 +1351,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-              title: const Text('AI 生成结果'),
+              title: Text(AppLocalizations.of(context)!.s2),
               content: SizedBox(
                   width: 600,
                   height: 400,
@@ -1366,7 +1361,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('关闭'))
+                    child: Text(AppLocalizations.of(context)!.s22))
               ],
             ));
   }
@@ -1376,7 +1371,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-              title: const Text('新建角色'),
+              title: Text(AppLocalizations.of(context)!.s63),
               content: TextField(
                   controller: ctrl,
                   decoration: const InputDecoration(labelText: '角色名称'),
@@ -1384,7 +1379,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('取消')),
+                    child: Text(AppLocalizations.of(context)!.s33)),
                 FilledButton(
                     onPressed: () {
                       if (ctrl.text.isNotEmpty) {
@@ -1397,7 +1392,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                         setState(() => _loadTabData());
                       }
                     },
-                    child: const Text('创建')),
+                    child: Text(AppLocalizations.of(context)!.s24)),
               ],
             ));
   }
@@ -1411,7 +1406,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
             : null);
     if (firstWork == null || firstVolume == null) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('当前世界还没有可添加章节的作品卷')));
+          .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.s47)));
       return;
     }
 
@@ -1419,7 +1414,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-              title: const Text('新建章节'),
+              title: Text(AppLocalizations.of(context)!.s62),
               content: TextField(
                   controller: ctrl,
                   decoration: const InputDecoration(labelText: '章节标题'),
@@ -1427,7 +1422,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('取消')),
+                    child: Text(AppLocalizations.of(context)!.s33)),
                 FilledButton(
                     onPressed: () async {
                       final title = ctrl.text.trim();
@@ -1449,7 +1444,7 @@ class _WgWorkspacePageState extends State<WgWorkspacePage> {
                         }
                       }
                     },
-                    child: const Text('创建')),
+                    child: Text(AppLocalizations.of(context)!.s24)),
               ],
             ));
   }
@@ -1489,7 +1484,7 @@ class _TimelineItem extends StatelessWidget {
                       child:
                           Container(width: 2, color: const Color(0xFFE8E0D6))),
               ])),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
               child: Container(
             margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
@@ -1503,13 +1498,13 @@ class _TimelineItem extends StatelessWidget {
               Text(time,
                   style:
                       const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(title,
                   style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF3D3529))),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(desc,
                   style:
                       const TextStyle(fontSize: 12, color: Color(0xFF8B7D6B))),

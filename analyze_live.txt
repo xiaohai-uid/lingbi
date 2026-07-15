@@ -1,0 +1,304 @@
+Analyzing lingbi-repair...                                      
+
+warning - The declaration '_$WorldDatabase.connect' isn't referenced - lib\data\database\world_database.g.dart:11905:19 - unused_element
+  error - Target of URI doesn't exist: '../client.dart' - lib\grpc\ai_client.dart:2:8 - uri_does_not_exist
+   info - Missing a newline at the end of the file - lib\grpc\ai_client.dart:59:2 - eol_at_end_of_file
+   info - The imported package 'grpc' isn't a dependency of the importing package - lib\grpc\client.dart:1:8 - depend_on_referenced_packages
+  error - Target of URI doesn't exist: 'package:grpc/grpc.dart' - lib\grpc\client.dart:1:8 - uri_does_not_exist
+  error - Undefined class 'ClientChannel' - lib\grpc\client.dart:9:14 - undefined_class
+   info - Constructor declarations should be before non-constructor declarations - lib\grpc\client.dart:12:3 - sort_constructors_first
+  error - The method 'ClientChannel' isn't defined for the type 'GrpcClientFactory' - lib\grpc\client.dart:26:16 - undefined_method
+  error - The method 'ChannelOptions' isn't defined for the type 'GrpcClientFactory' - lib\grpc\client.dart:29:16 - undefined_method
+  error - Undefined name 'ChannelCredentials' - lib\grpc\client.dart:30:22 - undefined_identifier
+   info - Use 'const' with the constructor to improve performance - lib\grpc\client.dart:31:22 - prefer_const_constructors
+  error - Undefined class 'ClientChannel' - lib\grpc\client.dart:37:3 - undefined_class
+   info - Missing a newline at the end of the file - lib\grpc\client.dart:51:2 - eol_at_end_of_file
+  error - Target of URI doesn't exist: '../client.dart' - lib\grpc\project_client.dart:1:8 - uri_does_not_exist
+   info - Missing a newline at the end of the file - lib\grpc\project_client.dart:52:2 - eol_at_end_of_file
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\context_builder.dart:15:9 - sort_constructors_first
+   info - Missing a newline at the end of the file - lib\services\generation\controller.dart:91:2 - eol_at_end_of_file
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\generation_params.dart:10:9 - sort_constructors_first
+  error - A value of type 'List<InvalidType>' can't be assigned to a variable of type 'int' - lib\services\generation\generation_params.dart:12:22 - invalid_assignment
+  error - The default value of an optional parameter must be constant - lib\services\generation\generation_params.dart:12:22 - non_constant_default_value
+  error - Undefined name 'redacted' - lib\services\generation\generation_params.dart:12:23 - undefined_identifier
+   info - Missing a newline at the end of the file - lib\services\generation\generation_params.dart:37:2 - eol_at_end_of_file
+   info - Unnecessary braces in a string interpolation - lib\services\generation\name_generator.dart:23:24 - unnecessary_brace_in_string_interps
+   info - Missing a newline at the end of the file - lib\services\generation\name_generator.dart:59:2 - eol_at_end_of_file
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:17:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:50:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:58:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:68:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:76:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:83:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:88:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:98:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:105:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:118:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:144:9 - sort_constructors_first
+   info - The value of the argument is redundant because it matches the default value - lib\services\generation\state_machine.dart:147:115 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\services\generation\state_machine.dart:148:103 - avoid_redundant_argument_values
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:166:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:172:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:178:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:185:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:191:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:199:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:205:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:211:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:218:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:223:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:230:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:237:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:248:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:254:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:259:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:264:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:269:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:274:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:279:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:284:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:294:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:298:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\generation\state_machine.dart:303:9 - sort_constructors_first
+   info - Use 'const' with the constructor to improve performance - lib\services\generation\state_machine.dart:427:25 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\services\generation\state_machine.dart:428:3 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\services\generation\state_machine.dart:429:5 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - lib\services\generation\state_machine.dart:429:54 - avoid_redundant_argument_values
+   info - Missing a newline at the end of the file - lib\services\generation\state_machine.dart:471:69 - eol_at_end_of_file
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_memory_service.dart:20:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_memory_service.dart:35:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_memory_service.dart:49:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_memory_storage.dart:10:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_retroactive_edit_service.dart:25:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\interfaces\i_style_detection_service.dart:13:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\lore_service.dart:22:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\lore_service.dart:34:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\lore_service.dart:49:3 - sort_constructors_first
+   info - Missing a newline at the end of the file - lib\services\lore_service.dart:125:2 - eol_at_end_of_file
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - lib\services\memory_service.dart:262:5 - prefer_foreach
+   info - Use interpolation to compose strings and values - lib\services\memory_service.dart:263:16 - prefer_interpolation_to_compose_strings
+   info - The value of the argument is redundant because it matches the default value - lib\services\memory_service.dart:268:34 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\services\memory_service.dart:324:19 - avoid_redundant_argument_values
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - lib\services\memory_service.dart:378:5 - prefer_foreach
+   info - The value of the argument is redundant because it matches the default value - lib\services\memory_service.dart:384:34 - avoid_redundant_argument_values
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - lib\services\memory_service.dart:459:5 - prefer_foreach
+   info - The value of the argument is redundant because it matches the default value - lib\services\memory_service.dart:465:34 - avoid_redundant_argument_values
+   info - Local variables should be final - lib\services\memory_service.dart:500:5 - prefer_final_locals
+   info - Local variables should be final - lib\services\memory_service.dart:505:5 - prefer_final_locals
+   info - Constructor declarations should be before non-constructor declarations - lib\services\model_discovery_service.dart:16:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\model_discovery_service.dart:26:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\model_discovery_service.dart:43:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\model_discovery_service.dart:50:11 - sort_constructors_first
+warning - The value of the field '_styleService' isn't used - lib\services\novel\layer3_generator.dart:24:32 - unused_field
+warning - The '!' will have no effect because the receiver can't be null - lib\services\novel\layer3_generator.dart:44:45 - unnecessary_non_null_assertion
+  error - The argument type 'List<InvalidType>' can't be assigned to the parameter type 'int?'.  - lib\services\novel\layer3_generator.dart:73:18 - argument_type_not_assignable
+  error - Undefined name 'redacted' - lib\services\novel\layer3_generator.dart:73:19 - undefined_identifier
+warning - Unused import: 'dart:convert' - lib\services\retroactive_edit_service.dart:6:8 - unused_import
+   info - Constructor declarations should be before non-constructor declarations - lib\services\retroactive_edit_service.dart:18:9 - sort_constructors_first
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - lib\services\retroactive_edit_service.dart:52:5 - prefer_foreach
+   info - The value of the argument is redundant because it matches the default value - lib\services\retroactive_edit_service.dart:58:33 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\services\retroactive_edit_service.dart:63:20 - avoid_redundant_argument_values
+   info - Constructor declarations should be before non-constructor declarations - lib\services\search_service.dart:13:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\search_service.dart:20:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\search_service.dart:33:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\skill_service.dart:22:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\skill_service.dart:35:11 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\skill_service.dart:70:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\skill_service.dart:82:9 - sort_constructors_first
+   info - Constructor declarations should be before non-constructor declarations - lib\services\style_detection_service.dart:30:9 - sort_constructors_first
+warning - The value of the field '_documentService' isn't used - lib\services\style_detection_service.dart:54:26 - unused_field
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - lib\services\style_detection_service.dart:62:5 - prefer_foreach
+   info - The value of the argument is redundant because it matches the default value - lib\services\style_detection_service.dart:68:34 - avoid_redundant_argument_values
+   info - Uses 'await' on an instance of 'SimpleSelectStatement<$StyleProfilesTable, StyleProfile>', which is not a subtype of 'Future' - lib\services\style_detection_service.dart:170:13 - await_only_futures
+   info - Uses 'await' on an instance of 'SimpleSelectStatement<$StyleProfilesTable, StyleProfile>', which is not a subtype of 'Future' - lib\services\style_detection_service.dart:211:13 - await_only_futures
+   info - Unnecessary use of string interpolation - lib\services\style_detection_service.dart:254:19 - unnecessary_string_interpolations
+warning - Unused import: 'dart:convert' - lib\services\writing_goal_service.dart:6:8 - unused_import
+   info - Constructor declarations should be before non-constructor declarations - lib\services\writing_goal_service.dart:23:9 - sort_constructors_first
+   info - Use 'const' with the constructor to improve performance - lib\services\writing_goal_service.dart:155:48 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\components\butterfly_analysis_dialog.dart:74:14 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\ui\components\butterfly_analysis_dialog.dart:75:19 - prefer_const_literals_to_create_immutables
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\components\character_graph_view.dart:54:5 - prefer_const_declarations
+   info - The value of the argument is redundant because it matches the default value - lib\ui\components\character_graph_view.dart:100:23 - avoid_redundant_argument_values
+   info - Use interpolation to compose strings and values - lib\ui\components\faction_view.dart:86:18 - prefer_interpolation_to_compose_strings
+   info - 'bool' parameters should be named parameters - lib\ui\components\memory_panel.dart:31:52 - avoid_positional_boolean_parameters
+warning - Unused import: 'package:lingbi/services/ai_service.dart' - lib\ui\components\name_generator_dialog.dart:6:8 - unused_import
+   info - Missing a newline at the end of the file - lib\ui\components\name_generator_dialog.dart:158:2 - eol_at_end_of_file
+warning - Unused import: '../../services/generation/text_refinement.dart' - lib\ui\components\selection_edit_popup.dart:8:8 - unused_import
+   info - Constructor declarations should be before non-constructor declarations - lib\ui\components\selection_edit_popup.dart:18:9 - sort_constructors_first
+warning - A value for optional parameter 'tone' isn't ever given - lib\ui\components\selection_edit_popup.dart:22:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\components\style_panel.dart:129:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\components\style_panel.dart:131:41 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\ui\components\timeline_view.dart:63:18 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - lib\ui\components\writing_calendar_view.dart:44:46 - avoid_redundant_argument_values
+   info - Unnecessary braces in a string interpolation - lib\ui\components\writing_calendar_view.dart:55:12 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\ui\components\writing_calendar_view.dart:55:21 - unnecessary_brace_in_string_interps
+  error - Undefined class 'DailyWritingStat' - lib\ui\components\writing_goal_card.dart:19:9 - undefined_class
+   info - Unnecessary use of double quotes - lib\ui\layout\editor\editor_panel.dart:61:26 - prefer_single_quotes
+   info - Unnecessary use of double quotes - lib\ui\layout\editor\editor_panel.dart:65:35 - prefer_single_quotes
+   info - The private field _edges could be 'final' - lib\ui\pages\canon_page.dart:40:23 - prefer_final_fields
+   info - Use interpolation to compose strings and values - lib\ui\pages\canon_page.dart:470:27 - prefer_interpolation_to_compose_strings
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\settings_page.dart:559:30 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\settings_page.dart:598:30 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\settings_page.dart:599:30 - avoid_redundant_argument_values
+warning - Unused import: 'package:lingbi/services/interfaces/i_memory_service.dart' - lib\ui\pages\wg_workspace_page.dart:12:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:881:24 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:883:34 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:946:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:948:24 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\ui\pages\wg_workspace_page.dart:948:38 - prefer_const_literals_to_create_immutables
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:949:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:949:37 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:950:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:951:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:952:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:953:48 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:954:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:955:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:956:30 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:957:48 - prefer_const_constructors
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1099:45 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1099:50 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1100:41 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1100:46 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1101:46 - prefer_int_literals
+   info - Unnecessary use of a 'double' literal - lib\ui\pages\wg_workspace_page.dart:1101:51 - prefer_int_literals
+   info - Unnecessary use of parentheses - lib\ui\pages\wg_workspace_page.dart:1208:38 - unnecessary_parenthesis
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:1277:15 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1278:37 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1278:65 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1278:74 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1280:28 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1281:24 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:1287:17 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1288:39 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1288:67 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1288:76 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1290:30 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - lib\ui\pages\wg_workspace_page.dart:1291:26 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - lib\ui\pages\wg_workspace_page.dart:1293:22 - prefer_const_constructors
+   info - Missing a newline at the end of the file - lib\utils\word_counter.dart:46:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - test\ai_service_provider_registry_test.dart:83:2 - eol_at_end_of_file
+warning - Unused import: 'package:drift/drift.dart' - test\chapter_document_mapping_test.dart:22:8 - unused_import
+   info - Use 'const' for final variables initialized to a constant value - test\chapter_document_mapping_test.dart:86:7 - prefer_const_declarations
+   info - Missing a newline at the end of the file - test\chapter_document_mapping_test.dart:204:2 - eol_at_end_of_file
+   info - The import of 'dart:async' is unnecessary because all of the used elements are also provided by the import of 'package:flutter_test/flutter_test.dart' - test\generation_controller_test.dart:4:8 - unnecessary_import
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:17:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:29:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:42:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:65:21 - prefer_const_constructors
+   info - Use 'forEach' rather than a 'for' loop to apply a function to every element - test\generation_controller_test.dart:69:7 - prefer_foreach
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:84:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:102:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:106:9 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:106:42 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:106:70 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:106:79 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:109:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:110:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:111:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:112:13 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:112:60 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:112:90 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:131:21 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:134:9 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:134:42 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:134:70 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:134:79 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:137:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:138:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:139:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_controller_test.dart:140:13 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:140:60 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\generation_controller_test.dart:140:90 - avoid_redundant_argument_values
+   info - Missing a newline at the end of the file - test\generation_controller_test.dart:151:2 - eol_at_end_of_file
+   info - Can't use a relative path to import a library in 'lib' - test\generation_demo.dart:14:8 - avoid_relative_lib_imports
+   info - 'bool' parameters should be named parameters - test\generation_demo.dart:68:17 - avoid_positional_boolean_parameters
+   info - 'bool' parameters should be named parameters - test\generation_demo.dart:73:18 - avoid_positional_boolean_parameters
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:88:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:93:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:98:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:103:24 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:107:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:115:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:136:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:138:18 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_demo.dart:138:52 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:156:19 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:157:5 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:158:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:159:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:161:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:162:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:164:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:165:9 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:183:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:184:5 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:192:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:208:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:208:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:217:18 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_demo.dart:217:51 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:230:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:230:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:232:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:237:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:249:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:260:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:260:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:264:18 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_demo.dart:264:51 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:267:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:267:52 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:268:5 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:269:7 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:270:9 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_demo.dart:270:88 - avoid_redundant_argument_values
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:291:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:291:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:314:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:314:47 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\generation_demo.dart:325:18 - prefer_const_constructors
+   info - The value of the argument is redundant because it matches the default value - test\generation_demo.dart:325:51 - avoid_redundant_argument_values
+   info - Missing a newline at the end of the file - test\generation_demo.dart:329:2 - eol_at_end_of_file
+   info - Use 'const' for final variables initialized to a constant value - test\integration\full_stack_test.dart:12:3 - prefer_const_declarations
+   info - Missing a newline at the end of the file - test\integration\full_stack_test.dart:193:2 - eol_at_end_of_file
+warning - Unused import: 'package:drift/drift.dart' - test\lore_service_test.dart:11:8 - unused_import
+   info - Statements in a for should be enclosed in a block - test\lore_service_test.dart:21:41 - curly_braces_in_flow_control_structures
+warning - The value of the local variable 'db' isn't used - test\lore_service_test.dart:36:22 - unused_local_variable
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:68:76 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:68:97 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:70:74 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:70:95 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:78:74 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:78:95 - avoid_redundant_argument_values
+warning - The '!' will have no effect because the receiver can't be null - test\lore_service_test.dart:82:21 - unnecessary_non_null_assertion
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:87:75 - avoid_redundant_argument_values
+   info - The value of the argument is redundant because it matches the default value - test\lore_service_test.dart:87:96 - avoid_redundant_argument_values
+   info - Missing a newline at the end of the file - test\lore_service_test.dart:164:2 - eol_at_end_of_file
+   info - Statements in a for should be enclosed in a block - test\memory_service_test.dart:20:41 - curly_braces_in_flow_control_structures
+warning - Unused import: 'package:lingbi/services/interfaces/i_memory_storage.dart' - test\memory_storage_client_test.dart:10:8 - unused_import
+   info - Missing a newline at the end of the file - test\name_generator_test.dart:50:2 - eol_at_end_of_file
+   info - Constructor declarations should be before non-constructor declarations - test\provider_registry_test.dart:10:3 - sort_constructors_first
+  error - The named parameter 'enabled' is required, but there's no corresponding argument - test\repository_test.dart:314:38 - missing_required_argument
+  error - The named parameter 'triggerKeywords' is required, but there's no corresponding argument - test\repository_test.dart:314:38 - missing_required_argument
+  error - The named parameter 'type' is required, but there's no corresponding argument - test\repository_test.dart:314:38 - missing_required_argument
+   info - Constructor declarations should be before non-constructor declarations - test\retroactive_edit_service_test.dart:14:3 - sort_constructors_first
+warning - The method doesn't override an inherited method - test\retroactive_edit_service_test.dart:57:18 - override_on_non_overriding_member
+warning - Unused import: 'package:lingbi/services/interfaces/i_style_detection_service.dart' - test\style_detection_service_test.dart:13:8 - unused_import
+   info - Statements in a for should be enclosed in a block - test\style_detection_service_test.dart:25:41 - curly_braces_in_flow_control_structures
+   info - Constructor declarations should be before non-constructor declarations - test\style_detection_service_test.dart:40:3 - sort_constructors_first
+warning - The method doesn't override an inherited method - test\style_detection_service_test.dart:82:18 - override_on_non_overriding_member
+   info - Use 'const' with the constructor to improve performance - test\style_detection_service_test.dart:126:20 - prefer_const_constructors
+   info - Statements in a for should be enclosed in a block - test\style_profile_test.dart:20:41 - curly_braces_in_flow_control_structures
+   info - Use 'const' with the constructor to improve performance - test\style_profile_test.dart:53:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\style_profile_test.dart:92:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\style_profile_test.dart:93:17 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\style_profile_test.dart:94:28 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\style_profile_test.dart:95:26 - prefer_const_constructors
+   info - Missing a newline at the end of the file - test\text_refinement_test.dart:50:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - test\word_counter_test.dart:50:2 - eol_at_end_of_file
+   info - Statements in a for should be enclosed in a block - test\writing_goal_test.dart:21:41 - curly_braces_in_flow_control_structures
+   info - Use 'const' with the constructor to improve performance - test\writing_goal_test.dart:77:22 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - test\writing_goal_test.dart:78:25 - prefer_const_constructors
+
+300 issues found. (ran in 6.5s)

@@ -1,4 +1,5 @@
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/ui/theme/wg_components.dart';
@@ -100,7 +101,7 @@ class _CanonPageState extends State<CanonPage>
                 targetId: r.relatedCharacterId,
                 type: RelationshipType.fromString(r.relationType),
                 strength: r.intimacy,
-                description: r.description ?? '',
+                description: r.description,
               ))
           .toList();
     } catch (_) {
@@ -227,27 +228,27 @@ class _CanonPageState extends State<CanonPage>
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: '名称'),
                     autofocus: true),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: roleCtrl,
                     decoration:
                         const InputDecoration(labelText: '定位（主角/配角/反派/路人）')),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: personalityCtrl,
                     decoration: const InputDecoration(labelText: '性格'),
                     maxLines: 2),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: descCtrl,
                     decoration: const InputDecoration(labelText: '描述'),
                     maxLines: 3),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: backstoryCtrl,
                     decoration: const InputDecoration(labelText: '背景故事'),
                     maxLines: 2),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: motivationCtrl,
                     decoration: const InputDecoration(labelText: '动机'),
@@ -258,7 +259,7 @@ class _CanonPageState extends State<CanonPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -310,7 +311,7 @@ class _CanonPageState extends State<CanonPage>
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: '名称'),
                 autofocus: true),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
                 controller: descCtrl,
                 decoration: const InputDecoration(labelText: '描述'),
@@ -319,7 +320,7 @@ class _CanonPageState extends State<CanonPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -363,7 +364,7 @@ class _CanonPageState extends State<CanonPage>
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: '名称'),
                 autofocus: true),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
                 controller: descCtrl,
                 decoration: const InputDecoration(labelText: '描述'),
@@ -372,7 +373,7 @@ class _CanonPageState extends State<CanonPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -417,12 +418,12 @@ class _CanonPageState extends State<CanonPage>
                 controller: nameCtrl,
                 decoration: const InputDecoration(labelText: '规则名称'),
                 autofocus: true),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
                 controller: descCtrl,
                 decoration: const InputDecoration(labelText: '规则描述'),
                 maxLines: 3),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
                 controller: scopeCtrl,
                 decoration: const InputDecoration(labelText: '适用场景（可选，留空=全局）')),
@@ -430,7 +431,7 @@ class _CanonPageState extends State<CanonPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () async {
               if (nameCtrl.text.trim().isEmpty) return;
@@ -485,28 +486,28 @@ class _CanonPageState extends State<CanonPage>
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: '名称'),
                     autofocus: true),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: type,
-                  items: const [
-                    DropdownMenuItem(value: 'sect', child: Text('宗门')),
-                    DropdownMenuItem(value: 'nation', child: Text('国家')),
-                    DropdownMenuItem(value: 'clan', child: Text('家族')),
-                    DropdownMenuItem(value: 'organization', child: Text('组织')),
+                  items: [
+                    DropdownMenuItem(value: 'sect', child: Text(AppLocalizations.of(context)!.s41)),
+                    DropdownMenuItem(value: 'nation', child: Text(AppLocalizations.of(context)!.s36)),
+                    DropdownMenuItem(value: 'clan', child: Text(AppLocalizations.of(context)!.s44)),
+                    DropdownMenuItem(value: 'organization', child: Text(AppLocalizations.of(context)!.s89)),
                   ],
                   onChanged: (v) => setSt(() => type = v ?? 'sect'),
                   decoration: const InputDecoration(labelText: '类型'),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: powerCtrl,
                     decoration: const InputDecoration(labelText: '实力 (1-100)'),
                     keyboardType: TextInputType.number),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: terrCtrl,
                     decoration: const InputDecoration(labelText: '领地')),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextField(
                     controller: descCtrl,
                     decoration: const InputDecoration(labelText: '描述'),
@@ -516,7 +517,7 @@ class _CanonPageState extends State<CanonPage>
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+                onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
             FilledButton(
               onPressed: () async {
                 if (nameCtrl.text.trim().isEmpty) return;
@@ -541,7 +542,7 @@ class _CanonPageState extends State<CanonPage>
                   await repo.createFaction(
                     widget.worldId,
                     FactionsCompanion.insert(
-                      id: 'fac-' + nameCtrl.text.trim().hashCode.toRadixString(16),
+                      id: 'fac-${nameCtrl.text.trim().hashCode.toRadixString(16)}',
                       worldId: widget.worldId,
                       name: nameCtrl.text.trim(),
                       description: descCtrl.text.trim(),
@@ -602,12 +603,12 @@ class _CanonPageState extends State<CanonPage>
                 controller: titleCtrl,
                 decoration: const InputDecoration(labelText: '标题'),
                 autofocus: true),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
                 controller: chapterCtrl,
                 decoration: const InputDecoration(labelText: '章节'),
                 keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             TextField(
                 controller: descCtrl,
                 decoration: const InputDecoration(labelText: '描述'),
@@ -616,7 +617,7 @@ class _CanonPageState extends State<CanonPage>
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () async {
               if (titleCtrl.text.trim().isEmpty) return;
@@ -629,7 +630,7 @@ class _CanonPageState extends State<CanonPage>
               if (ctx.mounted) Navigator.pop(ctx);
               _loadData();
             },
-            child: const Text('创建'),
+            child: Text(AppLocalizations.of(context)!.s24),
           ),
         ],
       ),
@@ -674,16 +675,16 @@ class _CanonPageState extends State<CanonPage>
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('确认删除'),
+        title: Text(AppLocalizations.of(context)!.s83),
         content: Text(message),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消')),
+              child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('删除'),
+            child: Text(AppLocalizations.of(context)!.s25),
           ),
         ],
       ),
@@ -710,13 +711,13 @@ class _CanonPageState extends State<CanonPage>
             if (v == 'delete') _deleteCharacter(c);
           },
           itemBuilder: (ctx) => [
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
                     leading: Icon(Icons.edit, size: 18),
-                    title: Text('编辑'),
+                    title: Text(AppLocalizations.of(context)!.s90),
                     dense: true)),
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
                     leading: Icon(Icons.delete, size: 18, color: Colors.red),
@@ -732,7 +733,7 @@ class _CanonPageState extends State<CanonPage>
   Widget _buildLocationCard(Location l) {
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.place, size: 20)),
+        leading: CircleAvatar(child: Icon(Icons.place, size: 20)),
         title:
             Text(l.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: l.description.isNotEmpty
@@ -744,13 +745,13 @@ class _CanonPageState extends State<CanonPage>
             if (v == 'delete') _deleteLocation(l);
           },
           itemBuilder: (ctx) => [
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
                     leading: Icon(Icons.edit, size: 18),
-                    title: Text('编辑'),
+                    title: Text(AppLocalizations.of(context)!.s90),
                     dense: true)),
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
                     leading: Icon(Icons.delete, size: 18, color: Colors.red),
@@ -766,7 +767,7 @@ class _CanonPageState extends State<CanonPage>
   Widget _buildLoreCard(Lore l) {
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.auto_stories, size: 20)),
+        leading: CircleAvatar(child: Icon(Icons.auto_stories, size: 20)),
         title:
             Text(l.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: l.description.isNotEmpty
@@ -778,13 +779,13 @@ class _CanonPageState extends State<CanonPage>
             if (v == 'delete') _deleteLore(l);
           },
           itemBuilder: (ctx) => [
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
                     leading: Icon(Icons.edit, size: 18),
-                    title: Text('编辑'),
+                    title: Text(AppLocalizations.of(context)!.s90),
                     dense: true)),
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
                     leading: Icon(Icons.delete, size: 18, color: Colors.red),
@@ -800,7 +801,7 @@ class _CanonPageState extends State<CanonPage>
   Widget _buildRuleCard(WorldRule r) {
     return Card(
       child: ListTile(
-        leading: const CircleAvatar(child: Icon(Icons.gavel, size: 20)),
+        leading: CircleAvatar(child: Icon(Icons.gavel, size: 20)),
         title:
             Text(r.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: r.description.isNotEmpty
@@ -812,13 +813,13 @@ class _CanonPageState extends State<CanonPage>
             if (v == 'delete') _deleteRule(r);
           },
           itemBuilder: (ctx) => [
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'edit',
                 child: ListTile(
                     leading: Icon(Icons.edit, size: 18),
-                    title: Text('编辑'),
+                    title: Text(AppLocalizations.of(context)!.s90),
                     dense: true)),
-            const PopupMenuItem(
+            PopupMenuItem(
                 value: 'delete',
                 child: ListTile(
                     leading: Icon(Icons.delete, size: 18, color: Colors.red),
@@ -839,7 +840,7 @@ class _CanonPageState extends State<CanonPage>
           children: [
             Icon(Icons.auto_stories,
                 size: 48, color: Theme.of(context).disabledColor),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text('暂无条目', style: Theme.of(context).textTheme.bodyMedium),
           ],
         ),
@@ -954,7 +955,7 @@ class _CanonPageState extends State<CanonPage>
         ),
       ),
       body: _loading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
                   strokeWidth: 2, color: WgTokens.accent))
           : TabBarView(

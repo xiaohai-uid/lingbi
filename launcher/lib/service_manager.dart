@@ -1,3 +1,6 @@
+/// ⚠️ DEPRECATED: This launcher references the v3.0 monolithic architecture.
+/// The v4.0 architecture uses Go and Rust microservices in go/ and rust/ directories.
+/// TODO: Rewrite launcher to manage Go binary processes and Rust binary processes.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';

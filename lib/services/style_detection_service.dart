@@ -18,14 +18,6 @@ const _uuid = Uuid();
 /// 风格检测服务
 
 class _AggregatedStyle {
-  final String tone;
-  final String vocabularyLevel;
-  final double dialogueRatio;
-  final double sentenceComplexity;
-  final String pacing;
-  final double paragraphLength;
-  final String rhetoricalDevices;
-  final String keywords;
 
   const _AggregatedStyle({
     required this.tone,
@@ -37,6 +29,14 @@ class _AggregatedStyle {
     required this.rhetoricalDevices,
     required this.keywords,
   });
+  final String tone;
+  final String vocabularyLevel;
+  final double dialogueRatio;
+  final double sentenceComplexity;
+  final String pacing;
+  final double paragraphLength;
+  final String rhetoricalDevices;
+  final String keywords;
 }
 
 
@@ -65,7 +65,7 @@ class StyleDetectionService implements IStyleDetectionService {
     )) {
       chunks.add(chunk);
     }
-    final response = chunks.join('');
+    final response = chunks.join();
     return jsonDecode(response) as Map<String, dynamic>;
   }
 
@@ -167,7 +167,7 @@ class StyleDetectionService implements IStyleDetectionService {
       createdAt: now, updatedAt: now,
     ));
 
-    return (await db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
+    return (db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
   }
 
   @override
@@ -208,7 +208,7 @@ class StyleDetectionService implements IStyleDetectionService {
       createdAt: now, updatedAt: now,
     ));
 
-    return (await db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
+    return (db.select(db.styleProfiles)..where((t) => t.id.equals(id))).getSingle();
   }
 
   @override
@@ -251,7 +251,7 @@ class StyleDetectionService implements IStyleDetectionService {
       if (profiles.isNotEmpty) {
         final p = profiles.first;
         parts.add('【作品风格】');
-        parts.add('${p.summary}');
+        parts.add(p.summary);
       }
     }
 

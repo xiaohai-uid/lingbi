@@ -1,4 +1,5 @@
 use axum::{
+    extract::State,
     http::StatusCode,
     response::Json,
     routing::{get, post, put},
@@ -138,7 +139,7 @@ async fn auto_layout(
 ) -> Result<Json<Vec<SceneNode>>, StatusCode> {
     let chapter_id = body["chapter_id"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
     let mut db = state.lock().unwrap();
-    let nodes: Vec<&mut SceneNode> = db.nodes.iter_mut()
+    let mut nodes: Vec<&mut SceneNode> = db.nodes.iter_mut()
         .filter(|n| n.chapter_id == chapter_id).collect();
 
     let total = nodes.len() as f64;

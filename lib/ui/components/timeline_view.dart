@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 
 import 'package:lingbi/data/database/world_database.dart';
 
@@ -39,7 +40,7 @@ class TimelineView extends StatelessWidget {
               const SizedBox(height: 12),
               FilledButton.icon(
                 icon: const Icon(Icons.add),
-                label: const Text('新增事件'),
+                label: Text(AppLocalizations.of(context)!.s59),
                 onPressed: onAdd,
               ),
             ],
@@ -60,9 +61,9 @@ class TimelineView extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE8A838),
-          child: const Icon(Icons.event, color: Colors.white, size: 18),
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFFE8A838),
+          child: Icon(Icons.event, color: Colors.white, size: 18),
         ),
         title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Column(

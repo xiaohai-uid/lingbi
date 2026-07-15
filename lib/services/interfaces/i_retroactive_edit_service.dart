@@ -18,15 +18,15 @@ const List<String> toneOptions = [
 
 /// 编辑结果
 class EditResult {
-  final String newText;
-  final String mode;
-  final bool hasSnapshot;
 
   const EditResult({
     required this.newText,
     required this.mode,
     this.hasSnapshot = false,
   });
+  final String newText;
+  final String mode;
+  final bool hasSnapshot;
 }
 
 abstract class IRetroactiveEditService {

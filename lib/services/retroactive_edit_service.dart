@@ -3,17 +3,12 @@
 /// 对编辑器选中文本执行 AI 改写/扩写/润色等操作，并管理版本快照。
 library;
 
-import 'dart:convert';
 import '../services/interfaces/i_retroactive_edit_service.dart';
 import '../services/interfaces/i_ai_service.dart';
 import '../services/generation/text_refinement.dart';
 
 /// 编辑历史条目
 class _EditHistoryEntry {
-  final String documentId;
-  final String contentBefore;
-  final String contentAfter;
-  final DateTime timestamp;
 
   const _EditHistoryEntry({
     required this.documentId,
@@ -21,6 +16,10 @@ class _EditHistoryEntry {
     required this.contentAfter,
     required this.timestamp,
   });
+  final String documentId;
+  final String contentBefore;
+  final String contentAfter;
+  final DateTime timestamp;
 }
 
 class RetroactiveEditService implements IRetroactiveEditService {
@@ -55,12 +54,11 @@ class RetroactiveEditService implements IRetroactiveEditService {
     )) {
       chunks.add(chunk);
     }
-    final newText = chunks.join('');
+    final newText = chunks.join();
 
     return EditResult(
       newText: newText,
       mode: modeStr,
-      hasSnapshot: false,
     );
   }
 

@@ -1,3 +1,5 @@
+> ⚠️ **DEPRECATED**: This SPEC describes the v3.0 architecture (Flutter monolith). The current codebase has evolved to v4.0 with Go+Rust microservices. See [ARCHITECTURE.md](ARCHITECTURE.md) and [docs/](docs/) for current documentation.
+
 # 灵笔 P0 — 开发规格说明
 
 > 生成于 Superpowers 工作流 | 基于 README.md + architecture.md + roadmap.md

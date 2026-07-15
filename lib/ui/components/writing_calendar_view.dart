@@ -41,7 +41,7 @@ class WritingCalendarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstDay = DateTime(_year, _month, 1);
+    final firstDay = DateTime(_year, _month);
     final lastDay = DateTime(_year, _month + 1, 0);
     final firstWeekday = firstDay.weekday % 7; // Sunday = 0
     final daysInMonth = lastDay.day;
@@ -52,7 +52,7 @@ class WritingCalendarView extends StatelessWidget {
       children: [
         // 月份标题
         Text(
-          '${_year}年${_month}月',
+          '$_year年$_month月',
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 4),

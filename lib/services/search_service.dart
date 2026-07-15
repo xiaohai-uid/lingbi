@@ -5,10 +5,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class SearchResult {
-  final String title;
-  final String url;
-  final String snippet;
-  final String content;
 
   const SearchResult({
     required this.title,
@@ -23,18 +19,22 @@ class SearchResult {
     snippet: json['snippet'] as String? ?? '',
     content: json['content'] as String? ?? '',
   );
+  final String title;
+  final String url;
+  final String snippet;
+  final String content;
 }
 
 class SearchResponse {
-  final String query;
-  final List<SearchResult> results;
-  final String summary;
 
   const SearchResponse({
     required this.query,
     this.results = const [],
     this.summary = '',
   });
+  final String query;
+  final List<SearchResult> results;
+  final String summary;
 }
 
 class SearchService {

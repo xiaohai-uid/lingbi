@@ -13,7 +13,7 @@ services:
     environment:
       POSTGRES_DB: lingbi
       POSTGRES_USER: lingbi
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-lingbi_dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./docker/init-pg.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -61,7 +61,7 @@ services:
     volumes:
       - ./docker/litellm_config.yaml:/app/config.yaml:ro
     environment:
-      - LITELLM_MASTER_KEY=${LITELLM_KEY:-sk-lingbi-master}
+      - LITELLM_MASTER_KEY=${LITELLM_KEY}
       - DATABASE_URL=sqlite:///app/data/litellm.db
     networks:
       - lingbi_network
@@ -81,7 +81,7 @@ services:
     environment:
       - PORT=8080
       - REDIS_URL=redis:6379
-      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - lingbi_network
     depends_on:
@@ -101,7 +101,7 @@ services:
       - "8082:8082"
     environment:
       - PORT=8082
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     networks:
       - lingbi_network
     depends_on:
@@ -121,7 +121,7 @@ services:
       - "8083:8083"
     environment:
       - PORT=8083
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     volumes:
       - doc_data:/app/documents
     networks:
@@ -181,7 +181,7 @@ services:
       - "8090:8090"
     environment:
       - PORT=8090
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     volumes:
       - doc_data:/app/documents
     networks:
@@ -198,7 +198,7 @@ services:
       - "8086:8086"
     environment:
       - PORT=8086
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     networks:
       - lingbi_network
     depends_on:
@@ -213,7 +213,7 @@ services:
       - "8094:8094"
     environment:
       - PORT=8094
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     networks:
       - lingbi_network
     depends_on:
@@ -228,7 +228,7 @@ services:
       - "8095:8095"
     environment:
       - PORT=8095
-      - DB_URL=postgres://lingbi:${DB_PASSWORD:-lingbi_dev}@postgres:5432/lingbi?sslmode=disable
+      - DB_URL=postgres://lingbi:${DB_PASSWORD}@postgres:5432/lingbi?sslmode=disable
     networks:
       - lingbi_network
     depends_on:

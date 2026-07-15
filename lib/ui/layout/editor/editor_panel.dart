@@ -58,11 +58,11 @@ class _EditorPanelState extends State<EditorPanel> {
   bool _contentLoaded = false;
   DetectionResult? _detectionResult;
   bool _showEditPopup = false;
-  String _selectedText = "";
+  String _selectedText = '';
   int _selectionStart = 0;
   int _selectionEnd = 0;
   bool _canUndo = false;
-  String _lastContentBeforeEdit = "";
+  String _lastContentBeforeEdit = '';
 
   bool get _identityEnabled =>
       widget.identityDetector != null && widget.sceneId != null;

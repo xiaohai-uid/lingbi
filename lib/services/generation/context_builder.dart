@@ -8,15 +8,15 @@ import '../../data/database/world_database.dart';
 
 /// 上下文构建结果
 class BuildContextResult {
-  final String text;
-  final int summaryCount;
-  final int totalWords;
 
   const BuildContextResult({
     required this.text,
     required this.summaryCount,
     required this.totalWords,
   });
+  final String text;
+  final int summaryCount;
+  final int totalWords;
 }
 
 /// 记忆上下文构建器

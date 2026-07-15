@@ -10,12 +10,6 @@ enum SummaryType { scene, chapter, volume }
 
 /// 摘要元数据（用于列表展示）
 class SummaryMeta {
-  final String id;
-  final SummaryType type;
-  final String parentId; // sceneId / chapterId / volumeId
-  final String summary;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const SummaryMeta({
     required this.id,
@@ -25,26 +19,27 @@ class SummaryMeta {
     required this.createdAt,
     required this.updatedAt,
   });
+  final String id;
+  final SummaryType type;
+  final String parentId; // sceneId / chapterId / volumeId
+  final String summary;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 }
 
 /// 记忆上下文预览（用于 UI 展示）
 class MemoryContextPreview {
-  final List<ContextEntry> entries;
-  final String assembledText;
 
   const MemoryContextPreview({
     required this.entries,
     required this.assembledText,
   });
+  final List<ContextEntry> entries;
+  final String assembledText;
 }
 
 /// 上下文条目
 class ContextEntry {
-  final String id;
-  final SummaryType type;
-  final String label; // 如 "第5章摘要"、"场景12摘要"
-  final String summary;
-  final bool autoInjected;
 
   const ContextEntry({
     required this.id,
@@ -53,6 +48,11 @@ class ContextEntry {
     required this.summary,
     required this.autoInjected,
   });
+  final String id;
+  final SummaryType type;
+  final String label; // 如 "第5章摘要"、"场景12摘要"
+  final String summary;
+  final bool autoInjected;
 }
 
 /// 写作记忆服务接口

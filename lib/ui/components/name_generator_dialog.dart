@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/generation/name_generator.dart';
 
 /// 显示 AI 取名对话框

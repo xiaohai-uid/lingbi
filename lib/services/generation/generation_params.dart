@@ -2,10 +2,6 @@
 library;
 
 class GenerationParams {
-  final double temperature;
-  final int maxTokens;
-  final double topP;
-  final double repetitionPenalty;
 
   const GenerationParams({
     this.temperature = 0.8,
@@ -13,6 +9,10 @@ class GenerationParams {
     this.topP = 0.9,
     this.repetitionPenalty = 1.1,
   });
+  final double temperature;
+  final int maxTokens;
+  final double topP;
+  final double repetitionPenalty;
 
   GenerationParams copyWith({
     double? temperature,

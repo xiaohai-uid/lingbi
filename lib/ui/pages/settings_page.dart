@@ -1,4 +1,5 @@
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:lingbi/services/settings_service.dart';
 import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/services/provider_registry.dart';
@@ -58,17 +59,17 @@ class _SettingsPageState extends State<SettingsPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('确认删除'),
+        title: Text(AppLocalizations.of(context)!.s83),
         content: Text('确定要删除世界「${world.name}」吗？此操作不可恢复。'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消')),
+              child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style:
                   FilledButton.styleFrom(backgroundColor: Colors.red.shade400),
-              child: const Text('删除')),
+              child: Text(AppLocalizations.of(context)!.s25)),
         ],
       ),
     );
@@ -99,7 +100,7 @@ class _SettingsPageState extends State<SettingsPage> {
               actions: [
                 TextButton(
                     onPressed: () => Navigator.pop(ctx),
-                    child: const Text('关闭'))
+                    child: Text(AppLocalizations.of(context)!.s22))
               ],
             ));
   }
@@ -109,7 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: WgTokens.bgFor(context),
       appBar: AppBar(
-        title: const Text('设置'),
+        title: Text(AppLocalizations.of(context)!.s99),
         backgroundColor: WgTokens.surfaceFor(context),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -355,7 +356,7 @@ trailing: Row(
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.favorite, size: 16),
-                    label: const Text('升级会员（爱发电）'),
+                    label: Text(AppLocalizations.of(context)!.s30),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xFFE8A838),
                       side: const BorderSide(color: Color(0xFFE8A838)),
@@ -375,16 +376,16 @@ trailing: Row(
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('激活会员'),
+        title: Text(AppLocalizations.of(context)!.s76),
         content: const Text('请在爱发电完成捐赠后，将获得的 tokens.json 放入程序目录，'
             '然后点击下方「验证并激活」。'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消')),
+              child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('验证并激活'),
+            child: Text(AppLocalizations.of(context)!.s112),
           ),
         ],
       ),
@@ -435,7 +436,7 @@ trailing: Row(
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: WgTokens.accent),
             onPressed: () async {
@@ -450,7 +451,7 @@ trailing: Row(
               setState(() {});
               _showModelSelector(config);
             },
-            child: const Text('确认添加'),
+            child: Text(AppLocalizations.of(context)!.s85),
           ),
         ],
       ),
@@ -515,7 +516,7 @@ trailing: Row(
                 title: title,
                 content: content,
                 actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('跳过')),
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s101)),
                 ],
               );
             },
@@ -556,7 +557,6 @@ trailing: Row(
                     Expanded(
                       child: Slider(
                         value: temp,
-                        min: 0,
                         max: 2,
                         divisions: 20,
                         activeColor: WgTokens.accent,
@@ -595,8 +595,6 @@ trailing: Row(
                     Expanded(
                       child: Slider(
                         value: topP,
-                        min: 0,
-                        max: 1,
                         divisions: 20,
                         activeColor: WgTokens.accent,
                         onChanged: (v) => setDialogState(() => topP = v),
@@ -615,7 +613,7 @@ trailing: Row(
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('取消')),
+                child: Text(AppLocalizations.of(context)!.s33)),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: WgTokens.accent),
               onPressed: () {
@@ -626,7 +624,7 @@ trailing: Row(
                 setState(() {});
                 Navigator.pop(ctx);
               },
-              child: const Text('保存'),
+              child: Text(AppLocalizations.of(context)!.s17),
             ),
           ],
         );

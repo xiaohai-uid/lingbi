@@ -51,8 +51,8 @@ void main() {
         maxTokens: 4096,
         temperature: 0.8,
       ));
-      expect(result, contains('Free provider simulation'));
-      expect(result.length, greaterThan(20));
+      expect(result, contains('配置 API Key'));
+      expect(result, isNotEmpty);
     }, timeout: const Timeout(Duration(seconds: 10)));
   });
 }

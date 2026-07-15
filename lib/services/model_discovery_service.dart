@@ -5,13 +5,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ModelInfo {
-  final String id;
-  final String name;
-  final String provider;
-  final String type;
-  final bool isFree;
-  final String description;
-  final String endpoint;
 
   const ModelInfo({
     required this.id,
@@ -32,13 +25,16 @@ class ModelInfo {
     description: json['description'] as String? ?? '',
     endpoint: json['endpoint'] as String? ?? '',
   );
+  final String id;
+  final String name;
+  final String provider;
+  final String type;
+  final bool isFree;
+  final String description;
+  final String endpoint;
 }
 
 class TestResult {
-  final String modelId;
-  final bool success;
-  final int latencyMs;
-  final String? error;
 
   const TestResult({
     required this.modelId,
@@ -53,6 +49,10 @@ class TestResult {
     latencyMs: json['latency_ms'] as int? ?? 0,
     error: json['error'] as String?,
   );
+  final String modelId;
+  final bool success;
+  final int latencyMs;
+  final String? error;
 }
 
 class ModelDiscoveryService {

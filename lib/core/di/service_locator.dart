@@ -4,6 +4,7 @@ import '../../services/export_service.dart';
 import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/search_service.dart';
 import '../../services/storage_service.dart';
 import '../../services/version_history_service.dart';
 import '../../services/world_service.dart';
@@ -68,6 +69,7 @@ class ServiceLocator {
   late final SettingsService settingsService;
   late final ExportService exportService;
   late final VersionHistoryService versionHistoryService;
+  late final SearchService searchService;
   late final ProjectTabController projectTabController;
 
   /// 初始化所有服务（按依赖拓扑升序）
@@ -134,6 +136,7 @@ class ServiceLocator {
     // 层级 6: 无依赖工具服务
     locator.exportService = ExportService();
     locator.versionHistoryService = VersionHistoryService();
+    locator.searchService = SearchService();
     locator.projectTabController = ProjectTabController();
 
     // 初始化需要异步初始化的服务

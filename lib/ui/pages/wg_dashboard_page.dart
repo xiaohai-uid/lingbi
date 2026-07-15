@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
@@ -111,7 +112,7 @@ class _WgDashboardPageState extends State<WgDashboardPage> {
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('新建项目'),
+        title: Text(AppLocalizations.of(context)!.s64),
         content: TextField(
             controller: ctrl,
             decoration:
@@ -119,12 +120,12 @@ class _WgDashboardPageState extends State<WgDashboardPage> {
             autofocus: true),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
           FilledButton(
               onPressed: () {
                 if (ctrl.text.isNotEmpty) Navigator.pop(ctx, ctrl.text);
               },
-              child: const Text('创建')),
+              child: Text(AppLocalizations.of(context)!.s24)),
         ],
       ),
     );

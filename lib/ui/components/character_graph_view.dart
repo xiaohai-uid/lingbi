@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 
 import 'package:lingbi/core/models/character_edge.dart';
 
@@ -54,7 +55,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
     final n = widget.characters.length;
     if (n == 0) return;
     const radius = 160.0;
-    final center = const Offset(220, 200);
+    const center = Offset(220, 200);
     for (var i = 0; i < n; i++) {
       final c = widget.characters[i];
       final dx = radius * (n == 1 ? 0 : 0.85 * (i.isEven ? 1 : -1));
@@ -74,7 +75,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (widget.characters.isEmpty) {
-      return const Center(child: Text('暂无角色，请先在「角色」标签页创建'));
+      return Center(child: Text(AppLocalizations.of(context)!.s67));
     }
     return Column(
       children: [
@@ -83,14 +84,14 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
           child: Row(
             children: [
               const Icon(Icons.hub, size: 18),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text('角色关系图谱（${widget.characters.length} 角色 / ${widget.edges.length} 关系）',
                   style: theme.textTheme.labelMedium),
               const Spacer(),
               if (widget.onAddEdge != null)
                 TextButton.icon(
                   icon: const Icon(Icons.add_link, size: 16),
-                  label: const Text('添加关系'),
+                  label: Text(AppLocalizations.of(context)!.s73),
                   onPressed: _showAddEdgeDialog,
                 ),
             ],
@@ -100,7 +101,6 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
           child: InteractiveViewer(
             boundaryMargin: const EdgeInsets.all(200),
             minScale: 0.5,
-            maxScale: 2.5,
             child: CustomPaint(
               size: const Size(440, 400),
               painter: _GraphPainter(
@@ -153,20 +153,20 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('关系详情'),
+        title: Text(AppLocalizations.of(context)!.s21),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${nameOf(edge.sourceId)} → ${nameOf(edge.targetId)}'),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text('类型：${edge.type.displayName}'),
             Text('强度：${edge.strength} / 10'),
             if (edge.description.isNotEmpty) Text('描述：${edge.description}'),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('关闭')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s22)),
           if (widget.onDeleteEdge != null)
             TextButton(
               onPressed: () {
@@ -189,7 +189,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => AlertDialog(
-          title: const Text('添加角色关系'),
+          title: Text(AppLocalizations.of(context)!.s74),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -201,7 +201,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
                 onChanged: (v) => setSt(() => source = v),
                 decoration: const InputDecoration(labelText: '源角色'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               DropdownButtonFormField<CharacterLike>(
                 value: target,
                 items: widget.characters
@@ -210,7 +210,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
                 onChanged: (v) => setSt(() => target = v),
                 decoration: const InputDecoration(labelText: '目标角色'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               DropdownButtonFormField<RelationshipType>(
                 value: type,
                 items: RelationshipType.values
@@ -219,10 +219,10 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
                 onChanged: (v) => setSt(() => type = v ?? RelationshipType.neutral),
                 decoration: const InputDecoration(labelText: '关系类型'),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Row(
                 children: [
-                  const Text('强度'),
+                  Text(AppLocalizations.of(context)!.s46),
                   Expanded(
                     child: Slider(
                       value: strength.toDouble(),
@@ -239,7 +239,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
             FilledButton(
               onPressed: () {
                 if (source != null && target != null && source!.id != target!.id) {
@@ -247,7 +247,7 @@ class _CharacterGraphViewState extends State<CharacterGraphView> {
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
               },
-              child: const Text('添加'),
+              child: Text(AppLocalizations.of(context)!.s72),
             ),
           ],
         ),

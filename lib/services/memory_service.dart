@@ -260,12 +260,12 @@ class MemoryService implements IMemoryService {
     final prompt = sceneSummaryPrompt(text);
     final chunks = <String>[];
     await for (final chunk in _aiService.chat(
-      message: '请分析并输出结构化JSON摘要: ' + text,
+      message: '请分析并输出结构化JSON摘要: $text',
       systemPrompt: prompt,
     )) {
       chunks.add(chunk);
     }
-    final response = chunks.join('');
+    final response = chunks.join();
     final json = SchemaProcessor().extractJsonBlock(response);
     if (json == null) {
       throw StateError('无法从模型响应中解析 JSON 摘要');
@@ -321,7 +321,6 @@ class MemoryService implements IMemoryService {
       signatureMoments: jsonEncode(json['signatureMoments'] ?? []),
       foreshadowingIds: jsonEncode(json['foreshadowingIds'] ?? []),
       wordCount: text.length,
-      sceneOrder: 0,
     );
 
     // 推送 embedding 到 Qdrant
@@ -381,7 +380,7 @@ class MemoryService implements IMemoryService {
     )) {
       chunks.add(chunk);
     }
-    final response = chunks.join('');
+    final response = chunks.join();
     final json = SchemaProcessor().extractJsonBlock(response);
     if (json == null) {
       throw StateError('无法从模型响应中解析 JSON 摘要');
@@ -462,7 +461,7 @@ class MemoryService implements IMemoryService {
     )) {
       chunks.add(chunk);
     }
-    final response = chunks.join('');
+    final response = chunks.join();
     final json = SchemaProcessor().extractJsonBlock(response);
     if (json == null) {
       throw StateError('无法从模型响应中解析 JSON 摘要');
@@ -497,12 +496,12 @@ class MemoryService implements IMemoryService {
   }) async {
     final db = await _db(worldId);
 
-    var scenesQuery = (db.select(db.sceneSummaries)
+    final scenesQuery = (db.select(db.sceneSummaries)
       ..where((t) => t.chapterId.equals(currentChapterId))
       ..orderBy([(t) => OrderingTerm(expression: t.sceneOrder)]));
     final sceneSummaries = (await scenesQuery.get()).where((s) => !excludeIds.contains(s.id)).toList();
 
-    var chaptersQuery = db.select(db.chapterSummaries);
+    final chaptersQuery = db.select(db.chapterSummaries);
     final allChapterSummaries = (await chaptersQuery.get()).where((c) => !excludeIds.contains(c.id)).toList();
 
     // 仅当请求卷摘要时，按 currentChapterId -> volumeId 查出卷摘要

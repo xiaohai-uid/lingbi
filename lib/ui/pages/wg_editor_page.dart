@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/settings_service.dart';
 import 'package:lingbi/services/document_service.dart';
@@ -6,6 +7,11 @@ import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/core/models/world.dart';
 import 'package:lingbi/data/database/world_database.dart' as db_model;
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
+import '../components/export_dialog.dart';
+import '../components/version_history_dialog.dart';
+import '../components/search_dialog.dart';
+import '../components/import_dialog.dart';
+import 'story_canvas_page.dart';
 import 'package:lingbi/data/database/world_database.dart' as db;
 import 'package:lingbi/services/identity/identity_detector.dart';
 import 'package:lingbi/services/butterfly_analyzer.dart';
@@ -91,6 +97,53 @@ class _WgEditorPageState extends State<WgEditorPage> {
   void _scheduleQuality() {
     _qualityTimer?.cancel();
     _qualityTimer = Timer(const Duration(milliseconds: 800), _runQuality);
+  }
+
+  Future<void> _openExportDialog() async {
+    if (_currentDocument == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => ExportDialog(
+        title: _chapters.isNotEmpty ? _chapters[_currentChapter.clamp(0, _chapters.length - 1)].title : '文档',
+        content: _editorContent ?? '',
+      ),
+    );
+  }
+
+  void _openVersionHistory() {
+    if (_currentDocument == null) return;
+    showDialog(
+      context: context,
+      builder: (_) => VersionHistoryDialog(
+        projectDir: widget.world.id,
+        docId: _currentDocument?.id ?? '',
+      ),
+    );
+  }
+
+  void _openSearchDialog() {
+    showDialog(context: context, builder: (_) => const SearchDialog());
+  }
+
+  void _openStoryCanvas() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StoryCanvasPage(projectId: widget.world.id),
+      ),
+    );
+  }
+
+  Future<void> _openImportDialog() async {
+    final result = await showDialog<List<ImportFileInfo>>(
+      context: context,
+      builder: (_) => const ImportDialog(),
+    );
+    if (result != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('成功导入 ' + result.length.toString() + ' 个文件')),
+      );
+    }
   }
 
   Future<void> _openButterflyDialog() async {
@@ -419,9 +472,18 @@ class _WgEditorPageState extends State<WgEditorPage> {
           ),
         ),
         const SizedBox(width: 8),
+        _toolBtn('出', onTap: _openExportDialog),
+        const SizedBox(width: 4),
+        _toolBtn('史', onTap: _openVersionHistory),
+        const SizedBox(width: 4),
+        _toolBtn('搜', onTap: _openSearchDialog),
+        const SizedBox(width: 4),
+        _toolBtn('布', onTap: _openStoryCanvas),
+        const SizedBox(width: 4),
+        _toolBtn('入', onTap: _openImportDialog),
+        const SizedBox(width: 8),
         Tooltip(
-          message: '蝴蝶效应分析',
-          child: InkWell(
+          message: '蝴蝶效应分析',child: InkWell(
             onTap: _openButterflyDialog,
             borderRadius: BorderRadius.circular(8),
             child: Container(
@@ -1071,7 +1133,7 @@ class _WgEditorPageState extends State<WgEditorPage> {
       showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-                title: const Text('AI 生成结果'),
+                title: Text(AppLocalizations.of(context)!.s2),
                 content: SizedBox(
                     width: 500,
                     child: SingleChildScrollView(
@@ -1081,7 +1143,7 @@ class _WgEditorPageState extends State<WgEditorPage> {
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('关闭'))
+                      child: Text(AppLocalizations.of(context)!.s22))
                 ],
               ));
     }).catchError((e) {

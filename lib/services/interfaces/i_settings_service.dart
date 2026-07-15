@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 /// 设置服务接口
 abstract class ISettingsService implements ChangeNotifier {
   ThemeMode get themeMode;
+  Locale get locale;
+  String get localeName;
+  void setLocale(String localeCode);
   String get selectedProvider;
   bool get isInitialized;
 

@@ -8,16 +8,6 @@ import 'package:http/http.dart' as http;
 
 /// Skill 数据模型
 class Skill {
-  final String id;
-  final String name;
-  final String version;
-  final String type;
-  final String author;
-  final String description;
-  final String icon;
-  final String promptTemplate;
-  final Map<String, String> variables;
-  final String category;
 
   const Skill({
     required this.id,
@@ -46,6 +36,16 @@ class Skill {
     ) ?? {},
     category: json['category'] as String? ?? '',
   );
+  final String id;
+  final String name;
+  final String version;
+  final String type;
+  final String author;
+  final String description;
+  final String icon;
+  final String promptTemplate;
+  final Map<String, String> variables;
+  final String category;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -63,23 +63,23 @@ class Skill {
 
 /// Skill 执行结果
 class SkillExecuteResult {
-  final String result;
-  final String skillId;
-  final int tokensUsed;
 
   const SkillExecuteResult({
     required this.result,
     required this.skillId,
     this.tokensUsed = 0,
   });
+  final String result;
+  final String skillId;
+  final int tokensUsed;
 }
 
 /// 风格蒸馏结果
 class DistillResult {
-  final Skill skill;
-  final String skillJson;
 
   const DistillResult({required this.skill, required this.skillJson});
+  final Skill skill;
+  final String skillJson;
 }
 
 /// Skill 服务客户端

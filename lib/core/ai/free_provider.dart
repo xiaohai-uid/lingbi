@@ -2,9 +2,10 @@ import 'dart:math';
 import 'base_client.dart';
 import 'llm_models.dart';
 
-/// Free Provider - 免费 AI 服务（模拟实现）
+/// Free Provider — 演示模式
 ///
-/// 不消耗 API Key，返回模拟响应。用于测试和演示。
+/// 不消耗 API Key，但会提示用户配置真实 API Key。
+/// 仅用于首次启动时的界面预览，不会生成真实 AI 内容。
 class FreeProvider extends BaseLLMClient {
   FreeProvider({String? modelOverride, String name = 'free'})
       : _modelOverride = modelOverride,
@@ -19,33 +20,23 @@ class FreeProvider extends BaseLLMClient {
 
   @override
   Future<String> generateText(LLMRequest request) async {
-    final lastMessage = request.messages.lastWhere(
-      (m) => m.role == 'user',
-      orElse: () => request.messages.first,
-    );
-    return 'Free provider simulation: ${lastMessage.content}';
+    return '请在设置中配置 API Key 后使用（支持 DeepSeek / OpenAI / Claude）。\n'
+        '当前为免费演示模式，仅作界面预览，不会生成真实 AI 内容。';
   }
 
   @override
   Stream<String> streamText(LLMRequest request) async* {
-    final lastMessage = request.messages.lastWhere(
-      (m) => m.role == 'user',
-      orElse: () => request.messages.first,
-    );
-    yield 'Free provider simulation: ';
-    yield lastMessage.content;
+    yield '请在设置中配置 API Key 后使用（支持 DeepSeek / OpenAI / Claude）。\n'
+        '当前为免费演示模式，仅作界面预览，不会生成真实 AI 内容。';
   }
-
   @override
   Future<T> generateStructured<T>(
     LLMRequest request,
     T Function(Map<String, dynamic> json) fromJson,
   ) async {
-    final result = <String, dynamic>{
-      'content': 'Free provider simulation',
-      'model': _modelOverride ?? 'free',
-    };
-    return fromJson(result);
+    throw UnsupportedError(
+      '演示模式不支持结构化生成。请在设置中配置真实的 API Key（DeepSeek / OpenAI / Claude）。',
+    );
   }
 
   /// 模拟嵌入向量（向后兼容）

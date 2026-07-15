@@ -257,7 +257,8 @@ async fn embed(
     State(state): State<AppState>,
     Json(req): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let texts = req["texts"].as_array().unwrap_or(&vec![]);
+    let empty_vec: Vec<serde_json::Value> = vec![];
+    let texts = req["texts"].as_array().unwrap_or(&empty_vec);
     let payload = serde_json::json!({
         "model": "openai/text-embedding-3-small",
         "input": texts,

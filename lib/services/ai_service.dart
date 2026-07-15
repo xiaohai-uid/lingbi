@@ -1,5 +1,9 @@
+import 'dart:io' show Platform;
+
 import 'package:lingbi/services/interfaces/i_ai_service.dart';
+import '../core/di/service_locator.dart';
 import '../core/ai/base_client.dart';
+
 import '../core/ai/llm_factory.dart';
 import '../core/ai/llm_models.dart';
 import '../core/ai/deepseek_provider.dart';
@@ -20,8 +24,18 @@ class AIService implements IAIService {
   String _projectContext = '';
   BaseLLMClient? _cachedProvider;
   String? _lastActiveProviderId;
-  final Map<String, String> _apiKeys = {};
-  final Map<String, String> _apiUrls = {};
+  /// 从系统环境变量读取 API Key
+  static String? _env(String name) => Platform.environment[name];
+
+  final Map<String, String> _apiKeys = {
+    if (_env('DEEPSEEK_API_KEY') != null) 'deepseek': _env('DEEPSEEK_API_KEY')!,
+    if (_env('OPENAI_API_KEY') != null) 'openai': _env('OPENAI_API_KEY')!,
+    if (_env('CLAUDE_API_KEY') != null) 'claude': _env('CLAUDE_API_KEY')!,
+    if (_env('SENSENOVA_API_KEY') != null) 'openai': _env('SENSENOVA_API_KEY')!,
+  };
+  final Map<String, String> _apiUrls = {
+    if (_env('SENSENOVA_API_KEY') != null) 'openai': 'https://token.sensenova.cn/v1',
+  };
 
   ProviderConfig? get _activeConfig {
     final active = _providerRegistry?.getActiveProvider();
@@ -209,6 +223,10 @@ class AIService implements IAIService {
     }
     final params = _activeConfig?.defaultParams;
     final messages = <LLMMessage>[];
+    String? lang; try { lang = ServiceLocator.instance.settingsService.localeName; } catch (_) {}
+    if (lang == 'en') {
+      messages.add(LLMMessage(role: 'system', content: 'Please respond in English.'));
+    }
     if (systemPrompt != null) {
       messages.add(LLMMessage(role: 'system', content: systemPrompt));
     }

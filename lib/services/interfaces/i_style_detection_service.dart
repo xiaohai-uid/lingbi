@@ -5,10 +5,6 @@ import '../../data/database/world_database.dart';
 
 /// 风格漂移检测报告
 class StyleDriftReport {
-  final double driftScore; // 0.0=完全一致, 1.0=完全不同
-  final List<String> driftedDimensions;
-  final String details;
-  final String suggestions;
 
   const StyleDriftReport({
     required this.driftScore,
@@ -16,6 +12,10 @@ class StyleDriftReport {
     this.details = '',
     this.suggestions = '',
   });
+  final double driftScore; // 0.0=完全一致, 1.0=完全不同
+  final List<String> driftedDimensions;
+  final String details;
+  final String suggestions;
 }
 
 abstract class IStyleDetectionService {

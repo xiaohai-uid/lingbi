@@ -23,7 +23,7 @@ import (
 func main() {
 	port := getEnv("PORT", "8080")
 	redisURL := getEnv("REDIS_URL", "localhost:6379")
-	jwtSecret := getEnv("JWT_SECRET", "dev-secret")
+	jwtSecret := getEnvOrFail("JWT_SECRET")  // Must be set in production
 
 	// Logger
 	logger, _ := zap.NewProduction()
@@ -113,6 +113,14 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatal("server shutdown:", err)
 	}
+}
+
+func getEnvOrFail(key string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		log.Fatalf("FATAL: environment variable %s is required", key)
+	}
+	return val
 }
 
 func getEnv(key, fallback string) string {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 
 import 'package:lingbi/services/identity/identity_detector.dart';
 import 'package:lingbi/services/identity/identity_rules.dart';
@@ -95,11 +96,11 @@ class _IdentityConfirmDialogState extends State<IdentityConfirmDialog> {
                       children: [
                         TextButton(
                           onPressed: () => _resolve(c, true),
-                          child: const Text('确认'),
+                          child: Text(AppLocalizations.of(context)!.s82),
                         ),
                         TextButton(
                           onPressed: () => _resolve(c, false),
-                          child: const Text('忽略'),
+                          child: Text(AppLocalizations.of(context)!.s48),
                         ),
                       ],
                     ),
@@ -113,11 +114,11 @@ class _IdentityConfirmDialogState extends State<IdentityConfirmDialog> {
             widget.onIgnoreAll();
             Navigator.of(context).pop();
           },
-          child: const Text('全部忽略'),
+          child: Text(AppLocalizations.of(context)!.s19),
         ),
         FilledButton(
           onPressed: _allResolved ? () => Navigator.of(context).pop() : null,
-          child: const Text('完成'),
+          child: Text(AppLocalizations.of(context)!.s40),
         ),
       ],
     );

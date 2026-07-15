@@ -12,6 +12,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   final AIService _aiService;
   final ProviderRegistry providerRegistry = ProviderRegistry();
   ThemeMode _themeMode = ThemeMode.system;
+  Locale _locale = const Locale("zh");
+  String _localeName = "zh";
   String _selectedProvider = 'free';
   final Map<String, String> _apiKeys = {};
   final Map<String, String> _apiUrls = {};
@@ -20,6 +22,10 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
 
   @override
   ThemeMode get themeMode => _themeMode;
+  @override
+  Locale get locale => _locale;
+  @override
+  String get localeName => _localeName;
   @override
   String get selectedProvider => _selectedProvider;
   @override
@@ -47,6 +53,14 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   }
 
   /// 设置主题模式
+  @override
+  void setLocale(String localeCode) {
+    _localeName = localeCode;
+    _locale = Locale(localeCode);
+    notifyListeners();
+    _save();
+  }
+
   @override
   void setThemeMode(ThemeMode mode) {
     _themeMode = mode;
@@ -130,6 +144,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       final file = File(_settingsPath!);
       await file.create(recursive: true);
       await file.writeAsString(jsonEncode({
+        "locale": _localeName,
         'themeMode': _themeMode.name,
         'selectedProvider': _selectedProvider,
         'apiKeys': _apiKeys,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 
 import 'package:lingbi/services/butterfly_analyzer.dart';
 
@@ -73,9 +74,9 @@ class _ButterflyAnalysisDialogState extends State<ButterflyAnalysisDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.flutter_dash, size: 20),
-          const SizedBox(width: 8),
-          const Text('蝴蝶效应分析'),
+          Icon(Icons.flutter_dash, size: 20),
+          SizedBox(width: 8),
+          Text(AppLocalizations.of(context)!.s94),
         ],
       ),
       content: SizedBox(
@@ -91,28 +92,28 @@ class _ButterflyAnalysisDialogState extends State<ButterflyAnalysisDialog> {
       return [
         TextButton(
           onPressed: () => setState(() => _result = null),
-          child: const Text('重新分析'),
+          child: Text(AppLocalizations.of(context)!.s108),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_result),
-          child: const Text('完成'),
+          child: Text(AppLocalizations.of(context)!.s40),
         ),
       ];
     }
     return [
       TextButton(
         onPressed: () => Navigator.of(context).pop(),
-        child: const Text('取消'),
+        child: Text(AppLocalizations.of(context)!.s33),
       ),
       FilledButton(
         onPressed: _loading ? null : _runAnalysis,
         child: _loading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 16,
                 height: 16,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : const Text('分析'),
+            : Text(AppLocalizations.of(context)!.s23),
       ),
     ];
   }
@@ -136,7 +137,7 @@ class _ButterflyAnalysisDialogState extends State<ButterflyAnalysisDialog> {
           onChanged: (v) => setState(() => _selectedEventId = v),
           decoration: const InputDecoration(labelText: '选择时间线事件'),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         TextField(
           controller: _changeCtrl,
           decoration: const InputDecoration(
@@ -146,7 +147,7 @@ class _ButterflyAnalysisDialogState extends State<ButterflyAnalysisDialog> {
           ),
           maxLines: 4,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         if (_error != null)
           Text(_error!,
               style: const TextStyle(color: Colors.red, fontSize: 12)),
@@ -174,7 +175,7 @@ class _ButterflyAnalysisDialogState extends State<ButterflyAnalysisDialog> {
           const Text('角色影响',
               style: TextStyle(fontWeight: FontWeight.w600)),
           if (r.impacts.isEmpty)
-            const Text('（无显著角色影响）')
+            Text(AppLocalizations.of(context)!.s113)
           else
             ...r.impacts.map((impact) => _buildImpactTile(impact)),
           if (_error != null)

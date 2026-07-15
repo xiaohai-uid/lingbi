@@ -11,6 +11,7 @@ use std::convert::Infallible;
 use tera::Tera;
 use tracing::info;
 
+#[derive(Clone)]
 struct AppState {
     http_client: reqwest::Client,
     ai_provider_url: String,
@@ -27,7 +28,7 @@ struct Layer1Request {
     num_characters: Option<u32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct SynopsisAndCharacters {
     synopsis: String,
     characters: Vec<CharacterBrief>,
@@ -48,7 +49,7 @@ struct Layer2Request {
     chapter_count: Option<u32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct ChapterOutline {
     chapters: Vec<ChapterSummary>,
 }
@@ -208,10 +209,10 @@ async fn generate_layer1(
         })?;
 
     let result = call_llm_structured::<SynopsisAndCharacters>(
-        &state.http_client,
-        &state.ai_provider_url,
-        "网文创作助手",
-        &prompt,
+        state.http_client.clone(),
+        state.ai_provider_url.clone(),
+        "网文创作助手".to_string(),
+        prompt.clone(),
     )
     .await?;
 
@@ -233,10 +234,10 @@ async fn generate_layer2(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let result = call_llm_structured::<ChapterOutline>(
-        &state.http_client,
-        &state.ai_provider_url,
-        "网文细纲创作助手",
-        &prompt,
+        state.http_client.clone(),
+        state.ai_provider_url.clone(),
+        "网文细纲创作助手".to_string(),
+        prompt.clone(),
     )
     .await?;
 
@@ -262,10 +263,10 @@ async fn stream_layer3(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let stream = stream_from_provider(
-        &state.http_client,
-        &state.ai_provider_url,
-        "网文正文创作助手",
-        &prompt,
+        state.http_client.clone(),
+        state.ai_provider_url.clone(),
+        "网文正文创作助手".to_string(),
+        prompt.clone(),
     )
     .await
     .map_err(|_| StatusCode::BAD_GATEWAY)?;
@@ -283,10 +284,10 @@ async fn continue_writing(
     );
 
     let stream = stream_from_provider(
-        &state.http_client,
-        &state.ai_provider_url,
-        "网文续写助手",
-        &prompt,
+        state.http_client.clone(),
+        state.ai_provider_url.clone(),
+        "网文续写助手".to_string(),
+        prompt.clone(),
     )
     .await
     .map_err(|_| StatusCode::BAD_GATEWAY)?;
@@ -297,10 +298,10 @@ async fn continue_writing(
 // ---- LLM 调用 ----
 
 async fn call_llm_structured<T: for<'de> Deserialize<'de>>(
-    client: &reqwest::Client,
-    provider_url: &str,
-    system: &str,
-    prompt: &str,
+    client: reqwest::Client,
+    provider_url: String,
+    system: String,
+    prompt: String,
 ) -> Result<T, StatusCode> {
     let payload = serde_json::json!({
         "provider": "openai",
@@ -336,10 +337,10 @@ async fn call_llm_structured<T: for<'de> Deserialize<'de>>(
 }
 
 async fn stream_from_provider(
-    client: &reqwest::Client,
-    provider_url: &str,
-    system: &str,
-    prompt: &str,
+    client: reqwest::Client,
+    provider_url: String,
+    system: String,
+    prompt: String,
 ) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, StatusCode> {
     let payload = serde_json::json!({
         "provider": "openai",

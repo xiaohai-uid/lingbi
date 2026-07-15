@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/generated/l10n/app_localizations.dart';
 
 import 'package:lingbi/data/database/world_database.dart';
 
@@ -48,7 +49,7 @@ class FactionView extends StatelessWidget {
               const SizedBox(height: 12),
               FilledButton.icon(
                 icon: const Icon(Icons.add),
-                label: const Text('新建势力'),
+                label: Text(AppLocalizations.of(context)!.s61),
                 onPressed: onAdd,
               ),
             ],
@@ -83,7 +84,7 @@ class FactionView extends StatelessWidget {
               padding: EdgeInsets.zero,
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            Text('实力 ${f.power}' + (f.territory.isNotEmpty ? ' · ${f.territory}' : ''),
+            Text('实力 ${f.power}${f.territory.isNotEmpty ? ' · ${f.territory}' : ''}',
                 style: const TextStyle(color: Colors.grey)),
             if (f.description.isNotEmpty)
               Text(f.description, maxLines: 2, overflow: TextOverflow.ellipsis),

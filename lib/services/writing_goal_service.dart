@@ -3,7 +3,6 @@
 /// 管理每日写作统计、目标设定、连续天数追踪。
 library;
 
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import '../core/database/database_manager.dart';
@@ -13,12 +12,6 @@ const _uuid = Uuid();
 
 /// 目标进度
 class GoalProgress {
-  final String goalId;
-  final String type;
-  final int targetWordCount;
-  final int currentWordCount;
-  final double percentage;
-  final int streak;
 
   const GoalProgress({
     required this.goalId,
@@ -28,6 +21,12 @@ class GoalProgress {
     required this.percentage,
     this.streak = 0,
   });
+  final String goalId;
+  final String type;
+  final int targetWordCount;
+  final int currentWordCount;
+  final double percentage;
+  final int streak;
 }
 
 /// 写作目标服务
@@ -152,7 +151,7 @@ class WritingGoalService {
 
     // Deactivate existing goals
     await (db.update(db.writingGoals)..where((t) => t.worldId.equals(worldId)))
-        .write(WritingGoalsCompanion(isActive: Value(false)));
+        .write(WritingGoalsCompanion(isActive: const Value(false)));
 
     // Create new goal
     await db.into(db.writingGoals).insert(WritingGoalsCompanion.insert(

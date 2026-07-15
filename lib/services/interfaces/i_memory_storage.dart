@@ -3,15 +3,15 @@ library;
 
 /// 搜索结果条目
 class StorageSearchResult {
-  final String id;
-  final double score;
-  final Map<String, dynamic> payload;
 
   const StorageSearchResult({
     required this.id,
     required this.score,
     required this.payload,
   });
+  final String id;
+  final double score;
+  final Map<String, dynamic> payload;
 }
 
 abstract class IMemoryStorage {

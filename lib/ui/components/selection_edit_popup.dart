@@ -5,22 +5,20 @@
 library;
 
 import 'package:flutter/material.dart';
-import '../../services/generation/text_refinement.dart';
 import '../../services/interfaces/i_retroactive_edit_service.dart';
 
 /// 编辑模式定义
 class _EditModeOption {
-  final String mode;
-  final String icon;
-  final String label;
-  final String? tone;
 
   const _EditModeOption({
     required this.mode,
     required this.icon,
     required this.label,
-    this.tone,
-  });
+  }) : tone = null;
+  final String mode;
+  final String icon;
+  final String label;
+  final String? tone;
 }
 
 /// 选中文本编辑浮动菜单

@@ -9,15 +9,6 @@ import 'package:uuid/uuid.dart';
 const _uuid = Uuid();
 
 class LoreEntry {
-  final String id;
-  final String worldId;
-  final String name;
-  final String type;
-  final String description;
-  final String triggerKeywords;
-  final bool enabled;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
   const LoreEntry({
     required this.id,
@@ -42,11 +33,20 @@ class LoreEntry {
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       );
+  final String id;
+  final String worldId;
+  final String name;
+  final String type;
+  final String description;
+  final String triggerKeywords;
+  final bool enabled;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 }
 
 class LoreService {
-  final DatabaseManager databaseManager;
   LoreService({required this.databaseManager});
+  final DatabaseManager databaseManager;
 
   Future<WorldDatabase> _db(String worldId) =>
       databaseManager.getDatabase(worldId);

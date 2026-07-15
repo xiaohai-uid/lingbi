@@ -5,7 +5,6 @@ import '../../core/ai/llm_models.dart';
 import '../prompt_service.dart';
 import '../memory_service.dart';
 import '../style_detection_service.dart';
-import 'package:drift/drift.dart' hide isNull;
 
 /// Layer 3 生成器 — 逐场景正文生成（流式）
 ///
@@ -41,7 +40,7 @@ class Layer3Generator {
 
     if (_memoryService != null && worldId != null && chapterId != null) {
       try {
-        memoryContext = await _memoryService!.buildMemoryContext(
+        memoryContext = await _memoryService.buildMemoryContext(
           worldId: worldId,
           currentChapterId: chapterId,
         );
