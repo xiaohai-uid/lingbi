@@ -1,1158 +1,238 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/generated/l10n/app_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+
+import 'package:lingbi/ui/theme/wg_components.dart';
+import 'package:lingbi/ui/components/wg_nav.dart';
+import 'package:lingbi/ui/components/wg_popover.dart';
+import 'package:lingbi/ui/components/wg_sidebar.dart';
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/services/settings_service.dart';
-import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/world_service.dart';
-import 'package:lingbi/core/models/world.dart';
-import 'package:lingbi/data/database/world_database.dart' as db_model;
-import 'package:lingbi/ui/layout/editor/editor_panel.dart';
-import '../components/export_dialog.dart';
-import '../components/version_history_dialog.dart';
-import '../components/search_dialog.dart';
-import '../components/import_dialog.dart';
-import 'story_canvas_page.dart';
-import 'package:lingbi/data/database/world_database.dart' as db;
-import 'package:lingbi/services/identity/identity_detector.dart';
-import 'package:lingbi/services/butterfly_analyzer.dart';
-import 'package:lingbi/services/generation/text_refinement.dart';
-import 'package:lingbi/ui/components/butterfly_analysis_dialog.dart';
-import 'dart:async';
-import 'package:lingbi/services/quality_service.dart';
-import 'package:lingbi/core/models/quality_report.dart';
 
-/// WgEditorPage — 精确匹配 Open Design editor.html
-/// 已集成 flutter_quill 真实编辑器
 class WgEditorPage extends StatefulWidget {
-  const WgEditorPage({super.key, required this.world});
-  final World world;
-
+  const WgEditorPage({super.key});
   @override
   State<WgEditorPage> createState() => _WgEditorPageState();
 }
 
 class _WgEditorPageState extends State<WgEditorPage> {
-  final DocumentService _documentService =
-      ServiceLocator.instance.documentService;
-  final SettingsService _settings = ServiceLocator.instance.settingsService;
-  final WorldService _worldService = ServiceLocator.instance.worldService;
-
-  int _currentChapter = 0;
-  bool _focusMode = false;
-  bool _isDark = false;
-  bool _showGenFloat = false;
-  bool _showShortcuts = false;
-  bool _showFind = false;
-  String _genMode = 'continue';
-  bool _isGenerating = false;
-  String _saveStatus = '已自动保存';
-  String _editorContent = '';
-  QualityReport _qualityReport = const QualityReport(dimensions: [
-    QualityDimension(label: '情节密度', score: 0),
-    QualityDimension(label: '人物深度', score: 0),
-    QualityDimension(label: '节奏控制', score: 0),
-    QualityDimension(label: '钩子密度', score: 0),
-  ]);
-  Timer? _qualityTimer;
-  db_model.Document? _currentDocument;
-
-  List<db_model.Chapter> _chapters = [];
-  bool _loadingChapters = true;
-  List<db.Character> _characters = [];
-  final Set<String> _confirmedIdentityIds = {};
-  final IdentityDetector _identityDetector = IdentityDetector();
-  final ButterflyAnalyzer _butterflyAnalyzer =
-      ButterflyAnalyzer(timelineRepo: ServiceLocator.instance.timelineRepository);
-
+  final _settings = ServiceLocator.instance.settingsService;
   @override
-  void initState() {
-    super.initState();
-    _isDark = _settings.themeMode == ThemeMode.dark;
-    _loadChapters().then((_) => _loadDocumentForFirstChapter());
-    _loadCharacters();
-  }
+  void initState() { super.initState(); _settings.addListener(_onSettingsChanged); }
+  final quill.QuillController _quillCtrl = quill.QuillController.basic();
+  final TextEditingController _aiCtrl = TextEditingController();
+
+  final List<Map<String, dynamic>> _toc = const [
+    {'level': 1, 'text': 'һ���ɵ����ҵ�ζ��'},
+    {'level': 2, 'text': 'ʧ��ĺۼ�'},
+    {'level': 2, 'text': '��������'},
+    {'level': 1, 'text': '��������'},
+    {'level': 2, 'text': '���ߵ�ͯ��'},
+    {'level': 2, 'text': 'İ��Ů�˵���'},
+    {'level': 1, 'text': '������ȷ'},
+    {'level': 2, 'text': '��һ�μ���'},
+    {'level': 2, 'text': '��֪����̫��'},
+  ];
+  final List<Map<String, dynamic>> _metrics = const [
+    {'label': '��������', 'score': '92', 'percent': 92.0, 'level': WgQualityLevel.high},
+    {'label': '�������', 'score': '88', 'percent': 88.0, 'level': WgQualityLevel.high},
+    {'label': '��������', 'score': '74', 'percent': 74.0, 'level': WgQualityLevel.med},
+    {'label': '���Ũ��', 'score': '61', 'percent': 61.0, 'level': WgQualityLevel.med},
+    {'label': '����Ԥ��', 'score': '3 ��', 'percent': 30.0, 'level': WgQualityLevel.low},
+  ];
+  final List<Map<String, String>> _aiSuggestions = const [
+    {'title': '��д����', 'body': '�ɴӡ��������š����룬��һ�价����д�������Σ��������'},
+    {'title': '�Ի���ɫ', 'body': '��ȷ��̨��ƫ���棬������ﻯ������������롣'},
+  ];
 
   @override
   void dispose() {
-    _qualityTimer?.cancel();
+    _settings.removeListener(_onSettingsChanged);
+    _quillCtrl.dispose();
+    _aiCtrl.dispose();
     super.dispose();
   }
-
-  Future<void> _loadCharacters() async {
-    try {
-      _characters =
-          await ServiceLocator.instance.canonService.getCharacters(widget.world.id);
-      if (mounted) setState(() {});
-    } catch (_) {}
-  }
-
-  void _runQuality() {
-    final report = const QualityService().analyze(
-      _editorContent,
-      characterNames: _characters.map((c) => c.name).toList(),
-    );
-    if (mounted) setState(() => _qualityReport = report);
-  }
-
-  void _scheduleQuality() {
-    _qualityTimer?.cancel();
-    _qualityTimer = Timer(const Duration(milliseconds: 800), _runQuality);
-  }
-
-  Future<void> _openExportDialog() async {
-    if (_currentDocument == null) return;
-    showDialog(
-      context: context,
-      builder: (_) => ExportDialog(
-        title: _chapters.isNotEmpty ? _chapters[_currentChapter.clamp(0, _chapters.length - 1)].title : '文档',
-        content: _editorContent ?? '',
-      ),
-    );
-  }
-
-  void _openVersionHistory() {
-    if (_currentDocument == null) return;
-    showDialog(
-      context: context,
-      builder: (_) => VersionHistoryDialog(
-        projectDir: widget.world.id,
-        docId: _currentDocument?.id ?? '',
-      ),
-    );
-  }
-
-  void _openSearchDialog() {
-    showDialog(context: context, builder: (_) => const SearchDialog());
-  }
-
-  void _openStoryCanvas() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => StoryCanvasPage(projectId: widget.world.id),
-      ),
-    );
-  }
-
-  Future<void> _openImportDialog() async {
-    final result = await showDialog<List<ImportFileInfo>>(
-      context: context,
-      builder: (_) => const ImportDialog(),
-    );
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('成功导入 ' + result.length.toString() + ' 个文件')),
-      );
-    }
-  }
-
-  Future<void> _openButterflyDialog() async {
-    List<ButterflySelectableEvent> events = [];
-    try {
-      final evts = await ServiceLocator.instance.timelineRepository
-          .getEvents(widget.world.id);
-      events = evts
-          .map((e) => ButterflySelectableEvent(id: e.id, title: e.title))
-          .toList();
-    } catch (_) {}
-    if (!mounted) return;
-    final result = await showDialog<ButterflyAnalysisResult>(
-      context: context,
-      builder: (ctx) => ButterflyAnalysisDialog(
-        events: events,
-        worldName: widget.world.name,
-        onAnalyze: (eventId, change) => _butterflyAnalyzer.analyze(
-          worldId: widget.world.id,
-          eventId: eventId,
-          changeDescription: change,
-        ),
-      ),
-    );
-    if (result != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('蝴蝶效应分析完成（${result.impacts.length} 项角色影响）')),
-      );
-    }
-  }
-
-  Future<void> _loadChapters() async {
-    setState(() => _loadingChapters = true);
-    try {
-      final works = await _worldService.getWorks(widget.world.id);
-      if (works.isNotEmpty) {
-        final vols = await _worldService.volumeRepository
-            .getVolumes(works.first.id, worldId: widget.world.id);
-        final allChapters = <db_model.Chapter>[];
-        for (final vol in vols) {
-          final chs = await _worldService.chapterRepository
-              .getChapters(vol.id, worldId: widget.world.id);
-          allChapters.addAll(chs);
-        }
-        allChapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
-        if (mounted) {
-          setState(() {
-            _chapters = allChapters;
-            _loadingChapters = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => _loadingChapters = false);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loadingChapters = false);
-    }
-  }
-
-  /// 按章节加载对应的文档内容（替代旧方法取第一个文档的错误做法）
-  Future<void> _loadDocumentForFirstChapter() async {
-    if (_chapters.isEmpty) return;
-    await _loadDocumentForChapter(_chapters[0]);
-  }
-
-  /// 通过 Chapter→Scene→Document 链路获取章节正文
-  Future<void> _loadDocumentForChapter(db_model.Chapter chapter) async {
-    try {
-      final doc = await _worldService
-          .getDocumentForChapter(chapter.id, widget.world.id);
-      if (doc == null) return;
-      final content = await _documentService.readContent(doc.filePath);
-      if (mounted) {
-        setState(() {
-          _currentDocument = doc;
-          _editorContent = content;
-        });
-        _runQuality();
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _saveDocument(String content) async {
-    setState(() => _saveStatus = '保存中…');
-    try {
-      if (_currentDocument != null) {
-        await _documentService.writeDocumentContent(
-            _currentDocument!.filePath, content);
-      } else {
-        throw StateError('当前世界没有可保存的文档');
-      }
-      setState(() => _saveStatus = '已保存');
-    } catch (_) {
-      setState(() => _saveStatus = '保存失败');
-    }
-  }
-
-  void _toggleDarkMode() {
-    setState(() => _isDark = !_isDark);
-    _settings.setThemeMode(_isDark ? ThemeMode.dark : ThemeMode.light);
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = _isDark;
-    final surface = isDark ? const Color(0xFF2C261E) : const Color(0xFFFFFFFF);
-    final fg = isDark ? const Color(0xFFE8DDD0) : const Color(0xFF3D3529);
-    final fg2 = isDark ? const Color(0xFFA89880) : const Color(0xFF8B7D6B);
-    final fg3 = isDark ? const Color(0xFF7A6C5C) : const Color(0xFF8A7B68);
-    final border = isDark ? const Color(0xFF332C22) : const Color(0xFFF0EAE0);
-    final glassBg = isDark ? const Color(0xD92C261E) : const Color(0xBFFFFFFF);
-
-    return Material(
-      child: Stack(
-        children: [
-          Row(
-            children: [
-              // TOC left panel
-              if (!_focusMode) _buildToc(isDark, fg, fg2, fg3, border, surface),
-              // Editor center
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildToolbar(isDark, fg2, border, glassBg, surface),
-                    _buildVersionBar(),
-                    Expanded(
-                      child: EditorPanel(
-                        initialContent: _editorContent,
-                        documentTitle: _currentDocument == null
-                            ? '新文档'
-                            : (_chapters.isNotEmpty
-                                ? _chapters[_currentChapter.clamp(
-                                        0, _chapters.length - 1)]
-                                    .title
-                                : '第一章'),
-                        onSave: _saveDocument,
-                        identityDetector: _identityDetector,
-                        worldId: widget.world.id,
-                        sceneId: _currentDocument?.id,
-                        characters: _characters,
-                        onConfirmIdentity: (c) {
-                          _confirmedIdentityIds.add(c.characterId);
-                          _identityDetector.invalidateScene(
-                              _currentDocument?.id ?? '');
-                        },
-                        onIgnoreAllIdentities: () {
-                          _identityDetector.invalidateScene(
-                              _currentDocument?.id ?? '');
-                        },
-                        onContentChanged: (text) {
-                          setState(() => _editorContent = text);
-                          _scheduleQuality();
-                        },
-                      ),
-                    ),
-                    _buildSaveIndicator(isDark, fg3),
-                  ],
-                ),
-              ),
-              // Right panel
-              if (!_focusMode)
-                _buildRightPanel(isDark, fg, fg2, fg3, border, glassBg),
-            ],
-          ),
-          if (_showGenFloat) _buildGenFloat(isDark, fg, border),
-          if (_showShortcuts) _buildShortcuts(fg, fg2),
-          if (_showFind) _buildFindModal(isDark, border, fg, fg2, fg3),
-        ],
-      ),
+    final d = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      backgroundColor: WgTokens.bgFor(context),
+      body: Row(children: [
+        WgSidebar(items: wgNavItems(context, 'editor')),
+        _tocPanel(d),
+        Expanded(child: Column(children: [
+          _topbar(d),
+          _toolbar(d),
+          Expanded(child: _editorArea(d)),
+        ])),
+        _rightPanel(d),
+      ]),
     );
   }
 
-  Widget _buildToc(bool isDark, Color fg, Color fg2, Color fg3, Color border,
-      Color surface) {
-    return SizedBox(
-      width: 220,
-      child: Container(
-        height: double.infinity,
-        decoration: BoxDecoration(
-            color: surface, border: Border(right: BorderSide(color: border))),
-        child: Column(children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: border))),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              child: Row(children: [
-                const Text('←',
-                    style: TextStyle(color: Color(0xFF8B7D6B), fontSize: 14)),
-                const SizedBox(width: 4),
-                Text('返回工作区', style: TextStyle(fontSize: 13, color: fg2)),
-              ]),
-            ),
-          ),
-          Expanded(
-              child: _loadingChapters
-                  ? const Center(
-                      child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Color(0xFFE8A838))))
-                  : _chapters.isEmpty
-                      ? const Center(
-                          child: Text('暂无章节',
-                              style: TextStyle(
-                                  fontSize: 12, color: Color(0xFF8A7B68))))
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(8),
-                          itemCount: _chapters.length,
-                          itemBuilder: (_, i) {
-                            final c = _chapters[i];
-                            final hasSynopsis = c.synopsis.isNotEmpty;
-                            final dotColor = hasSynopsis
-                                ? const Color(0xFF5B8C5A)
-                                : const Color(0xFFE8A838);
-                            final label = hasSynopsis ? '已规划' : '待编写';
-                            return InkWell(
-                              onTap: () {
-                                setState(() => _currentChapter = i);
-                                _loadDocumentForChapter(c);
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                margin: const EdgeInsets.only(bottom: 2),
-                                decoration: BoxDecoration(
-                                    color: _currentChapter == i
-                                        ? const Color(0x1AE8A838)
-                                        : null,
-                                    borderRadius: BorderRadius.circular(12)),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                          '第${_toChineseNum(c.chapterNumber)}章',
-                                          style: TextStyle(
-                                              fontSize: 11,
-                                              color: fg3,
-                                              letterSpacing: 0.5)),
-                                      const SizedBox(height: 2),
-                                      Text(c.title,
-                                          style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                              color: _currentChapter == i
-                                                  ? const Color(0xFFE8A838)
-                                                  : fg)),
-                                      const SizedBox(height: 4),
-                                      Row(children: [
-                                        Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: BoxDecoration(
-                                                color: dotColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(3))),
-                                        const SizedBox(width: 6),
-                                        Text(label,
-                                            style: TextStyle(
-                                                fontSize: 11, color: fg3)),
-                                      ]),
-                                    ]),
-                              ),
-                            );
-                          },
-                        )),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration:
-                BoxDecoration(border: Border(top: BorderSide(color: border))),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: const Center(
-                      child: Text('＋ 添加章节',
-                          style: TextStyle(
-                              fontSize: 12, color: Color(0xFF8B7D6B))))),
-            ),
-          ),
-        ]),
-      ),
-    );
+  Widget _railItem(IconData ic, Color f2) {
+    return Container(width: 40, height: 40, margin: const EdgeInsets.only(bottom: 2),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+      child: IconButton(icon: Icon(ic, size: 18, color: f2), onPressed: () {}, padding: EdgeInsets.zero));
   }
 
-  Widget _buildToolbar(
-      bool isDark, Color fg2, Color border, Color glassBg, Color surface) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+  Widget _tocPanel(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return SizedBox(width: 240, child: Container(height: double.infinity,
       decoration: BoxDecoration(
-          color: glassBg, border: Border(bottom: BorderSide(color: border))),
-      child: Row(children: [
-        _toolBtn('↩'),
-        _toolBtn('↪'),
-        _divider(),
-        _toolBtn('H1'),
-        _toolBtn('H2'),
-        _divider(),
-        _toolBtn('B'),
-        _toolBtn('I'),
-        _toolBtn('"'),
-        _divider(),
-        _toolBtn('—'),
-        _toolBtn('✦', color: const Color(0xFFE8A838)),
-        const Spacer(),
-        InkWell(
-          onTap: () => setState(() => _showGenFloat = !_showGenFloat),
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: border)),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('✦',
-                  style: TextStyle(fontSize: 12, color: Color(0xFFE8A838))),
-              SizedBox(width: 4),
-              Text('AI 生成',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF3D3529))),
-            ]),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _toolBtn('出', onTap: _openExportDialog),
-        const SizedBox(width: 4),
-        _toolBtn('史', onTap: _openVersionHistory),
-        const SizedBox(width: 4),
-        _toolBtn('搜', onTap: _openSearchDialog),
-        const SizedBox(width: 4),
-        _toolBtn('布', onTap: _openStoryCanvas),
-        const SizedBox(width: 4),
-        _toolBtn('入', onTap: _openImportDialog),
-        const SizedBox(width: 8),
-        Tooltip(
-          message: '蝴蝶效应分析',child: InkWell(
-            onTap: _openButterflyDialog,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 32,
-              height: 32,
-              alignment: Alignment.center,
-              child: const Text('🦋', style: TextStyle(fontSize: 14)),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _toolBtn(_isDark ? '☀' : '☽', onTap: _toggleDarkMode),
-        _toolBtn('?', onTap: () => setState(() => _showShortcuts = true)),
-        InkWell(
-          onTap: () => setState(() => _focusMode = !_focusMode),
-          child: Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              child: const Text('◻',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF8A7B68)))),
-        ),
-      ]),
-    );
-  }
-
-  Widget _toolBtn(String text, {Color? color, VoidCallback? onTap}) {
-    return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-            width: 32,
-            height: 32,
-            alignment: Alignment.center,
-            child: Text(text,
-                style: TextStyle(
-                    fontSize: 13, color: color ?? const Color(0xFF8B7D6B)))));
-  }
-
-  Widget _divider() => Container(
-      width: 1,
-      height: 20,
-      color: const Color(0xFFE8E0D6),
-      margin: const EdgeInsets.symmetric(horizontal: 8));
-
-  Widget _buildVersionBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      color: const Color(0x1AE8A838),
-      child: Row(children: [
-        const Text('版本 ',
-            style: TextStyle(fontSize: 12, color: Color(0xFF8B7D6B))),
-        Text(_saveStatus,
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF3D3529))),
-        const Spacer(),
-        const InkWell(
-          child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              child: Text('对比历史版本',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8B7D6B)))),
-        ),
-      ]),
-    );
-  }
-
-  Widget _buildSaveIndicator(bool isDark, Color fg3) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF231E18) : const Color(0xFFF5F0E8),
-          border: Border(
-              top: BorderSide(
-                  color: isDark
-                      ? const Color(0xFF332C22)
-                      : const Color(0xFFF0EAE0)))),
-      child: Row(children: [
-        Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-                color: _saveStatus == '保存中…'
-                    ? const Color(0xFFE8A838)
-                    : const Color(0xFF5B8C5A),
-                borderRadius: BorderRadius.circular(3))),
-        const SizedBox(width: 8),
-        Text(_saveStatus, style: TextStyle(fontSize: 11, color: fg3)),
-        const Spacer(),
-        Text('字数：${_editorContent.length}',
-            style: TextStyle(fontSize: 11, color: fg3)),
-      ]),
-    );
-  }
-
-  Widget _buildRightPanel(bool isDark, Color fg, Color fg2, Color fg3,
-      Color border, Color glassBg) {
-    return SizedBox(
-        width: 280,
-        child: Container(
-          decoration: BoxDecoration(
-              color: glassBg, border: Border(left: BorderSide(color: border))),
-          child: SingleChildScrollView(
-              child: Column(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: border))),
-              child: Row(children: [
-                _miniStat('${_editorContent.length}', '本章字数'),
-                _miniStat('${_editorContent.length ~/ 100}', '全卷总字'),
-                _miniStat('${_editorContent.split('\n').length}', '段落'),
-                _miniStat('-', 'AI辅助率'),
-              ]),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF231E18)
-                      : const Color(0xFFF5F0E8),
-                  border: Border(bottom: BorderSide(color: border))),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('质量面板'),
-                    const SizedBox(height: 12),
-                    _qualityBarFor('情节密度'),
-                    const SizedBox(height: 12),
-                    _qualityBarFor('人物深度'),
-                    const SizedBox(height: 12),
-                    _qualityBarFor('节奏控制'),
-                    const SizedBox(height: 12),
-                    _qualityBarFor('钩子密度'),
-                  ]),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: border))),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('优化建议'),
-                    const SizedBox(height: 12),
-                    ..._qualityReport.suggestions.isNotEmpty
-                        ? _qualityReport.suggestions
-                            .map((s) => _suggestion(s, '', 'accent'))
-                            .toList()
-                        : [
-                            _suggestion('💡 增加悬念钩子', '本章钩子密度偏低', 'accent'),
-                            _suggestion('✍ 人物时刻建议', '陈曦的背景回忆可以再展开', 'info'),
-                            _suggestion('📊 风格一致', '第三人称有限视角保持稳定', 'neutral'),
-                          ],
-                  ]),
-            ),
-            Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _sectionTitle('AI 操作'),
-                      const SizedBox(height: 12),
-                      ...[
-                        ('✦', '续写'),
-                        ('↺', '改写'),
-                        ('↗', '扩充'),
-                        ('↙', '精简'),
-                        ('💬', '对话')
-                      ].map((item) => InkWell(
-                            onTap: () => setState(() => _showGenFloat = true),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              child: Row(children: [
-                                Text(item.$1,
-                                    style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0x998B7D6B))),
-                                const SizedBox(width: 12),
-                                Text(item.$2,
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF8B7D6B))),
-                              ]),
-                            ),
-                          )),
-                    ])),
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.92),
+        border: Border(right: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('Ŀ¼', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+            Text('${_toc.length} ��', style: TextStyle(fontSize: 12, color: f2)),
           ])),
-        ));
-  }
-
-  Widget _miniStat(String value, String label) {
-    return Expanded(
-        child: Column(children: [
-      Text(value,
-          style: const TextStyle(
-              fontFamily: 'NotoSerifSC',
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF3D3529))),
-      Text(label,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
-    ]));
-  }
-
-  Widget _sectionTitle(String title) => Text(title,
-      style: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.6,
-          color: Color(0xFF8A7B68)));
-
-  Widget _qualityBarFor(String label) {
-    final d = _qualityReport.byLabel(label);
-    if (d == null) return const SizedBox.shrink();
-    return _qualityBar(label, d.display, d.pct, d.level);
-  }
-
-  Widget _qualityBar(String label, String score, double pct, String level) {
-    final color = level == 'high'
-        ? const Color(0xFF5B8C5A)
-        : level == 'med'
-            ? const Color(0xFFE8A838)
-            : const Color(0xFFC45A5A);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF8B7D6B))),
-        Text(score,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'JetBrainsMono',
-                color: color)),
+        Divider(height: 1, color: WgTokens.border),
+        Expanded(child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          itemCount: _toc.length,
+          itemBuilder: (ctx, i) {
+            final item = _toc[i];
+            final lvl = item['level'] as int;
+            return InkWell(onTap: () {}, child: Container(
+              padding: EdgeInsets.only(left: 14.0 + (lvl - 1) * 16, right: 14, top: 7, bottom: 7),
+              child: Row(children: [
+                if (lvl == 1) Container(width: 6, height: 6, margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: WgTokens.accent, borderRadius: BorderRadius.circular(2))),
+                Expanded(child: Text(item['text'], style: TextStyle(fontSize: lvl == 1 ? 13.5 : 12.5, fontWeight: lvl == 1 ? FontWeight.w600 : FontWeight.w400, color: lvl == 1 ? (d ? WgTokens.darkFg : WgTokens.fg) : f2))),
+              ])));
+          },
+        )),
       ]),
-      const SizedBox(height: 4),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(2),
-        child: Container(
-          height: 4,
-          color: const Color(0xFFF5F0E8),
-          child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: pct / 100,
-              child: Container(color: color)),
-        ),
-      ),
-    ]);
-  }
-
-  Widget _suggestion(String title, String desc, String type) {
-    final bg = type == 'accent'
-        ? const Color(0x1AE8A838)
-        : type == 'info'
-            ? const Color(0x1A5A8CA0)
-            : const Color(0xFFF5F0E8);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: bg)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3D3529))),
-        const SizedBox(height: 2),
-        Text(desc,
-            style: const TextStyle(
-                fontSize: 11, color: Color(0xFF8B7D6B), height: 1.5)),
-      ]),
-    );
-  }
-
-  String _toChineseNum(int n) {
-    const cn = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
-    if (n <= 10) return cn[n];
-    if (n < 20) return '十${cn[n - 10]}';
-    return n.toString();
-  }
-
-  // AI Float, Shortcuts, Find - same as before
-  Widget _buildGenFloat(bool isDark, Color fg, Color border) {
-    return Positioned(
-      right: _focusMode ? 24.0 : 304.0,
-      bottom: 24,
-      child: Container(
-        width: 320,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C261E) : const Color(0xFFFFFFFF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color(0x1A3D3529),
-                  blurRadius: 48,
-                  offset: Offset(0, 12))
-            ]),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('✦ AI 生成',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Color(0xFF3D3529))),
-                InkWell(
-                    onTap: () => setState(() => _showGenFloat = false),
-                    child: const Text('×',
-                        style:
-                            TextStyle(fontSize: 18, color: Color(0xFF8A7B68)))),
-              ]),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  _genChip('续写'),
-                  _genChip('改写'),
-                  _genChip('扩写'),
-                  _genChip('对话'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: border)),
-                  child: const TextField(
-                      maxLines: 3,
-                      style: TextStyle(fontSize: 13, color: Color(0xFF3D3529)),
-                      decoration: InputDecoration(
-                          hintText: '输入续写方向（可选）…',
-                          hintStyle:
-                              TextStyle(fontSize: 13, color: Color(0xFF8A7B68)),
-                          border: InputBorder.none,
-                          isDense: true))),
-              const SizedBox(height: 12),
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    _genButton('生成', true, _startGeneration),
-                    const SizedBox(width: 8),
-                    _genButton('取消', false,
-                        () => setState(() => _showGenFloat = false)),
-                  ]),
-              if (_isGenerating) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      color: const Color(0x1AE8A838),
-                      borderRadius: BorderRadius.circular(12)),
-                  child: const Row(children: [
-                    SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Color(0xFFE8A838))),
-                    SizedBox(width: 12),
-                    Text('AI 正在生成中…',
-                        style:
-                            TextStyle(fontSize: 12, color: Color(0xFF8B7D6B))),
-                  ]),
-                ),
-              ],
-            ]),
-      ),
-    );
-  }
-
-  Widget _buildShortcuts(Color fg, Color fg2) {
-    return Positioned.fill(
-      child: GestureDetector(
-        onTap: () => setState(() => _showShortcuts = false),
-        child: Container(
-          color: const Color(0x593D3529),
-          child: Center(
-              child: GestureDetector(
-            onTap: () {},
-            child: Container(
-              width: 420,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(20)),
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('快捷键参考',
-                        style: TextStyle(
-                            fontFamily: 'NotoSerifSC',
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF3D3529))),
-                    const SizedBox(height: 16),
-                    ...[
-                      (
-                        '编辑',
-                        [
-                          ('粗体', 'Ctrl+B'),
-                          ('斜体', 'Ctrl+I'),
-                          ('保存', 'Ctrl+S'),
-                          ('撤销', 'Ctrl+Z'),
-                          ('重做', 'Ctrl+Shift+Z')
-                        ]
-                      ),
-                      ('AI', [('打开 AI 生成', 'Ctrl+.'), ('关闭浮窗', 'Esc')]),
-                      (
-                        '导航',
-                        [
-                          ('查找与替换', 'Ctrl+F'),
-                          ('专注模式', 'Ctrl+Shift+F'),
-                          ('快捷键帮助', 'Ctrl+/')
-                        ]
-                      ),
-                    ].map((g) => Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(g.$1,
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.6,
-                                      color: Color(0xFF8A7B68))),
-                              const SizedBox(height: 8),
-                              ...g.$2.map((s) => Container(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 6),
-                                    decoration: const BoxDecoration(
-                                        border: Border(
-                                            bottom: BorderSide(
-                                                color: Color(0xFFF0EAE0)))),
-                                    child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(s.$1,
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Color(0xFF3D3529))),
-                                          Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                  color:
-                                                      const Color(0xFFF5F0E8),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                  border: Border.all(
-                                                      color: const Color(
-                                                          0xFFF0EAE0))),
-                                              child: Text(s.$2,
-                                                  style: const TextStyle(
-                                                      fontSize: 11,
-                                                      fontFamily:
-                                                          'JetBrainsMono',
-                                                      color:
-                                                          Color(0xFF8B7D6B)))),
-                                        ]),
-                                  )),
-                            ]))),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: InkWell(
-                          onTap: () => setState(() => _showShortcuts = false),
-                          child: const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text('关闭',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF8A7B68))))),
-                    ),
-                  ]),
-            ),
-          )),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFindModal(
-      bool isDark, Color border, Color fg, Color fg2, Color fg3) {
-    return Positioned(
-      right: 20,
-      top: 80,
-      child: Container(
-        width: 320,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2C261E) : const Color(0xFFFFFFFF),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border)),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Row(children: [
-            Expanded(child: _findField('查找…')),
-            const SizedBox(width: 8),
-            Row(
-                children: ['▲', '▼', '✕']
-                    .map((s) => InkWell(
-                          onTap: s == '✕'
-                              ? () => setState(() => _showFind = false)
-                              : null,
-                          child: Container(
-                              width: 28,
-                              height: 28,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                  border: Border.all(color: border),
-                                  borderRadius: BorderRadius.circular(8)),
-                              child: Text(s,
-                                  style: TextStyle(fontSize: 11, color: fg2))),
-                        ))
-                    .toList()),
-          ]),
-          const SizedBox(height: 8),
-          Row(children: [
-            Expanded(child: _findField('替换为…')),
-            const SizedBox(width: 8),
-            InkWell(
-              child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                      borderRadius: BorderRadius.circular(8)),
-                  child: const Text('替换',
-                      style:
-                          TextStyle(fontSize: 12, color: Color(0xFFFFFFFF)))),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          Text('输入关键词开始查找', style: TextStyle(fontSize: 11, color: fg3)),
-        ]),
-      ),
-    );
-  }
-
-  Widget _findField(String hint) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE8E0D6))),
-      child: TextField(
-          style: const TextStyle(fontSize: 13, color: Color(0xFF3D3529)),
-          decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(color: Color(0xFF8A7B68)),
-              border: InputBorder.none,
-              isDense: true)),
-    );
-  }
-
-  Widget _genChip(String label) {
-    final active = _genMode == label;
-    return InkWell(
-      onTap: () => setState(() => _genMode = label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-            color: active ? const Color(0x1AE8A838) : null,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-                color: active
-                    ? const Color(0xFFE8A838)
-                    : const Color(0xFFE8E0D6))),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                color: active
-                    ? const Color(0xFFE8A838)
-                    : const Color(0xFF8B7D6B))),
-      ),
-    );
-  }
-
-  Widget _genButton(String label, bool primary, VoidCallback onTap) {
-    return Expanded(
-        child: InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        alignment: Alignment.center,
-        decoration: primary
-            ? BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                borderRadius: BorderRadius.circular(8))
-            : BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE8E0D6))),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: primary ? FontWeight.w500 : FontWeight.normal,
-                color: primary
-                    ? const Color(0xFFFFFFFF)
-                    : const Color(0xFF3D3529))),
-      ),
     ));
   }
 
-  void _startGeneration() {
-    setState(() => _isGenerating = true);
-    final aiService = ServiceLocator.instance.aiService;
+  Widget _rightPanel(bool d) {
+    return SizedBox(width: 300, child: Container(height: double.infinity,
+      decoration: BoxDecoration(
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.92),
+        border: Border(left: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Column(children: [
+        _qualityPanel(d),
+        Divider(height: 1, color: WgTokens.border),
+        Expanded(child: _aiPanel(d)),
+      ]),
+    ));
+  }
 
-    // 根据当前模式构建正确的 prompt
-    final mode = _genMode;
-    final selectedText = _editorContent;
-    final prompt = TextRefinementService.buildPrompt(
-        mode: mode == '续写'
-            ? 'continue'
-            : mode == '润色'
-                ? 'polish'
-                : mode == '扩写'
-                    ? 'expand'
-                    : mode == '改写'
-                        ? 'rewrite'
-                        : 'continue',
-        text: selectedText);
+  Widget _qualityPanel(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.analytics_outlined, size: 16, color: WgTokens.accent),
+        const SizedBox(width: 6),
+        Text('д������', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: d ? WgTokens.darkFg : WgTokens.fg)),
+      ]),
+      const SizedBox(height: 12),
+      for (final m in _metrics) ...[
+        WgQualityBar(percent: m['percent'], label: m['label'], score: m['score'], level: m['level']),
+        const SizedBox(height: 10),
+      ],
+    ]));
+  }
 
-    aiService.generateNovel(prompt).then((result) {
-      if (!mounted) return;
-      setState(() {
-        _isGenerating = false;
-        _showGenFloat = false;
-        _saveStatus = '已生成';
-      });
-      showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-                title: Text(AppLocalizations.of(context)!.s2),
-                content: SizedBox(
-                    width: 500,
-                    child: SingleChildScrollView(
-                        child: Text(result,
-                            style:
-                                const TextStyle(fontSize: 14, height: 1.6)))),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(AppLocalizations.of(context)!.s22))
-                ],
-              ));
-    }).catchError((e) {
-      if (!mounted) return;
-      setState(() {
-        _isGenerating = false;
-      });
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('生成失败: $e')));
-    });
+  Widget _aiPanel(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return Padding(padding: const EdgeInsets.fromLTRB(18, 16, 18, 16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(Icons.auto_awesome, size: 16, color: WgTokens.accent),
+        const SizedBox(width: 6),
+        Text('AI ����', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: d ? WgTokens.darkFg : WgTokens.fg)),
+      ]),
+      const SizedBox(height: 12),
+      WgInput(hintText: '�� AI ���ʻ��´�ָ�', controller: _aiCtrl, maxLines: 2),
+      const SizedBox(height: 10),
+      Row(children: [
+        WgButton(label: '����', icon: Icons.send, small: true, onTap: () {}),
+        const SizedBox(width: 8),
+        WgGhostButton(label: '��ɫ', small: true, onTap: () {}),
+      ]),
+      const SizedBox(height: 14),
+      Text('���ܽ���', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: f2)),
+      const SizedBox(height: 10),
+      Expanded(child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: _aiSuggestions.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (ctx, i) {
+          final s = _aiSuggestions[i];
+          return WgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(s['title']!, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: d ? WgTokens.darkFg : WgTokens.fg)),
+            const SizedBox(height: 6),
+            Text(s['body']!, style: TextStyle(fontSize: 12.5, color: f2, height: 1.6)),
+          ]));
+        },
+      )),
+    ]));
+  }
+
+  Widget _topbar(bool d) {
+    return Container(height: 52, padding: const EdgeInsets.symmetric(horizontal: 22),
+      decoration: BoxDecoration(
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.7),
+        border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Row(children: [
+        Text('�� 1 ��', style: TextStyle(fontSize: 13, color: d ? WgTokens.darkFg2 : WgTokens.fg2)),
+        const SizedBox(width: 12),
+        Text('��ƪ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+        const Spacer(),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(color: WgTokens.accentSoft, borderRadius: BorderRadius.circular(6)),
+          child: const Text('1,234 ��', style: TextStyle(fontSize: 12, color: WgTokens.accent))),
+        const SizedBox(width: 8),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(color: const Color(0x0D3D3529), borderRadius: BorderRadius.circular(6)),
+          child: const Text('AI', style: TextStyle(fontSize: 12, color: WgTokens.fg2))),
+      ]),
+    );
+  }
+
+  Widget _toolbar(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return Container(height: 44, padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.6),
+        border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Row(children: [
+        _toolBtn(Icons.title, f2),
+        _toolBtn(Icons.format_size, f2),
+        _toolBtn(Icons.format_quote, f2),
+        Container(width: 1, height: 18, color: WgTokens.border, margin: const EdgeInsets.symmetric(horizontal: 4)),
+        _toolBtn(Icons.format_bold, f2), _toolBtn(Icons.format_italic, f2), _toolBtn(Icons.format_underline, f2),
+        Container(width: 1, height: 18, color: WgTokens.border, margin: const EdgeInsets.symmetric(horizontal: 4)),
+        _toolBtn(Icons.format_align_left, f2), _toolBtn(Icons.format_align_center, f2), _toolBtn(Icons.format_align_right, f2),
+        Container(width: 1, height: 18, color: WgTokens.border, margin: const EdgeInsets.symmetric(horizontal: 4)),
+        _toolBtn(Icons.format_list_bulleted, f2), _toolBtn(Icons.format_list_numbered, f2),
+        Container(width: 1, height: 18, color: WgTokens.border, margin: const EdgeInsets.symmetric(horizontal: 4)),
+        _toolBtn(Icons.comment_outlined, f2),
+        const Spacer(),
+        _toolBtn(Icons.image, f2), _toolBtn(Icons.link, f2),
+      ]),
+    );
+  }
+
+  Widget _toolBtn(IconData ic, Color f2) {
+    return Container(height: 32, margin: const EdgeInsets.only(right: 2),
+      child: IconButton(icon: Icon(ic, size: 16, color: f2), onPressed: () {}, padding: const EdgeInsets.symmetric(horizontal: 6), constraints: const BoxConstraints(minWidth: 32)));
+  }
+
+  Widget _editorArea(bool d) {
+    return Container(
+      color: d ? WgTokens.darkSurface : WgTokens.surface,
+      child: quill.QuillEditor.basic(
+        controller: _quillCtrl,
+        config: const quill.QuillEditorConfig(
+          placeholder: '��ʼд��...',
+          padding: EdgeInsets.all(24),
+        ),
+      ),
+    );
   }
 }

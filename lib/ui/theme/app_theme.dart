@@ -9,11 +9,11 @@ class AppTheme {
   static const _warmBg = Color(0xFFFAF8F5); // 暖白底色
   static const _surface = Color(0xFFFFFFFF); // 表面白
   static const _surfaceGlass = Color(0xCCFFFFFF); // 毛玻璃白 (80%)
-  static const _fg = Color(0xFF3D3529); // 主文字暖棕
-  static const _fg2 = Color(0xFF8B7D6B); // 次要文字
+  static const _fg = Color(0xFF1A1612); // 主文字深棕（匹配 HTML --fg）
+  static const _fg2 = Color(0xFF6B635A); // 次要文字（匹配 HTML --muted）
   static const _fg3 = Color(0xFF8A7B68); // 辅助文字
-  static const _gold = Color(0xFFE8A838); // 琥珀金强调
-  static const _border = Color(0xFFE8E0D6); // 边框
+  static const _gold = Color(0xFFE8A838); // 琥珀金强调（匹配 HTML --accent）
+  static const _border = Color(0x1A3D3529); // 边框（匹配 HTML --border: rgba(61,53,41,0.10)）
   static const _borderLight = Color(0xFFF0EAE0); // 浅边框
 
   // ─── 暗色模式 ───

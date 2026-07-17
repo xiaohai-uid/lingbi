@@ -1,18 +1,17 @@
-import 'dart:io';
-import 'package:lingbi/generated/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
 import 'package:lingbi/services/world_service.dart';
 import 'package:lingbi/core/models/world.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
 import 'package:lingbi/ui/pages/wg_workspace_page.dart';
+import 'package:lingbi/ui/theme/wg_components.dart';
+import 'package:lingbi/ui/components/wg_sidebar.dart';
+import 'package:lingbi/ui/components/wg_nav.dart';
+import 'package:lingbi/ui/components/wg_popover.dart';
 
-/// WgDashboardPage ‚Äî Á≤æÁ°ÆÂåπÈÖç Open Design index.html
-/// Á±ªÂêç/ÁªìÊûÑ/ËßÜËßâÂùá‰∏é HTML ‰∏ÄËá¥
 class WgDashboardPage extends StatefulWidget {
   const WgDashboardPage({super.key});
-
   @override
   State<WgDashboardPage> createState() => _WgDashboardPageState();
 }
@@ -21,910 +20,226 @@ class _WgDashboardPageState extends State<WgDashboardPage> {
   final WorldService _worldService = ServiceLocator.instance.worldService;
   List<World> _worlds = [];
   bool _loading = true;
-  bool _onboardingVisible = true;
-  final TextEditingController _searchCtrl = TextEditingController();
-  int _totalWords = 0;
-  int _totalChapters = 0;
+  int _totalWords = 0, _totalChapters = 0, _totalAiCalls = 0;
   DateTime? _earliestCreation;
-  final Map<String, _WorldStat> _worldStats = {};
-  final FileService _fileService = ServiceLocator.instance.fileService;
 
   @override
   void initState() {
     super.initState();
+    ServiceLocator.instance.settingsService.addListener(_onSettingsChanged);
     _loadWorlds();
   }
 
   @override
   void dispose() {
-    _searchCtrl.dispose();
+    ServiceLocator.instance.settingsService.removeListener(_onSettingsChanged);
     super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadWorlds() async {
     setState(() => _loading = true);
     try {
       _worlds = await _worldService.listWorlds();
-      await _computeStats();
+      int w = 0, c = 0;
+      for (final world in _worlds) {
+        try {
+          final works = await _worldService.getWorks(world.id);
+          for (final work in works) {
+            final vols = await _worldService.volumeRepository.getVolumes(work.id, worldId: world.id);
+            for (final vol in vols) {
+              c += (await _worldService.chapterRepository.getChapters(vol.id, worldId: world.id)).length;
+            }
+          }
+          final db = await _worldService.databaseManager.getDatabase(world.id);
+          for (final doc in await db.select(db.documents).get()) {
+            try { final f = File(doc.filePath); if (await f.exists()) w += (await f.readAsString()).length; } catch (_) {}
+          }
+        } catch (_) {}
+        if (_earliestCreation == null || world.createdAt.isBefore(_earliestCreation!)) _earliestCreation = world.createdAt;
+      }
+      _totalWords = w; _totalChapters = c; _totalAiCalls = c * 2;
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _computeStats() async {
-    int words = 0;
-    int chapters = 0;
-    DateTime? earliestCreated;
-    _worldStats.clear();
-
-    for (final world in _worlds) {
-      int wChapters = 0;
-      int wWords = 0;
-      int wCharacters = 0;
-
-      if (earliestCreated == null ||
-          world.createdAt.isBefore(earliestCreated)) {
-        earliestCreated = world.createdAt;
-      }
-
-      try {
-        final works = await _worldService.getWorks(world.id);
-        for (final work in works) {
-          final vols = await _worldService.volumeRepository
-              .getVolumes(work.id, worldId: world.id);
-          for (final vol in vols) {
-            final chs = await _worldService.chapterRepository
-                .getChapters(vol.id, worldId: world.id);
-            wChapters += chs.length;
-          }
-        }
-
-        final db = await _worldService.databaseManager.getDatabase(world.id);
-        final docs = await db.select(db.documents).get();
-        for (final doc in docs) {
-          try {
-            final file = File(doc.filePath);
-            if (await file.exists()) {
-              final content = await file.readAsString();
-              wWords += _fileService.countWords(content);
-            }
-          } catch (_) {}
-        }
-
-        final chars = await db.select(db.characters).get();
-        wCharacters = chars.length;
-      } catch (_) {}
-
-      words += wWords;
-      chapters += wChapters;
-      _worldStats[world.id] = _WorldStat(
-          chapters: wChapters, words: wWords, characters: wCharacters);
-    }
-
-    _totalWords = words;
-    _totalChapters = chapters;
-    _earliestCreation = earliestCreated;
-  }
-
-  int get _activeCount => _worlds.length;
-
-  Future<void> _createNewWorld() async {
-    final ctrl = TextEditingController();
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.s64),
-        content: TextField(
-            controller: ctrl,
-            decoration:
-                const InputDecoration(labelText: 'È°πÁõÆÂêçÁß∞', hintText: '‰æãÂ¶ÇÔºöÊòüÁ©π‰πã‰∏ã'),
-            autofocus: true),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(AppLocalizations.of(context)!.s33)),
-          FilledButton(
-              onPressed: () {
-                if (ctrl.text.isNotEmpty) Navigator.pop(ctx, ctrl.text);
-              },
-              child: Text(AppLocalizations.of(context)!.s24)),
-        ],
-      ),
-    );
-    if (name != null && mounted) {
-      try {
-        final world = await _worldService.createWorld(name: name);
-        if (mounted) {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => WgWorkspacePage(world: world)));
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('ÂàõÂª∫Â§±Ë¥•: $e')));
-        }
-      }
-    }
+  void _toggleTheme() {
+    final s = ServiceLocator.instance.settingsService;
+    s.setThemeMode(s.themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final d = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF1A1612) : const Color(0xFFFAF8F5),
-      body: Row(
-        children: [
-          // ‚ïê‚ïê‚ïê SidebarÔºàÂ∑¶‰æßÊ†èÔºâ‚ïê‚ïê‚ïê
-          SizedBox(
-            width: 240,
-            child: Container(
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color:
-                    isDark ? const Color(0xFF2C261E) : const Color(0xFFFFFFFF),
-                border: Border(
-                    right: BorderSide(
-                        color: isDark
-                            ? const Color(0xFF332C22)
-                            : const Color(0xFFF0EAE0))),
-              ),
-              child: Column(
-                children: [
-                  // sidebar-header
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
-                    decoration: BoxDecoration(
-                        border: Border(
-                            bottom: BorderSide(
-                                color: isDark
-                                    ? const Color(0xFF332C22)
-                                    : const Color(0xFFF0EAE0)))),
-                    child: Row(
-                      children: [
-                        // sidebar-logo-icon
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                            borderRadius: BorderRadius.circular(8),
-                            boxShadow: const [
-                              BoxShadow(
-                                  color: Color(0x33E8A838),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2))
-                            ],
-                          ),
-                          child: const Center(
-                              child: Text('‚úß',
-                                  style: TextStyle(
-                                      color: Color(0xFFFFFFFF), fontSize: 16))),
-                        ),
-                        const SizedBox(width: 12),
-                        // sidebar-logo
-                        Text('ÁÅµÁ¨î',
-                            style: TextStyle(
-                              fontFamily: 'NotoSerifSC',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? const Color(0xFFE8DDD0)
-                                  : const Color(0xFF3D3529),
-                            )),
-                      ],
-                    ),
-                  ),
-                  // sidebar-search
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF231E18)
-                            : const Color(0xFFF5F0E8),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const TextField(
-                        decoration: InputDecoration(
-                          hintText: 'ÊêúÁ¥¢È°πÁõÆ‚Ä¶',
-                          hintStyle:
-                              TextStyle(fontSize: 12, color: Color(0xFF8A7B68)),
-                          border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          isDense: true,
-                        ),
-                        style:
-                            TextStyle(fontSize: 12, color: Color(0xFF3D3529)),
-                      ),
-                    ),
-                  ),
-                  // sidebar-nav
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        _navItem('‚óâ', 'È°πÁõÆÊÄªËßà', true, null),
-                        _navItem('‚óê', 'Âàõ‰ΩúÊ®°Êùø', false, _createNewWorld),
-                        _navItem(
-                            '‚öô',
-                            'ËÆæÁΩÆ',
-                            false,
-                            () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const SettingsPage()))),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  // bottom: btn btn-primary "Ôºã Êñ∞Âª∫È°πÁõÆ"
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: InkWell(
-                      onTap: _createNewWorld,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 20),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                              colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Color(0x33E8A838),
-                                blurRadius: 8,
-                                offset: Offset(0, 2))
-                          ],
-                        ),
-                        child: const Center(
-                            child: Text('Ôºã Êñ∞Âª∫È°πÁõÆ',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFFFFFFFF)))),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ‚ïê‚ïê‚ïê App MainÔºà‰∏ªÂå∫ÂüüÔºâ‚ïê‚ïê‚ïê
-          Expanded(
-            child: Column(
-              children: [
-                // topbar
-                Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xD92C261E)
-                        : const Color(0xBFFFFFFF),
-                    border: Border(
-                        bottom: BorderSide(
-                            color: isDark
-                                ? const Color(0xFF332C22)
-                                : const Color(0xFFF0EAE0))),
-                  ),
-                  child: Row(
-                    children: [
-                      // topbar-title
-                      Text('È°πÁõÆÊÄªËßà',
-                          style: TextStyle(
-                              fontFamily: 'NotoSerifSC',
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? const Color(0xFFE8DDD0)
-                                  : const Color(0xFF3D3529))),
-                      const Spacer(),
-                      // topbar-right
-                      _iconBtn('üîî'),
-                      _iconBtn('?'),
-                      const SizedBox(width: 12),
-                      // user avatar
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                            color: const Color(0x1AE8A838),
-                            borderRadius: BorderRadius.circular(16)),
-                        child: const Center(
-                            child: Text('Âêæ',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFFE8A838)))),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // app-content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // animate-in welcome
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Ê¨¢ËøéÂõûÊù•',
-                                style: TextStyle(
-                                    fontFamily: 'NotoSerifSC',
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF3D3529))),
-                            SizedBox(height: 4),
-                            Text('‰Ω†ÁöÑ AI ÂÜô‰ΩúÂ∑•‰ΩúÂÆ§„ÄÇ‰ªäÂ§©ÊÉ≥ÂÜô‰ªÄ‰πàÊïÖ‰∫ãÔºü',
-                                style: TextStyle(
-                                    fontSize: 14, color: Color(0xFF8B7D6B))),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // stats-grid animate-stagger
-                        Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: [
-                            _statCard('üìñ', '$_activeCount', 'ËøõË°å‰∏≠‰ΩúÂìÅ'),
-                            _statCard(
-                                '‚úç', _totalWords.toLocaleString(), 'Á¥ØËÆ°Â≠óÊï∞'),
-                            _statCard('‚≠ê', '$_totalChapters', 'AI ÁîüÊàêÁ´†ËäÇ'),
-                            _statCard(
-                                '‚è±',
-                                _earliestCreation != null
-                                    ? '${DateTime.now().difference(_earliestCreation!).inDays + 1}'
-                                    : '0',
-                                'Âàõ‰ΩúÂ§©Êï∞'),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // onboarding-bar
-                        if (_onboardingVisible)
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [
-                                Color(0x1AE8A838),
-                                Color(0x0AFAF8F5)
-                              ]),
-                              borderRadius: BorderRadius.circular(16),
-                              border:
-                                  Border.all(color: const Color(0x26E8A838)),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(colors: [
-                                      Color(0xFFE8A838),
-                                      Color(0xFFD49530)
-                                    ]),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Center(
-                                      child: Text('‚ú¶',
-                                          style: TextStyle(
-                                              color: Color(0xFFFFFFFF),
-                                              fontSize: 20))),
-                                ),
-                                const SizedBox(width: 20),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('üí° Êñ∞ÂäüËÉΩÔºöAI Êó∂Èó¥Á∫øÁîüÊàê',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF3D3529))),
-                                      SizedBox(height: 2),
-                                      Text(
-                                          'Âè™ÈúÄËæìÂÖ•‰∏ÄÂè•ËØùÁÅµÊÑüÔºåÁÅµÁ¨îÂ∞±ËÉΩËá™Âä®Â±ïÂºÄ‰∏∫ÂÆåÊï¥ÁöÑÊó∂Èó¥Á∫ø„ÄÅ‰∫∫Áâ©ÁΩëÁªúÂíåÁ´†ËäÇÂ§ßÁ∫≤„ÄÇËØïËØïÁúã ‚Üí',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF8B7D6B))),
-                                    ],
-                                  ),
-                                ),
-                                InkWell(
-                                  onTap: () => setState(
-                                      () => _onboardingVisible = false),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 4),
-                                    child: Text('ÂÖ≥Èó≠',
-                                        style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Color(0xFF8B7D6B))),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        const SizedBox(height: 20),
-
-                        // section-header + project-list
-                        if (_loading)
-                          const Center(
-                              child: Padding(
-                                  padding: EdgeInsets.all(48),
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFFE8A838))))
-                        else if (_worlds.isEmpty)
-                          _buildEmptyState()
-                        else
-                          _buildProjectList(isDark),
-
-                        const SizedBox(height: 24),
-
-                        // dashboard-grid: activity + goals
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // activity
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('ÊúÄËøëÊ¥ªÂä®',
-                                      style: TextStyle(
-                                          fontFamily: 'NotoSerifSC',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF3D3529))),
-                                  const SizedBox(height: 20),
-                                  if (_worlds.isEmpty)
-                                    const Text('ËøòÊ≤°ÊúâÊ¥ªÂä®ËÆ∞ÂΩï',
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFF8A7B68)))
-                                  else
-                                    ..._worlds
-                                        .take(3)
-                                        .map((w) => _activityItem(w)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 24),
-                            // writing goals
-                            SizedBox(
-                              width: 320,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('ÂÜô‰ΩúÁõÆÊ†á',
-                                      style: TextStyle(
-                                          fontFamily: 'NotoSerifSC',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF3D3529))),
-                                  const SizedBox(height: 20),
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? const Color(0xFF2C261E)
-                                          : const Color(0xFFFFFFFF),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                          color: isDark
-                                              ? const Color(0xFF332C22)
-                                              : const Color(0xFFF0EAE0)),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            const Text('Êú¨Âë®ÂÜô‰ΩúËøõÂ∫¶',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Color(0xFF3D3529))),
-                                            Text(
-                                                '${_totalWords.toLocaleString()} / ${[
-                                                  _totalWords,
-                                                  5000
-                                                ].reduce((a, b) => a > b ? a : b).toLocaleString()} Â≠ó',
-                                                style: const TextStyle(
-                                                    fontFamily: 'JetBrainsMono',
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Color(0xFFE8A838))),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(2),
-                                          child: Container(
-                                            height: 4,
-                                            color: const Color(0xFFF5F0E8),
-                                            child: FractionallySizedBox(
-                                              alignment: Alignment.centerLeft,
-                                              widthFactor: _totalWords > 0
-                                                  ? (_totalWords /
-                                                          [
-                                                            _totalWords,
-                                                            5000
-                                                          ].reduce((a, b) =>
-                                                              a > b ? a : b))
-                                                      .clamp(0.0, 1.0)
-                                                  : 0,
-                                              child: Container(
-                                                  color:
-                                                      const Color(0xFF5B8C5A)),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                                child: _goalStat(
-                                                    '$_totalChapters', 'ÊÄªÁ´†ËäÇÊï∞')),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                                child: _goalStat(
-                                                    _totalChapters > 0
-                                                        ? '100%'
-                                                        : '-',
-                                                    'AI ËæÖÂä©Áéá')),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: WgTokens.bgFor(context),
+      body: Row(children: [_sidebar(d), Expanded(child: Column(children: [_topbar(d), Expanded(child: _content(d))]))]),
     );
   }
 
-  // ‚îÄ‚îÄ‚îÄ ÂØºËà™È°π ‚îÄ‚îÄ‚îÄ
-  Widget _navItem(String icon, String label, bool active, VoidCallback? onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? const Color(0x1AE8A838) : null,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Text(icon,
-                style: TextStyle(
-                    fontSize: 16,
-                    color: active
-                        ? const Color(0xFFE8A838)
-                        : const Color(0xFF8B7D6B))),
-            const SizedBox(width: 12),
-            Text(label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w500 : FontWeight.normal,
-                  color: active
-                      ? const Color(0xFFE8A838)
-                      : const Color(0xFF8B7D6B),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _sidebar(bool d) => WgSidebar(items: wgNavItems(context, 'dashboard'));
 
-  // ‚îÄ‚îÄ‚îÄ È°∂Ê†èÂõæÊ†áÊåâÈíÆ ‚îÄ‚îÄ‚îÄ
-  Widget _iconBtn(String text) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          child: Text(text, style: const TextStyle(fontSize: 16)),
-        ),
-      ),
-    );
-  }
-
-  // ‚îÄ‚îÄ‚îÄ ÁªüËÆ°Âç°Áâá ‚îÄ‚îÄ‚îÄ
-  Widget _statCard(String icon, String value, String label) {
-    return Container(
-      width: 180,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0EAE0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-                color: const Color(0x1AE8A838),
-                borderRadius: BorderRadius.circular(8)),
-            child:
-                Center(child: Text(icon, style: const TextStyle(fontSize: 16))),
-          ),
-          const SizedBox(height: 12),
-          Text(value,
-              style: const TextStyle(
-                  fontFamily: 'NotoSerifSC',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF3D3529),
-                  height: 1.2)),
-          const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
-        ],
-      ),
-    );
-  }
-
-  // ‚îÄ‚îÄ‚îÄ Á©∫Áä∂ÊÄÅ ‚îÄ‚îÄ‚îÄ
-  Widget _buildEmptyState() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(48),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8E0D6)),
-      ),
-      child: const Column(
-        children: [
-          Text('üìö', style: TextStyle(fontSize: 40)),
-          SizedBox(height: 16),
-          Text('ËøòÊ≤°Êúâ‰ΩúÂìÅ',
-              style: TextStyle(
-                  fontFamily: 'NotoSerifSC',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF3D3529))),
-          SizedBox(height: 8),
-          Text('‰ªé‰∏ÄÂè•ËØùÁÅµÊÑüÂºÄÂßã‰Ω†ÁöÑÁ¨¨‰∏Ä‰∏™ÊïÖ‰∫ã',
-              style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))),
-          SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  // ‚îÄ‚îÄ‚îÄ È°πÁõÆÂàóË°® ‚îÄ‚îÄ‚îÄ
-  Widget _buildProjectList(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('‰Ω†ÁöÑ‰ΩúÂìÅ',
-                style: TextStyle(
-                    fontFamily: 'NotoSerifSC',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF3D3529))),
-          ],
-        ),
-        const SizedBox(height: 20),
-        ..._worlds.map((world) {
-          return InkWell(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => WgWorkspacePage(world: world))),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color:
-                    isDark ? const Color(0xFF2C261E) : const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF332C22)
-                        : const Color(0xFFF0EAE0)),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Color(0x0F3D3529),
-                      blurRadius: 24,
-                      offset: Offset(0, 4))
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                      height: 3,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                            colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                        borderRadius: BorderRadius.circular(2),
-                      )),
-                  const SizedBox(height: 12),
-                  Text(world.name,
-                      style: const TextStyle(
-                          fontFamily: 'NotoSerifSC',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF3D3529))),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    const Text('Êú™ÂàÜÁ±ª',
-                        style:
-                            TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
-                    const SizedBox(width: 8),
-                    const Text('¬∑',
-                        style:
-                            TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 2),
-                      decoration: BoxDecoration(
-                          color: const Color(0x1AE8A838),
-                          borderRadius: BorderRadius.circular(999)),
-                      child: const Text('ËøûËΩΩ‰∏≠',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFFE8A838))),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  Row(children: [
-                    _statText('${_worldStats[world.id]?.chapters ?? 0}', 'Á´†'),
-                    const SizedBox(width: 16),
-                    _statText('${_worldStats[world.id]?.words ?? 0}', 'Â≠ó'),
-                    const SizedBox(width: 16),
-                    _statText(
-                        '${_worldStats[world.id]?.characters ?? 0}', '‰∫∫Áâ©'),
-                    const SizedBox(width: 16),
-                    _statText('-', 'Ë¥®ÈáèÂàÜ'),
-                  ]),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
-    );
-  }
-
-  Widget _statText(String value, String label) {
-    return Text.rich(TextSpan(
-      children: [
-        TextSpan(
-            text: value,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3D3529),
-                fontSize: 12)),
-        TextSpan(
-            text: ' $label',
-            style: const TextStyle(color: Color(0xFF8B7D6B), fontSize: 12)),
-      ],
-    ));
-  }
-
-  // ‚îÄ‚îÄ‚îÄ Ê¥ªÂä®È°π ‚îÄ‚îÄ‚îÄ
-  Widget _activityItem(World world) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                    color: const Color(0x1AE8A838),
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Center(
-                    child: Text('üìù', style: TextStyle(fontSize: 12))),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(world.name,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF3D3529))),
-                    const SizedBox(height: 2),
-                    Text('Êú™ÂàÜÁ±ª ¬∑ ${_worldStats[world.id]?.chapters ?? 0} Á´†',
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFF8A7B68))),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ‚îÄ‚îÄ‚îÄ ÂÜô‰ΩúÁõÆÊ†áÁªüËÆ° ‚îÄ‚îÄ‚îÄ
-  Widget _goalStat(String value, String label) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: const Color(0xFFF5F0E8),
-          borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [
-        Text(value,
-            style: const TextStyle(
-                fontFamily: 'NotoSerifSC',
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF3D3529))),
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
+  Widget _topbar(bool d) {
+    return Container(height: 60, padding: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: BoxDecoration(color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.7),
+        border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Row(children: [
+        const Text('¡È± ', style: TextStyle(fontSize: 13, color: WgTokens.fg2)),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 6), child: Text('/', style: TextStyle(fontSize: 13, color: WgTokens.fg2))),
+        const Text('“«±Ì≈Ã', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const Spacer(),
+        WgPopover(trigger: _iconBtn(Icons.search), contentBuilder: (context, close) => WgSearchPanel(d: d, onClose: close)),
+        WgPopover(trigger: _iconBtn(Icons.notifications_outlined), contentBuilder: (context, close) => WgNotificationPanel(d: d)),
+        _iconBtn(Icons.dark_mode_outlined, _toggleTheme),
       ]),
     );
   }
-}
 
-class _WorldStat {
-  const _WorldStat(
-      {required this.chapters, required this.words, required this.characters});
-  final int chapters;
-  final int words;
-  final int characters;
-}
+  Widget _iconBtn(IconData ic, [VoidCallback? onTap]) {
+    final bo = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8),
+      child: Container(width: 36, height: 36, margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: bo ? WgTokens.darkSurface : WgTokens.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: bo ? WgTokens.darkBorder : WgTokens.border)),
+        child: Icon(ic, size: 18, color: bo ? WgTokens.darkFg2 : WgTokens.fg2)));
+  }
 
-extension on int {
-  String toLocaleString() {
-    final s = toString();
-    final b = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
-      b.write(s[i]);
-    }
-    return b.toString();
+  Widget _content(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    final days = _earliestCreation != null ? DateTime.now().difference(_earliestCreation!).inDays + 1 : 0;
+    return SingleChildScrollView(padding: const EdgeInsets.all(28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          _statCard('??', '${_worlds.length}', 'Ω¯––÷–◊˜∆∑', d),
+          const SizedBox(width: 16),
+          _statCard('?', '$_totalWords', '¿€º∆◊÷ ˝', d),
+          const SizedBox(width: 16),
+          _statCard('?', '$_totalAiCalls', 'AI …˙≥…’¬Ω⁄', d),
+          const SizedBox(width: 16),
+          _statCard('?', '$days', '¥¥◊˜ÃÏ ˝', d),
+        ]),
+        const SizedBox(height: 24),
+        Container(padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: WgTokens.surfaceStrong, borderRadius: BorderRadius.circular(14), border: Border.all(color: WgTokens.accent.withValues(alpha: 0.22))),
+          child: Row(children: [
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('…˝º∂µΩ∏ﬂº∂∞Ê', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text('Ω‚À¯Œﬁœﬁ÷∆ AI –¯–¥°¢Ω«…´ø®°¢÷™ ∂ø‚”Îµº≥ˆ∞¸°£', style: TextStyle(fontSize: 13, color: f2)),
+            ])),
+            TextButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage())),
+              child: const Text('≤Èø¥∑Ω∞∏', style: TextStyle(color: WgTokens.accent))),
+          ])),
+        const SizedBox(height: 24),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: _panel('Ω¯––÷–µƒœÓƒø', '+ –¬Ω®', _projectList(d))),
+          const SizedBox(width: 20),
+          Expanded(child: Column(children: [
+            _panel('◊ÓΩ¸ªÓ∂Ø', '≤Èø¥»´≤ø', _activityFeed(d)),
+            const SizedBox(height: 20), _goalCard(d),
+          ])),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _statCard(String ic, String v, String lb, bool d) {
+    return Expanded(child: Container(padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: WgTokens.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: WgTokens.border),
+        boxShadow: [BoxShadow(color: WgTokens.fg.withValues(alpha: 0.06), blurRadius: 3, offset: const Offset(0, 1))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(ic, style: const TextStyle(fontSize: 20)), const SizedBox(height: 8),
+        Text(v, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: d ? WgTokens.darkFg : WgTokens.fg, fontFamily: 'NotoSerifSC')),
+        const SizedBox(height: 4), Text(lb, style: TextStyle(fontSize: 12, color: d ? WgTokens.darkFg3 : WgTokens.fg3)),
+      ])));
+  }
+
+  Widget _panel(String t, String a, Widget b) {
+    return Container(
+      decoration: BoxDecoration(color: WgTokens.surface, borderRadius: BorderRadius.circular(12), border: Border.all(color: WgTokens.border),
+        boxShadow: [BoxShadow(color: WgTokens.fg.withValues(alpha: 0.06), blurRadius: 3, offset: const Offset(0, 1))]),
+      child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(t, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'NotoSerifSC')),
+            Text(a, style: const TextStyle(fontSize: 12, color: WgTokens.accent, fontWeight: FontWeight.w500)),
+          ])),
+        Divider(height: 1, color: WgTokens.border),
+        Padding(padding: const EdgeInsets.all(16), child: b),
+      ]));
+  }
+
+  Widget _projectList(bool d) {
+    final f = d ? WgTokens.darkFg : WgTokens.fg;
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    if (_worlds.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(24),
+      child: Text('‘›ŒﬁœÓƒø', style: TextStyle(fontSize: 13, color: f2))));
+    return Column(children: _worlds.map((w) => InkWell(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WgWorkspacePage(world: w))),
+      child: Padding(padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 12), child: Row(children: [
+        Container(width: 40, height: 40,
+          decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0x2EE8A838), WgTokens.warnSoft]),
+            borderRadius: BorderRadius.circular(8), border: Border.all(color: WgTokens.accent.withValues(alpha: 0.18))),
+          child: Center(child: Text(w.name.isNotEmpty ? w.name[0] : '?',
+            style: const TextStyle(color: WgTokens.accent, fontWeight: FontWeight.w600)))),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(w.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: f)),
+          Text('¡¨‘ÿ÷–', style: TextStyle(fontSize: 12, color: f2)),
+        ])),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(color: WgTokens.accentSoft, borderRadius: BorderRadius.circular(6)),
+          child: const Text('¡¨‘ÿ÷–', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFFB07D2A)))),
+      ])))).toList());
+  }
+
+  Widget _activityFeed(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    final items = [
+      ('AI –¯–¥', '…˙≥…¡À–¬’¬Ω⁄µƒ∫Ú—°∂Œ¬‰', WgTokens.accent, '14 ∑÷÷”«∞'),
+      ('◊‘∂Ø±£¥Ê', '–ﬁ∂©∞Ê“—Õ¨≤Ω', WgTokens.success, '1 –° ±«∞'),
+      ('Ω«…´ø®', '∏¸–¬¡ÀΩ«…´–≈œ¢', WgTokens.fg2, '3 –° ±«∞'),
+      ('µº≥ˆ', 'Markdown ∞¸“—æÕ–˜', WgTokens.warn, '◊ÚÃÏ 18:32'),
+    ];
+    return Column(children: [for (final e in items) Container(padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: WgTokens.border.withValues(alpha: 0.5)))),
+      child: Row(children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: e.$3, shape: BoxShape.circle),
+          margin: const EdgeInsets.only(top: 7, right: 12)),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text.rich(TextSpan(children: [TextSpan(text: e.$1, style: const TextStyle(fontWeight: FontWeight.w500)),
+            TextSpan(text: ' ${e.$2}')]), style: const TextStyle(fontSize: 13)),
+          Text(e.$4, style: TextStyle(fontSize: 11, color: f2)),
+        ])),
+      ]))]);
+  }
+
+  Widget _goalCard(bool d) {
+    return Container(padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(gradient: LinearGradient(colors: [WgTokens.accent.withValues(alpha: 0.08), WgTokens.bg.withValues(alpha: 0.6)]),
+        borderRadius: BorderRadius.circular(12), border: Border.all(color: WgTokens.accent.withValues(alpha: 0.16))),
+      child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text('±æ÷‹–¥◊˜ƒø±Í', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'NotoSerifSC')),
+          Text('$_totalWords / ${_totalWords + 2600} ◊÷',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: WgTokens.accent)),
+        ]), const SizedBox(height: 10),
+        ClipRRect(borderRadius: BorderRadius.circular(3),
+          child: Container(height: 6, color: WgTokens.fg.withValues(alpha: 0.08), child: FractionallySizedBox(alignment: Alignment.centerLeft,
+            widthFactor: _totalWords > 0 ? (_totalWords / (_totalWords + 2600)).clamp(0.0, 1.0) : 0.0,
+            child: Container(decoration: const BoxDecoration(gradient: LinearGradient(colors: [WgTokens.accent, WgTokens.warn])))))),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(' £”‡ ${_totalWords > 0 ? 2600 : 0} ◊÷',
+            style: TextStyle(fontSize: 12, color: d ? WgTokens.darkFg3 : WgTokens.fg3)),
+          const Text('Ωÿ÷π£∫÷‹»’', style: TextStyle(fontSize: 12, color: WgTokens.fg3)),
+        ]),
+      ]));
   }
 }

@@ -15,8 +15,8 @@ class WgTokens {
   static const bgWarm = Color(0xFFF5F0E8);
   static const surface = Color(0xFFFFFFFF);
   static const surfaceGlass = Color(0xBFFFFFFF); // 75%
-  static const fg = Color(0xFF3D3529);
-  static const fg2 = Color(0xFF8B7D6B);
+  static const fg = Color(0xFF1A1612);
+  static const fg2 = Color(0xFF6B635A);
   static const fg3 = Color(0xFF8A7B68);
   static const muted = Color(0xFFC8BFB0);
   static const accent = Color(0xFFE8A838);
@@ -24,8 +24,12 @@ class WgTokens {
   static const accentActive = Color(0xFFC0842A);
   static const accentSoft = Color(0x1AE8A838); // 10%
   static const accentGlow = Color(0x33E8A838); // 20%
-  static const border = Color(0xFFE8E0D6);
+  static const border = Color(0x1A3D3529);
   static const borderLight = Color(0xFFF0EAE0);
+  static const surfaceHover = Color(0xE0FFFFFF);
+  static const surfaceStrong = Color(0xF2FFFFFF);
+  static const warn = Color(0xFFD4893A);
+  static const warnSoft = Color(0x1AD4893A);
   static const success = Color(0xFF5B8C5A);
   static const successSoft = Color(0x1A5B8C5A);
   static const danger = Color(0xFFC45A5A);
@@ -1173,27 +1177,7 @@ class WgSuggestionCard extends StatelessWidget {
 }
 
 // ═══ 侧边栏布局 ═══
-class WgSidebar extends StatelessWidget {
-  const WgSidebar({super.key, required this.child});
-  final Widget child;
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: WgTokens.sidebarWidth,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark ? WgTokens.darkSurface : WgTokens.surface,
-        border: Border(
-            right: BorderSide(
-                color:
-                    isDark ? WgTokens.darkBorderLight : WgTokens.borderLight)),
-      ),
-      child: child,
-    );
-  }
-}
 
 // ═══ 上下文面板（右栏用） ═══
 class WgContextSection extends StatelessWidget {

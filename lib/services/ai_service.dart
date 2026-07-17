@@ -4,6 +4,7 @@ import 'package:lingbi/services/interfaces/i_ai_service.dart';
 import '../core/di/service_locator.dart';
 import '../core/ai/base_client.dart';
 
+import '../core/ai/llm_errors.dart';
 import '../core/ai/llm_factory.dart';
 import '../core/ai/llm_models.dart';
 import '../core/ai/deepseek_provider.dart';
@@ -20,7 +21,7 @@ class AIService implements IAIService {
         _providerRegistry = providerRegistry;
   final QuotaService _quota;
   ProviderRegistry? _providerRegistry;
-  String _currentProvider = 'free';
+  String _currentProvider = '';
   String _projectContext = '';
   BaseLLMClient? _cachedProvider;
   String? _lastActiveProviderId;
@@ -47,7 +48,7 @@ class AIService implements IAIService {
 
   @override
   String get currentProviderName =>
-      _activeConfig?.name ?? _currentProvider;
+      _activeConfig?.name ?? (_currentProvider.isEmpty ? 'free' : _currentProvider);
 
   @override
   List<String> get availableProviders {
@@ -73,6 +74,12 @@ class AIService implements IAIService {
 
     if (active != null) {
       _cachedProvider = _createProviderFromConfig(active);
+    } else if (_currentProvider.isEmpty) {
+      throw LLMConfigurationException(
+        message: '未配置 AI Provider，请在设置中选择 DeepSeek/OpenAI/Claude',
+        provider: 'unset',
+        missingField: 'provider',
+      );
     } else {
       _cachedProvider =
           _createProvider(_currentProvider, _apiKeys[_currentProvider]);
@@ -111,8 +118,14 @@ class AIService implements IAIService {
         return provider;
       case 'claude':
         return ClaudeProvider(apiKey: apiKey);
-      default:
+      case 'free':
         return FreeProvider();
+      default:
+        throw LLMConfigurationException(
+          message: '未配置 AI Provider，请在设置中选择 DeepSeek/OpenAI/Claude',
+          provider: name,
+          missingField: 'provider',
+        );
     }
   }
 

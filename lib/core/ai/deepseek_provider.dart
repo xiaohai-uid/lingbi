@@ -111,7 +111,10 @@ class DeepSeekProvider extends BaseLLMClient {
         }
       }
     } catch (e) {
-      yield 'DeepSeek API 错误: $e';
+      throw LLMResponseException(
+        message: 'DeepSeek API error: $e',
+        provider: providerName,
+      );
     }
   }
 

@@ -1,187 +1,140 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:lingbi/generated/l10n/app_localizations.dart';
-import '../../core/models/story_beat.dart';
-import '../../core/database/story_beats_repository.dart';
-import '../../core/di/service_locator.dart';
+import 'package:lingbi/ui/theme/wg_components.dart';
+import 'package:lingbi/ui/components/wg_sidebar.dart';
+import 'package:lingbi/ui/components/wg_nav.dart';
+import 'package:lingbi/ui/components/wg_popover.dart';
+import 'package:lingbi/core/di/service_locator.dart';
 
-
-/// ÊïÖ‰∫ãÁîªÂ∏É ‚Äî ÂèØËßÜÂåñÊÉÖËäÇËäÇÊãçÁºñÊéí
 class StoryCanvasPage extends StatefulWidget {
-  final String projectId;
-
-  const StoryCanvasPage({super.key, required this.projectId});
-
+  const StoryCanvasPage({super.key});
   @override
   State<StoryCanvasPage> createState() => _StoryCanvasPageState();
 }
 
 class _StoryCanvasPageState extends State<StoryCanvasPage> {
-  late StoryBeatsRepository _repo;
-  List<StoryBeat> _beats = [];
-  bool _loading = true;
+  final _settings = ServiceLocator.instance.settingsService;
+  @override
+  void initState() { super.initState(); _settings.addListener(_onSettingsChanged); }
+  int _selectedView = 0;
+  String? _selectedNode;
+  final TransformationController _transformCtrl = TransformationController();
 
-  static const _colors = [
-    Color(0xFFE53935), Color(0xFFFB8C00), Color(0xFFFDD835),
-    Color(0xFF43A047), Color(0xFF1E88E5), Color(0xFF8E24AA),
-    Color(0xFF00ACC1), Color(0xFFFF7043),
+  final _nodes = [
+    {'id': 'n1', 'title': '…Ú“‡', 'meta': '÷˜Ω« °§ µ⁄ 126 ’¬', 'desc': '«∞µ˜≤Èº«’ﬂ', 'x': 120.0, 'y': 120.0},
+    {'id': 'n2', 'title': 'æ…¬ÎÕ∑', 'meta': 'µÿµ„ °§ µ⁄ 127 ’¬', 'desc': 'µ⁄ 127 ’¬∫À–ƒ≥°æ∞', 'x': 420.0, 'y': 160.0},
+    {'id': 'n3', 'title': '«≈œ¬∂‘ª∞', 'meta': ' ¬º˛ °§ µ⁄ 128 ’¬', 'desc': 'µ⁄ 128 ’¬πÿº¸ ¬º˛', 'x': 260.0, 'y': 340.0},
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _repo = StoryBeatsRepository(storageService: ServiceLocator.instance.storageService);
-    _load();
-  }
-
-  Future<void> _load() async {
-    final beats = await _repo.getBeats(widget.projectId);
-    setState(() { _beats = beats; _loading = false; });
-  }
-
-  Future<void> _addBeat() async {
-    final titleCtl = TextEditingController();
-    final descCtl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.s60),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtl, decoration: const InputDecoration(labelText: 'Ê†áÈ¢ò', border: OutlineInputBorder())),
-            SizedBox(height: 8),
-            TextField(controller: descCtl, decoration: const InputDecoration(labelText: 'ÊèèËø∞', border: OutlineInputBorder()), maxLines: 3),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.s33)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.s81)),
-        ],
-      ),
-    );
-    if (result != true || titleCtl.text.trim().isEmpty) return;
-    final beat = StoryBeat(
-      projectId: widget.projectId,
-      title: titleCtl.text.trim(),
-      description: descCtl.text.trim(),
-      sequence: _beats.length,
-      colorIndex: _beats.length % _colors.length,
-    );
-    await _repo.saveBeat(beat);
-    await _load();
-  }
-
-  Future<void> _editBeat(StoryBeat beat) async {
-    final titleCtl = TextEditingController(text: beat.title);
-    final descCtl = TextEditingController(text: beat.description);
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.s91),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtl, decoration: const InputDecoration(labelText: 'Ê†áÈ¢ò', border: OutlineInputBorder())),
-            SizedBox(height: 8),
-            TextField(controller: descCtl, decoration: const InputDecoration(labelText: 'ÊèèËø∞', border: OutlineInputBorder()), maxLines: 3),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.s33)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(AppLocalizations.of(context)!.s17)),
-        ],
-      ),
-    );
-    if (result != true || titleCtl.text.trim().isEmpty) return;
-    beat.title = titleCtl.text.trim();
-    beat.description = descCtl.text.trim();
-    await _repo.saveBeat(beat);
-    await _load();
-  }
-
-  Future<void> _deleteBeat(StoryBeat beat) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.s26),
-        content: Text('Á°ÆÂÆöÂà†Èô§"${beat.title}"Ôºü'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(AppLocalizations.of(context)!.s33)),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(AppLocalizations.of(context)!.s25)),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    await _repo.deleteBeat(beat.id);
-    await _load();
-  }
-
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) newIndex--;
-    final item = _beats.removeAt(oldIndex);
-    _beats.insert(newIndex, item);
-    for (var i = 0; i < _beats.length; i++) {
-      _beats[i].sequence = i;
-      await _repo.saveBeat(_beats[i]);
-    }
-    setState(() {});
+  @override
+  void dispose() { _settings.removeListener(_onSettingsChanged); _transformCtrl.dispose(); super.dispose(); }
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final d = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.s58),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Êñ∞Â¢ûËäÇÊãç',
-            onPressed: _addBeat,
-          ),
-        ],
-      ),
-      body: _loading
-        ? Center(child: CircularProgressIndicator())
-        : _beats.isEmpty
-          ? Center(child: Text(AppLocalizations.of(context)!.s66))
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _beats.length,
-              onReorder: _onReorder,
-              itemBuilder: (ctx, i) {
-                final beat = _beats[i];
-                return Card(
-                  key: ValueKey(beat.id),
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: _colors[beat.colorIndex % _colors.length],
-                      child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                    title: Text(beat.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: beat.description.isNotEmpty ? Text(beat.description, maxLines: 2, overflow: TextOverflow.ellipsis) : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => _editBeat(beat),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                          onPressed: () => _deleteBeat(beat),
-                        ),
-                        const Icon(Icons.drag_handle),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addBeat,
-        child: const Icon(Icons.add),
-      ),
+      backgroundColor: WgTokens.bgFor(context),
+      body: Column(children: [
+        _topbar(d),
+        Expanded(child: Row(children: [
+          _sidebar(d),
+          Expanded(child: _content(d)),
+        ])),
+      ]),
     );
   }
+
+  Widget _sidebar(bool d) => WgSidebar(items: wgNavItems(context, 'story_canvas'));
+  Widget _topbar(bool d) {
+    return Container(height: 60, padding: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: BoxDecoration(color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.7),
+        border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Row(children: [
+        const Text('π  ¬ª≠≤º', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC')),
+        const Spacer(),
+        WgPopover(trigger: wgIconButton(Icons.search, d: d), contentBuilder: (context, close) => WgSearchPanel(d: d, onClose: close)),
+        const SizedBox(width: 4),
+        WgPopover(trigger: wgIconButton(Icons.notifications_outlined, d: d), contentBuilder: (context, close) => WgNotificationPanel(d: d)),
+        const SizedBox(width: 4),
+      ]),
+    );
+  }
+
+  Widget _content(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return Column(children: [
+      Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
+        child: Row(children: [
+          _toolBtn('πÿœµÕº', _selectedView == 0, () => setState(() => _selectedView = 0)),
+          const SizedBox(width: 8), _toolBtn(' ±º‰œﬂ', _selectedView == 1, () => setState(() => _selectedView = 1)),
+          const SizedBox(width: 8), _toolBtn('ø¥∞Â', _selectedView == 2, () => setState(() => _selectedView = 2)),
+          const Spacer(),
+          Text('¡º${_nodes.length} ∏ˆΩ⁄≈ƒ', style: TextStyle(fontSize: 12, color: f2)),
+        ]),
+      ),
+      Expanded(child: LayoutBuilder(builder: (ctx, constraints) {
+        return InteractiveViewer(
+          transformationController: _transformCtrl,
+          boundaryMargin: const EdgeInsets.all(double.infinity),
+          minScale: 0.25, maxScale: 4.0,
+          child: SizedBox(width: constraints.maxWidth * 2, height: constraints.maxHeight * 2,
+            child: Stack(children: [
+              CustomPaint(size: Size.infinite, painter: _GridPainter(gridColor: WgTokens.border)),
+              for (final n in _nodes) Positioned(
+                left: n['x'] as double, top: n['y'] as double,
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedNode = n['id'] as String),
+                  child: Container(width: 220, padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: WgTokens.surfaceStrong, borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _selectedNode == n['id'] ? WgTokens.accent : WgTokens.border, width: _selectedNode == n['id'] ? 2 : 1),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 2))]),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(n['title'] as String, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+                      const SizedBox(height: 6),
+                      Text(n['meta'] as String, style: const TextStyle(fontSize: 12, color: WgTokens.fg2)),
+                    ]),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+        );
+      })),
+      Container(padding: const EdgeInsets.all(16), width: double.infinity,
+        decoration: BoxDecoration(color: WgTokens.surface, border: Border(top: BorderSide(color: WgTokens.border))),
+        child: _selectedNode == null
+          ? Text('—°‘Ò“ª∏ˆΩ⁄µ„≤Èø¥≥°æ∞πÿœµ', style: TextStyle(fontSize: 13, color: f2))
+          : Text('“——°‘ÒΩ⁄µ„', style: const TextStyle(fontSize: 13)),
+      ),
+    ]);
+  }
+
+  Widget _toolBtn(String label, bool active, VoidCallback onTap) {
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8),
+      child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? WgTokens.accentSoft : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: active ? null : Border.all(color: WgTokens.border)),
+        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: active ? FontWeight.w500 : FontWeight.w400, color: active ? WgTokens.accent : WgTokens.fg2))));
+  }
+}
+
+class _GridPainter extends CustomPainter {
+  _GridPainter({required this.gridColor});
+  final Color gridColor;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..color = gridColor..strokeWidth = 0.5;
+    for (double x = 0; x <= size.width; x += 24) canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
+    for (double y = 0; y <= size.height; y += 24) canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
+  }
+  @override
+  bool shouldRepaint(covariant _GridPainter old) => old.gridColor != gridColor;
 }

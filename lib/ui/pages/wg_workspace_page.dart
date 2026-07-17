@@ -1,1523 +1,358 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/generated/l10n/app_localizations.dart';
+import 'package:lingbi/core/models/world.dart';
+
+import 'package:lingbi/ui/theme/wg_components.dart';
+import 'package:lingbi/ui/components/wg_nav.dart';
+import 'package:lingbi/ui/components/wg_sidebar.dart';
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/services/world_service.dart';
-import 'package:lingbi/services/canon_service.dart';
-import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/generation/controller.dart';
-import 'package:lingbi/services/generation/state_machine.dart';
-import 'package:lingbi/core/models/world.dart' show World;
-import 'package:lingbi/data/database/world_database.dart';
-import 'package:lingbi/ui/components/memory_panel.dart';
-import 'package:lingbi/ui/components/style_panel.dart';
-import 'package:lingbi/ui/pages/wg_editor_page.dart';
-import 'package:lingbi/ui/pages/settings_page.dart';
-import 'package:lingbi/ui/components/name_generator_dialog.dart';
 
-/// WgWorkspacePage â€” ç²¾ç¡®åŒ¹é… Open Design workspace.html
-/// å·²å¯¹æ¥ v4.0 çœŸå®æ•°æ® (WorldService)
 class WgWorkspacePage extends StatefulWidget {
-  const WgWorkspacePage({super.key, required this.world});
   final World world;
-
+  const WgWorkspacePage({super.key, required this.world});
   @override
   State<WgWorkspacePage> createState() => _WgWorkspacePageState();
 }
 
 class _WgWorkspacePageState extends State<WgWorkspacePage> {
-  final WorldService _worldService = ServiceLocator.instance.worldService;
-  final CanonService _canonService = ServiceLocator.instance.canonService;
-  final AIService _aiService = ServiceLocator.instance.aiService;
+  final _settings = ServiceLocator.instance.settingsService;
+  @override
+  void initState() { super.initState(); _settings.addListener(_onSettingsChanged); }
+  final List<String> _tabs = const ['´ó¸Ù', '½ÇÉ«', 'ÕÂ½Ú', 'Ê±¼äÏß', 'AI'];
   int _selectedTab = 0;
-  List<Work> _works = [];
-  final Map<String, List<Volume>> _volumes = {};
-  final Map<String, List<Chapter>> _chapters = {};
-  bool _loadingWorks = true;
-  String? _expandedWorkId;
-  String? _expandedVolumeId;
+  int _selectedChapter = 0;
+  final TextEditingController _promptCtrl = TextEditingController();
 
-  List<Character> _characters = [];
-  List<TimelineEvent> _timelineEvents = [];
-  bool _loadingTabs = true;
+  final List<Map<String, dynamic>> _outline = const [
+    {'act': 'µÚÒ»Ä»', 'title': 'ÈÕ³£±ÀËú', 'summary': 'Ö÷½ÇÔÚÆ½¾²Éú»îÖĞ·¢ÏÖÒì³££¬¾É¼ÇÒäµÄËéÆ¬¿ªÊ¼¸¡ÏÖ¡£', 'beats': 4, 'done': 3},
+    {'act': 'µÚ¶şÄ»', 'title': '°µÁ÷Ó¿¶¯', 'summary': 'µ÷²éÒı³ö¼Ò×åÃØĞÁ£¬ÃËÓÑÓëµĞÈËµÄ½çÏŞ¿ªÊ¼Ä£ºı¡£', 'beats': 6, 'done': 2},
+    {'act': 'µÚÈıÄ»', 'title': '¹é´¦', 'summary': 'ÕæÏà½ÒÏş£¬Ö÷½ÇÔÚ¼ÇÒäÓëÏÖÊµÖĞ×ö³ö¼èÄÑ¾ñÔñ¡£', 'beats': 5, 'done': 0},
+  ];
+  final List<Map<String, dynamic>> _characters = const [
+    {'name': 'ÁÖÏª', 'role': 'Ö÷½Ç', 'desc': '¼ÇÒäÎÉÂÒµÄµµ°¸¹ÜÀíÔ±£¬ÀíĞÔ¶ø¹Â¶À¡£', 'tag': 'Ö÷½Ç'},
+    {'name': 'ÉòÈ·', 'role': 'ÃËÓÑ', 'desc': 'ÉñÃØµÄµ÷²éÔ±£¬ÕÆÎÕ²¿·ÖÕæÏà¡£', 'tag': 'ÃËÓÑ'},
+    {'name': 'Óàäé', 'role': '¶ÔÊÖ', 'desc': '¼Ò×åÀûÒæº´ÎÀÕß£¬ÊÖ¶ÎÀäÓ²¡£', 'tag': '¶ÔÊÖ'},
+    {'name': '°¢™H', 'role': '»ï°é', 'desc': 'ÉÙÄêÊ±ÆÚµÄ¼ÇÒäÍ¶Ó°£¬Ö÷½ÇµÄÁíÒ»ÖÖ¿ÉÄÜ¡£', 'tag': '»ï°é'},
+  ];
+  final List<Map<String, dynamic>> _chapters = const [
+    {'no': 'µÚ 1 ÕÂ', 'title': '¿ªÆª', 'status': 'done', 'words': 3210, 'date': '07-12'},
+    {'no': 'µÚ 2 ÕÂ', 'title': 'ÁãĞÇ¼ÇÒä', 'status': 'review', 'words': 2870, 'date': '07-13'},
+    {'no': 'µÚ 3 ÕÂ', 'title': '°µÁ÷Ó¿¶¯', 'status': 'draft', 'words': 1540, 'date': '07-15'},
+    {'no': 'µÚ 4 ÕÂ', 'title': '¾ÉÊ¶ÖØ·ê', 'status': 'draft', 'words': 980, 'date': '07-15'},
+    {'no': 'µÚ 5 ÕÂ', 'title': 'ÃÔÎí', 'status': 'planned', 'words': 0, 'date': '¡ª'},
+  ];
+  final List<Map<String, dynamic>> _timeline = const [
+    {'time': 'Í¯Äê', 'title': 'µµ°¸ÊÒÊ§»ğ', 'desc': 'Ò»³¡»ğÔÖ´ø×ßÁËÁÖÏªµÄ²¿·ÖÍ¯Äê¼ÇÒä¡£'},
+    {'time': 'Ê®ÄêÇ°', 'title': 'ÉòÈ·ÈëÖ°', 'desc': 'µ÷²éÔ±½øÈë»ú¹¹£¬¿ªÊ¼°µÖĞ¼ÇÂ¼Òì³£¡£'},
+    {'time': 'ÏÖÔÚ', 'title': '¼ÇÒäËéÆ¬', 'desc': 'Ö÷½ÇÆµ·±ÉÁ»ØÄ°Éú¶øÕæÊµµÄ³¡¾°¡£'},
+    {'time': 'ÈıÌìºó', 'title': '¼Ò×å»áÒé', 'desc': 'Ò»³¡¶ÔÖÅÔÚ³¤×ÀÁ½¶Ë±¬·¢¡£'},
+  ];
+  final List<Map<String, dynamic>> _aiItems = const [
+    {'title': 'ÏÂÒ»ÕÂ¹³×Ó', 'body': 'ÈÃ°¢™HÔÚÓêÒ¹³öÏÖ£¬ÁôÏÂ°ëÕÅ±»ÉÕ½¹µÄºÏÓ°¡£', 'tag': 'Çé½Ú'},
+    {'title': '½ÇÉ«¶¯»ú', 'body': 'ÓàäéµÄÀäÓ²Ô´ÓÚÒ»´ÎÎ´¾¹µÄ¾ÈÔ®£¬ÖÁ½ñÎŞ·¨ÊÍ»³¡£', 'tag': 'ÈËÎï'},
+    {'title': '»·¾³ÃèĞ´', 'body': 'ÓÃ³±ÊªµÄÃ¹Î¶Óë»è»ÆÌ¨µÆ£¬°µÊ¾¼ÇÒäµÄ²»¿É¿¿¡£', 'tag': 'ÎÄ·ç'},
+  ];
 
   @override
-  void initState() {
-    super.initState();
-    _loadWorks();
-    _loadTabData();
+  void dispose() {
+    _settings.removeListener(_onSettingsChanged);
+    _promptCtrl.dispose();
+    super.dispose();
   }
-
-  Future<void> _loadTabData() async {
-    setState(() => _loadingTabs = true);
-    try {
-      _characters = await _canonService.getCharacters(widget.world.id);
-      final timelineRepo =
-          ServiceLocator.instance.worldService.timelineRepository;
-      _timelineEvents = await timelineRepo.getEvents(widget.world.id);
-    } catch (_) {}
-    if (mounted) setState(() => _loadingTabs = false);
-  }
-
-  Future<void> _loadWorks() async {
-    setState(() => _loadingWorks = true);
-    try {
-      _works = await _worldService.getWorks(widget.world.id);
-      if (_works.isNotEmpty) {
-        _expandedWorkId = _works.first.id;
-        await _loadVolumes(_works.first.id);
-      }
-    } catch (_) {}
-    if (mounted) setState(() => _loadingWorks = false);
-  }
-
-  Future<void> _loadVolumes(String workId) async {
-    try {
-      final vols = await _worldService.volumeRepository
-          .getVolumes(workId, worldId: widget.world.id);
-      _volumes[workId] = vols;
-      if (vols.isNotEmpty && _expandedVolumeId == null) {
-        _expandedVolumeId = vols.first.id;
-        await _loadChapters(vols.first.id);
-      }
-    } catch (_) {
-      _volumes[workId] = [];
-    }
-  }
-
-  Future<void> _loadChapters(String volumeId) async {
-    try {
-      _chapters[volumeId] = await _worldService.chapterRepository
-          .getChapters(volumeId, worldId: widget.world.id);
-    } catch (_) {
-      _chapters[volumeId] = [];
-    }
+  void _onSettingsChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor =
-        isDark ? const Color(0xFF332C22) : const Color(0xFFF0EAE0);
-
+    final d = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF1A1612) : const Color(0xFFFAF8F5),
-      body: Column(
-        children: [
-          _buildTopbar(isDark),
-          Expanded(
-            child: Row(
-              children: [
-                _buildSidebar(isDark, borderColor),
-                _buildCenter(isDark),
-                _buildRightPanel(isDark, borderColor),
-              ],
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: WgTokens.bgFor(context),
+      body: Row(children: [
+        WgSidebar(items: wgNavItems(context, 'workspace')),
+        _outlinePanel(d),
+        Expanded(child: Column(children: [
+          _tabbar(d),
+          Expanded(child: _tabContent(d)),
+        ])),
+        _contextPanel(d),
+      ]),
     );
   }
 
-  Widget _buildTopbar(bool isDark) {
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+  Widget _outlinePanel(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return SizedBox(width: 260, child: Container(height: double.infinity,
       decoration: BoxDecoration(
-          color: isDark ? const Color(0xD92C261E) : const Color(0xBFFFFFFF),
-          border: Border(
-              bottom: BorderSide(
-                  color: isDark
-                      ? const Color(0xFF332C22)
-                      : const Color(0xFFF0EAE0)))),
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.92),
+        border: Border(right: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text('ÕÂ½ÚÄ¿Â¼', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+            Text('12 ÕÂ', style: TextStyle(fontSize: 12, color: f2)),
+          ])),
+        Divider(height: 1, color: WgTokens.border),
+        for (final tab in ['Ìá¸Ù', '½ÇÉ«', 'ÕÂ½Ú', 'Ê±¼äÏß', 'AI Éú³É'])
+          InkWell(onTap: () => setState(() => _selectedTab = _tabs.indexOf(tab == 'AI Éú³É' ? 'AI' : tab)),
+            child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), width: double.infinity,
+              child: Text(tab == 'AI Éú³É' ? 'AI Éú³É' : tab, style: TextStyle(fontSize: 13, color: f2)))),
+        Expanded(child: ListView(padding: const EdgeInsets.all(10), children: [
+          for (int i = 0; i < _chapters.length; i++)
+            _chapterItem(_chapters[i]['no'], _chapters[i]['title'], i == _selectedChapter, d, () => setState(() => _selectedChapter = i)),
+        ])),
+      ]),
+    ));
+  }
+
+  Widget _chapterItem(String num, String name, bool active, bool d, VoidCallback onTap) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+      child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8),
+        child: Container(padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          decoration: BoxDecoration(color: active ? WgTokens.surface : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+          child: Row(children: [
+            SizedBox(width: 30, child: Text(num, style: TextStyle(fontSize: 12, color: active ? WgTokens.accent : f2, fontWeight: FontWeight.w500))),
+            Expanded(child: Text(name, style: TextStyle(fontSize: 13, color: active ? (d ? WgTokens.darkFg : WgTokens.fg) : (d ? WgTokens.darkFg2 : WgTokens.fg2)))),
+          ]))));
+  }
+
+  Widget _tabbar(bool d) {
+    return Container(height: 48, padding: const EdgeInsets.symmetric(horizontal: 18),
+      decoration: BoxDecoration(
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.7),
+        border: Border(bottom: BorderSide(color: WgTokens.borderFor(context)))),
       child: Row(children: [
-        Text('é¡¹ç›®',
-            style: TextStyle(
-                fontSize: 12,
-                color: isDark
-                    ? const Color(0xFF7A6C5C)
-                    : const Color(0xFF8A7B68))),
-        SizedBox(width: 8),
-        Text('/',
-            style: TextStyle(
-                color: isDark
-                    ? const Color(0xFFA89880)
-                    : const Color(0xFF8B7D6B))),
-        SizedBox(width: 8),
-        Text(widget.world.name,
-            style: TextStyle(
-                color: isDark
-                    ? const Color(0xFFA89880)
-                    : const Color(0xFF8B7D6B))),
-        SizedBox(width: 16),
-        Text('åˆ›ä½œå·¥ä½œåŒº',
-            style: TextStyle(
-                fontFamily: 'NotoSerifSC',
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isDark
-                    ? const Color(0xFFE8DDD0)
-                    : const Color(0xFF3D3529))),
+        for (int i = 0; i < _tabs.length; i++)
+          Padding(padding: const EdgeInsets.only(right: 2), child: _tab(_tabs[i], i == _selectedTab, () => setState(() => _selectedTab = i))),
         const Spacer(),
-        InkWell(
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => WgEditorPage(world: widget.world))),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                borderRadius: BorderRadius.circular(8)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('âœ', style: TextStyle(fontSize: 14)),
-              SizedBox(width: 4),
-              Text('å…¨å±å†™ä½œ',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFFFFFFFF))),
-            ]),
-          ),
-        ),
-        SizedBox(width: 12),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-              color: const Color(0x1AE8A838),
-              borderRadius: BorderRadius.circular(16)),
-          child: Center(
-              child: Text('å¾',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFE8A838)))),
-        ),
+        Text(widget.world.name, style: TextStyle(fontSize: 12, color: d ? WgTokens.darkFg2 : WgTokens.fg2)),
       ]),
     );
   }
 
-  // â•â•â• 1.5.1 Sidebar é€‚é… Worldâ†’Work å±‚æ¬¡ â•â•â•
-  Widget _buildSidebar(bool isDark, Color border) {
-    return Container(
-      width: 280,
-      decoration: BoxDecoration(
-          color: isDark ? const Color(0xD92C261E) : const Color(0xBFFFFFFF),
-          border: Border(right: BorderSide(color: border))),
-      child: _loadingWorks
-          ? Center(
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Color(0xFFE8A838)))
-          : _works.isEmpty
-              ? Center(
-                  child: Text('æš‚æ— ä½œå“',
-                      style: TextStyle(fontSize: 13, color: Color(0xFF8A7B68))))
-              : ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: _works.map((work) => _workTreeItem(work)).toList()
-                    ..add(
-                      InkWell(
-                        onTap: _showAddChapterDialog,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          child: Row(children: [
-                            Text('ï¼‹',
-                                style: TextStyle(
-                                    fontSize: 13, color: Color(0xFFE8A838))),
-                            SizedBox(width: 8),
-                            Text('æ·»åŠ ç« èŠ‚',
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFFE8A838),
-                                    fontWeight: FontWeight.w500)),
-                          ]),
-                        ),
-                      ),
-                    ),
-                ),
-    );
-  }
-
-  Widget _workTreeItem(Work work) {
-    final isExpanded = _expandedWorkId == work.id;
-    final vols = _volumes[work.id] ?? [];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () async {
-            if (isExpanded) {
-              setState(() => _expandedWorkId = null);
-            } else {
-              setState(() => _expandedWorkId = work.id);
-              if (_volumes[work.id] == null) await _loadVolumes(work.id);
-            }
-          },
+  Widget _tab(String label, bool active, VoidCallback onTap) {
+    final d = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8),
+      child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? WgTokens.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(children: [
-              Text(isExpanded ? 'â–¼' : 'â–¶',
-                  style:
-                      const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
-              SizedBox(width: 8),
-              const Text('ğŸ“', style: TextStyle(fontSize: 13)),
-              SizedBox(width: 8),
-              Expanded(
-                  child: Text(work.title,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF3D3529)))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                decoration: BoxDecoration(
-                    color: const Color(0x1AE8A838),
-                    borderRadius: BorderRadius.circular(999)),
-                child: Text('${vols.length} å·',
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFFE8A838))),
-              ),
-            ]),
-          ),
-        ),
-        if (isExpanded) ...vols.map((vol) => _volumeTreeItem(vol)),
-      ],
+          boxShadow: active ? [BoxShadow(color: WgTokens.fg.withValues(alpha: 0.06), blurRadius: 2, offset: const Offset(0, 1))] : null),
+        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: active ? FontWeight.w500 : FontWeight.w400, color: active ? (d ? WgTokens.darkFg : WgTokens.fg) : (d ? WgTokens.darkFg2 : WgTokens.fg2)))));
+  }
+
+  Widget _tabContent(bool d) {
+    return Padding(padding: const EdgeInsets.all(24),
+      child: IndexedStack(index: _selectedTab, children: [
+        _outlineTab(d),
+        _charactersTab(d),
+        _chaptersTab(d),
+        _timelineTab(d),
+        _aiTab(d),
+      ]),
     );
   }
 
-  Widget _volumeTreeItem(Volume vol) {
-    final isExpanded = _expandedVolumeId == vol.id;
-    final chs = _chapters[vol.id] ?? [];
-    return Padding(
-      padding: const EdgeInsets.only(left: 24),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () async {
-              if (isExpanded) {
-                setState(() => _expandedVolumeId = null);
-              } else {
-                setState(() => _expandedVolumeId = vol.id);
-                if (_chapters[vol.id] == null) await _loadChapters(vol.id);
-              }
-            },
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(children: [
-                Text(isExpanded ? 'â–¼' : 'â–¶',
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFF8A7B68))),
-                SizedBox(width: 8),
-                const Text('ğŸ“„', style: TextStyle(fontSize: 11)),
-                SizedBox(width: 8),
-                Expanded(
-                    child: Text(vol.title,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF8B7D6B)))),
-                if (chs.isNotEmpty)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                        color: const Color(0x1AE8A838),
-                        borderRadius: BorderRadius.circular(999)),
-                    child: Text('${chs.length} ç« ',
-                        style: const TextStyle(
-                            fontSize: 10, color: Color(0xFFE8A838))),
-                  ),
-              ]),
-            ),
-          ),
-          if (isExpanded)
-            ...chs.map((ch) => Padding(
-                  padding: const EdgeInsets.only(left: 24),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: Row(children: [
-                        const Text('ğŸ“', style: TextStyle(fontSize: 11)),
-                        SizedBox(width: 8),
-                        Expanded(
-                            child: Text(ch.title,
-                                style: const TextStyle(
-                                    fontSize: 12, color: Color(0xFF8B7D6B)))),
-                      ]),
-                    ),
-                  ),
-                )),
-        ],
-      ),
+  Widget _outlineTab(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: _outline.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (ctx, i) {
+        final o = _outline[i];
+        final pct = (o['done'] as int) / (o['beats'] as int);
+        return WgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: WgTokens.accentSoft, borderRadius: BorderRadius.circular(6)),
+              child: Text(o['act'], style: const TextStyle(fontSize: 12, color: WgTokens.accent, fontWeight: FontWeight.w600))),
+            const SizedBox(width: 10),
+            Expanded(child: Text(o['title'], style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg))),
+            Text('${o['done']}/${o['beats']} ½ÚÅÄ', style: TextStyle(fontSize: 12, color: f2)),
+          ]),
+          const SizedBox(height: 10),
+          Text(o['summary'], style: TextStyle(fontSize: 13, color: f2, height: 1.6)),
+          const SizedBox(height: 12),
+          ClipRRect(borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(value: pct, minHeight: 6,
+              backgroundColor: d ? WgTokens.darkBorder : WgTokens.border,
+              valueColor: const AlwaysStoppedAnimation<Color>(WgTokens.accent))),
+        ]));
+      },
     );
   }
 
-  // â•â•â• Center â•â•â•
-  Widget _buildCenter(bool isDark) {
-    return Expanded(
-      child: Column(
-        children: [
-          _buildTabBar(isDark),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: _selectedTab == 0
-                  ? _buildOutlineTab()
-                  : _selectedTab == 1
-                      ? _buildCharactersTab()
-                      : _selectedTab == 2
-                          ? _buildChaptersTab()
-                          : _selectedTab == 3
-                              ? _buildTimelineTab()
-                              : _buildGenerateTab(),
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget _charactersTab(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return SingleChildScrollView(child: Wrap(spacing: 16, runSpacing: 16, children: [
+      for (final c in _characters) _characterCard(c, d, f2),
+    ]));
   }
 
-  Widget _buildTabBar(bool isDark) {
-    final labels = ['å¤§çº²', 'è§’è‰²', 'ç« èŠ‚', 'æ—¶é—´çº¿', 'AI ç”Ÿæˆ'];
-    final totalChapters =
-        _chapters.values.fold(0, (sum, list) => sum + list.length);
-    final badges = ['', '${_characters.length}', '$totalChapters', '', ''];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-          border: Border(
-              bottom: BorderSide(
-                  color: isDark
-                      ? const Color(0xFF332C22)
-                      : const Color(0xFFF0EAE0)))),
-      child: Row(
-        children: List.generate(labels.length, (i) {
-          return InkWell(
-            onTap: () => setState(() {
-              _selectedTab = i;
-            }),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                  border: Border(
-                      bottom: BorderSide(
-                          color: _selectedTab == i
-                              ? const Color(0xFFE8A838)
-                              : Colors.transparent,
-                          width: 2))),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(labels[i],
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: _selectedTab == i
-                            ? const Color(0xFFE8A838)
-                            : const Color(0xFF8B7D6B))),
-                if (badges[i].isNotEmpty) ...[
-                  SizedBox(width: 6),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: const Color(0x1AE8A838),
-                        borderRadius: BorderRadius.circular(999)),
-                    child: Text(badges[i],
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFFE8A838))),
-                  ),
-                ],
-              ]),
-            ),
-          );
-        }),
-      ),
-    );
+  Widget _characterCard(Map<String, dynamic> c, bool d, Color f2) {
+    return SizedBox(width: 260, child: WgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        CircleAvatar(radius: 22, backgroundColor: WgTokens.accentSoft, child: Text(c['name'].substring(0, 1), style: const TextStyle(color: WgTokens.accent, fontWeight: FontWeight.w600))),
+        const SizedBox(width: 12),
+        Expanded(child: Text(c['name'], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: d ? WgTokens.darkFg : WgTokens.fg))),
+        WgBadge(c['tag'], type: WgBadgeType.neutral),
+      ]),
+      const SizedBox(height: 10),
+      Text(c['desc'], style: TextStyle(fontSize: 13, color: f2, height: 1.6)),
+    ])));
   }
 
-  Widget _buildOutlineTab() {
-    if (_loadingTabs) {
-      return Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFFE8A838)));
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (_works.isEmpty)
-        Padding(
-            padding: EdgeInsets.all(40),
-            child: Text('æš‚æ— ä½œå“',
-                style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
-      else
-        ..._works.map((work) =>
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(children: [
-                  Text(work.title,
-                      style: const TextStyle(
-                          fontFamily: 'NotoSerifSC',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF3D3529))),
-                  SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                    decoration: BoxDecoration(
-                        color: const Color(0x1AE8A838),
-                        borderRadius: BorderRadius.circular(999)),
-                    child: Text('${_volumes[work.id]?.length ?? 0} å·',
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFFE8A838))),
-                  ),
-                ]),
-              ),
-              ...(_volumes[work.id] ?? []).expand((vol) => [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 8, 16, 4),
-                      child: Text(vol.title,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF8B7D6B))),
-                    ),
-                    ...(_chapters[vol.id] ?? []).map((ch) => _outlineItem(
-                          'ç¬¬${ch.chapterNumber}ç« ',
-                          ch.title,
-                          ch.synopsis,
-                          ch.id == (_chapters[vol.id]?.first.id ?? ''),
-                          ch.synopsis.isNotEmpty ? ['â—‡ å·²è§„åˆ’'] : ['â—‹ å¾…æ•´ç†'],
-                        )),
-                  ]),
+  Widget _chaptersTab(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: _chapters.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (ctx, i) {
+        final ch = _chapters[i];
+        final active = i == _selectedChapter;
+        return InkWell(onTap: () => setState(() => _selectedChapter = i),
+          borderRadius: BorderRadius.circular(WgTokens.radiusLg),
+          child: WgCard(borderColor: active ? WgTokens.accent : null, child: Row(children: [
+            SizedBox(width: 56, child: Text(ch['no'], style: TextStyle(fontSize: 12, color: f2, fontWeight: FontWeight.w500))),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(ch['title'], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+              const SizedBox(height: 4),
+              Text('${ch['words']} ×Ö ¡¤ ${ch['date']}', style: TextStyle(fontSize: 12, color: f2)),
             ])),
-    ]);
-  }
-
-  Widget _outlineItem(
-      String num, String title, String desc, bool active, List<String> meta) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(32, 12, 16, 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: const BorderSide(color: Color(0xFFF0EAE0)),
-          left: BorderSide(
-              color: active ? const Color(0xFFE8A838) : Colors.transparent,
-              width: 3),
-        ),
-        color: active ? const Color(0x1AE8A838) : null,
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(num,
-            style: const TextStyle(
-                fontFamily: 'JetBrainsMono',
-                fontSize: 11,
-                color: Color(0xFF8A7B68))),
-        SizedBox(height: 2),
-        Text(title,
-            style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF3D3529))),
-        if (desc.isNotEmpty) ...[
-          SizedBox(height: 4),
-          Text(desc,
-              style: const TextStyle(
-                  fontSize: 12, color: Color(0xFF8B7D6B), height: 1.5)),
-        ],
-        if (meta.isNotEmpty) ...[
-          SizedBox(height: 8),
-          Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              children: meta
-                  .map((m) => Text(m,
-                      style: const TextStyle(
-                          fontSize: 11, color: Color(0xFF8A7B68))))
-                  .toList()),
-        ],
-      ]),
+            _statusBadge(ch['status']),
+          ])));
+      },
     );
   }
 
-  Widget _buildCharactersTab() {
-    if (_loadingTabs) {
-      return Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFFE8A838)));
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('äººç‰© Â· ${widget.world.name}',
-            style: const TextStyle(
-                fontFamily: 'NotoSerifSC',
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3D3529))),
-        InkWell(
-          onTap: _showAddCharacterDialog,
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('ï¼‹',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF8B7D6B))),
-              SizedBox(width: 4),
-              Text('æ·»åŠ äººç‰©',
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF8B7D6B))),
-            ]),
-          ),
-        ),
-      ]),
-      SizedBox(height: 16),
-      if (_characters.isEmpty)
-        Padding(
-            padding: EdgeInsets.all(40),
-            child: Text('æš‚æ— è§’è‰²',
-                style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
-      else
-        Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: _characters
-                .map((c) => _charCard(
-                      c.name.isNotEmpty ? c.name[0] : '?',
-                      c.name,
-                      '${c.role} Â· æƒé‡${c.baseWeight}',
-                      [c.role, c.personality]
-                          .where((s) => s.isNotEmpty)
-                          .toList(),
-                      c.description.isNotEmpty ? c.description : 'æš‚æ— èƒŒæ™¯',
-                      onTap: () => setState(() {}),
-                    ))
-                .toList()),
-    ]);
-  }
-
-  Widget _charCard(
-      String avatar, String name, String role, List<String> tags, String arc,
-      {VoidCallback? onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-          width: 300,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF0EAE0))),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                          colors: [Color(0x1AE8A838), Color(0xFFF5F0E8)]),
-                      borderRadius: BorderRadius.circular(28)),
-                  child: Center(
-                      child: Text(avatar,
-                          style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'NotoSerifSC',
-                              color: Color(0xFFE8A838))))),
-              SizedBox(width: 16),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text(name,
-                        style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF3D3529))),
-                    SizedBox(height: 2),
-                    Text(role,
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF8A7B68))),
-                    SizedBox(height: 8),
-                    Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: tags
-                            .map((t) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                      color: const Color(0x1AE8A838),
-                                      borderRadius: BorderRadius.circular(999)),
-                                  child: Text(t,
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFFE8A838))),
-                                ))
-                            .toList()),
-                    if (arc.isNotEmpty) ...[
-                      SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.only(top: 12),
-                        decoration: const BoxDecoration(
-                            border: Border(
-                                top: BorderSide(color: Color(0xFFF0EAE0)))),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('èƒŒæ™¯',
-                                  style: TextStyle(
-                                      fontSize: 11, color: Color(0xFF8A7B68))),
-                              SizedBox(height: 2),
-                              Text(arc,
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF3D3529),
-                                      height: 1.5)),
-                            ]),
-                      ),
-                    ],
-                  ])),
-            ]),
-          )),
-    );
-  }
-
-  Widget _buildChaptersTab() {
-    if (_loadingTabs) {
-      return Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFFE8A838)));
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text('ç« èŠ‚ Â· ${widget.world.name}',
-            style: const TextStyle(
-                fontFamily: 'NotoSerifSC',
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF3D3529))),
-        InkWell(
-            onTap: () => setState(() => _selectedTab = 4),
-            child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                    borderRadius: BorderRadius.circular(8)),
-                child: const Text('âœ¨ AI ç”Ÿæˆä¸‹ä¸€ç« ',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFFFFFFFF))))),
-      ]),
-      SizedBox(height: 16),
-      if (_works.isEmpty)
-        Padding(
-            padding: EdgeInsets.all(40),
-            child: Text('æš‚æ— ç« èŠ‚',
-                style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
-      else
-        ..._works.expand((work) => (_volumes[work.id] ?? [])
-            .expand((vol) => (_chapters[vol.id] ?? []).map((ch) => Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: const Color(0xFFFFFFFF),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFF0EAE0))),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('ç¬¬${ch.chapterNumber}ç«  Â· ${ch.title}',
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF3D3529))),
-                              Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 2),
-                                  decoration: BoxDecoration(
-                                      color: ch.synopsis.isNotEmpty
-                                          ? const Color(0x1A5B8C5A)
-                                          : const Color(0x1AE8A838),
-                                      borderRadius: BorderRadius.circular(999)),
-                                  child: Text(
-                                      ch.synopsis.isNotEmpty ? 'å·²è§„åˆ’' : 'å¾…ç¼–å†™',
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          color: ch.synopsis.isNotEmpty
-                                              ? const Color(0xFF5B8C5A)
-                                              : const Color(0xFFE8A838)))),
-                            ]),
-                      ]),
-                )))),
-    ]);
-  }
-
-  Widget _buildTimelineTab() {
-    if (_loadingTabs) {
-      return Center(
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: Color(0xFFE8A838)));
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-          padding: EdgeInsets.only(bottom: 16),
-          child: Text('æ•…äº‹æ—¶é—´çº¿',
-              style: TextStyle(
-                  fontFamily: 'NotoSerifSC',
-                  fontSize: 17,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF3D3529)))),
-      if (_timelineEvents.isEmpty)
-        Padding(
-            padding: EdgeInsets.all(40),
-            child: Text('æš‚æ— æ—¶é—´çº¿äº‹ä»¶',
-                style: TextStyle(fontSize: 14, color: Color(0xFF8A7B68))))
-      else
-        ..._timelineEvents.asMap().entries.map((entry) => _TimelineItem(
-              time: entry.value.createdAt.toIso8601String().substring(0, 10),
-              title: entry.value.title,
-              desc: entry.value.description,
-              isLast: entry.key == _timelineEvents.length - 1,
-            )),
-    ]);
-  }
-
-  Widget _buildGenerateTab() {
-    return SizedBox(
-      width: 600,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE8E0D6))),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('è¾“å…¥çµæ„Ÿæˆ–æŒ‡ä»¤',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: Color(0xFF3D3529))),
-              SizedBox(height: 12),
-              Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE8E0D6))),
-                  child: const TextField(
-                      maxLines: 4,
-                      style: TextStyle(fontSize: 14, color: Color(0xFF3D3529)),
-                      decoration: InputDecoration(
-                          hintText: 'æè¿°ä½ æƒ³ç”Ÿæˆçš„å†…å®¹\nä¾‹å¦‚ï¼šç»§ç»­å†™ç¬¬ä¸‰ç« â€¦',
-                          hintStyle: TextStyle(color: Color(0xFF8A7B68)),
-                          border: InputBorder.none,
-                          isDense: true))),
-              SizedBox(height: 16),
-              Row(children: [
-                InkWell(
-                    onTap: () {
-                      _showGenerateDialog();
-                    },
-                    child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                                colors: [Color(0xFFE8A838), Color(0xFFD49530)]),
-                            borderRadius: BorderRadius.circular(12)),
-                        child: const Text('ğŸš€ å¼€å§‹ç”Ÿæˆ',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFFFFFFF))))),
-                SizedBox(width: 12),
-                InkWell(
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const _SettingsPageProxy())),
-                    child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 8),
-                        decoration: BoxDecoration(
-                            color: const Color(0xFFFFFFFF),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE8E0D6))),
-                        child: const Text('âš™ ç”Ÿæˆè®¾ç½®',
-                            style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF3D3529))))),
-              ]),
-              SizedBox(height: 16),
-              // â”€â”€ è®°å¿†ä¸Šä¸‹æ–‡é¢æ¿ â”€â”€
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE8E0D6)),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: const MemoryPanel(
-                  entries: [],
-                ),
-              ),
-              SizedBox(height: 12),
-              // â”€â”€ æ–‡é£åˆ†æé¢æ¿ â”€â”€
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE8E0D6)),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: const StylePanel(),
-              ),
-              SizedBox(height: 12),
-              Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: ['æ‚¬ç–‘é£æ ¼', 'å¿ƒç†æå†™', 'å¿«èŠ‚å¥']
-                      .map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 2),
-                            decoration: BoxDecoration(
-                                color: const Color(0x1A5A8CA0),
-                                borderRadius: BorderRadius.circular(999)),
-                            child: Text(tag,
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF5A8CA0))),
-                          ))
-                      .toList()),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // â•â•â• Right Panel â•â•â•
-  Widget _buildRightPanel(bool isDark, Color border) {
-    return Container(
-      width: 320,
-      decoration: BoxDecoration(
-          color: isDark ? const Color(0xD92C261E) : const Color(0xBFFFFFFF),
-          border: Border(left: BorderSide(color: border))),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _section('ä½œå“ä¿¡æ¯', [
-            _field('ä¹¦å', widget.world.name, bold: true),
-            _field(
-                'ç±»å‹',
-                widget.world.genres.isNotEmpty
-                    ? widget.world.genres.join(' Â· ')
-                    : 'æœªåˆ†ç±»'),
-            _badgeField('åˆ›ä½œçŠ¶æ€', 'è¿è½½ä¸­'),
+  Widget _timelineTab(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: _timeline.length,
+      itemBuilder: (ctx, i) {
+        final t = _timeline[i];
+        final last = i == _timeline.length - 1;
+        return IntrinsicHeight(child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Column(children: [
+            Container(width: 12, height: 12, margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(color: WgTokens.accent, shape: BoxShape.circle, border: Border.all(color: WgTokens.accentSoft, width: 3))),
+            if (!last) Expanded(child: Container(width: 2, color: d ? WgTokens.darkBorder : WgTokens.border)),
           ]),
-          SizedBox(height: 20),
-          _section('AI è¾…åŠ©', [
-            InkWell(
-              onTap: () => showNameGeneratorDialog(context),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Row(children: [
-                  Text('ğŸ­', style: TextStyle(fontSize: 16)),
-                  SizedBox(width: 8),
-                  Text('AI å–å',
-                      style: TextStyle(
-                          fontSize: 13, color: Color(0xFF3D3529))),
-                  Spacer(),
-                  Text('â†’',
-                      style: TextStyle(
-                          fontSize: 12, color: Color(0xFF8A7B68))),
-                ]),
-              ),
-            ),
-          ]),
+          const SizedBox(width: 14),
+          Expanded(child: Padding(padding: const EdgeInsets.only(bottom: 20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(t['time'], style: const TextStyle(fontSize: 12, color: WgTokens.accent, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(t['title'], style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+            const SizedBox(height: 4),
+            Text(t['desc'], style: TextStyle(fontSize: 13, color: f2, height: 1.6)),
+          ]))),
+        ]));
+      },
+    );
+  }
+
+  Widget _aiTab(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    return ListView(padding: EdgeInsets.zero, children: [
+      WgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('AI ´´×÷ÖúÊÖ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: d ? WgTokens.darkFg : WgTokens.fg)),
+        const SizedBox(height: 6),
+        Text('ÃèÊöÄãÏëÒªµÄÇé½Ú¡¢ÈËÎï»òÎÄ·ç£¬ÈÃ AI ¸ø³ö¿ÉÂä±ÊµÄÁé¸Ğ¡£', style: TextStyle(fontSize: 13, color: f2, height: 1.6)),
+        const SizedBox(height: 12),
+        WgInput(hintText: 'ÀıÈç£ºÎªµÚ 3 ÕÂÉè¼ÆÒ»¸ö·´×ª¹³×Ó', controller: _promptCtrl),
+        const SizedBox(height: 12),
+        Row(children: [
+          WgButton(label: 'Éú³ÉÁé¸Ğ', icon: Icons.auto_awesome, onTap: () {}),
+          const SizedBox(width: 10),
+          WgGhostButton(label: 'ĞøĞ´±¾ÕÂ', icon: Icons.edit_note, onTap: () {}),
         ]),
-      ),
-    );
-  }
-
-  Widget _section(String title, List<Widget> children) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Text(title,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.6,
-                  color: Color(0xFF8A7B68)))),
-      ...children,
+      ])),
+      const SizedBox(height: 16),
+      Text('ÍÆ¼öÁé¸Ğ', style: TextStyle(fontSize: 13, color: f2, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 10),
+      for (final a in _aiItems) ...[
+        _aiCard(a, d, f2),
+        const SizedBox(height: 12),
+      ],
     ]);
   }
 
-  Widget _field(String label, String value, {bool bold = false}) {
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-          SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 13,
-                  color: const Color(0xFF3D3529),
-                  fontWeight: bold ? FontWeight.w600 : FontWeight.normal)),
-        ]));
-  }
-
-  Widget _badgeField(String label, String badge) {
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-          SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            decoration: BoxDecoration(
-                color: const Color(0x1AE8A838),
-                borderRadius: BorderRadius.circular(999)),
-            child: Text(badge,
-                style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFFE8A838))),
-          ),
-        ]));
-  }
-
-  void _showGenerateDialog() {
-    final ideaCtrl = TextEditingController();
-    String genre = 'ç„å¹»';
-    String style = 'èµ·ç‚¹çˆ†æ¬¾';
-    bool showParams = false;
-    double temperature = 0.8;
-    double topP = 0.9;
-    double repPenalty = 1.1;
-    int maxTokens = 8192;
-    showDialog(
-        context: context,
-        builder: (ctx) => StatefulBuilder(builder: (ctx, setDlgState) {
-              return AlertDialog(
-                title: Text(AppLocalizations.of(context)!.s1),
-                content: SizedBox(
-                    width: 450,
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('ä½ çš„çµæ„Ÿ',
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          TextField(
-                              controller: ideaCtrl,
-                              decoration: const InputDecoration(
-                                  hintText: 'ä¾‹å¦‚ï¼šä¸€ä¸ªä¿®ä»™å°‘å¹´ä»åºŸæå´›èµ·çš„æ•…äº‹',
-                                  border: OutlineInputBorder()),
-                              maxLines: 3,
-                              autofocus: true),
-                          SizedBox(height: 16),
-                          const Text('å°è¯´ç±»å‹',
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: genre,
-                            decoration: const InputDecoration(
-                                border: OutlineInputBorder()),
-                            items: [
-                              'ç„å¹»', 'ä»™ä¾ ', 'æ­¦ä¾ ', 'å¥‡å¹»', 'éƒ½å¸‚',
-                              'ç§‘å¹»', 'æ‚¬ç–‘', 'å†å²', 'è¨€æƒ…', 'è½»å°è¯´'
-                            ]
-                                .map((g) =>
-                                    DropdownMenuItem(value: g, child: Text(g)))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDlgState(() => genre = v);
-                            },
-                          ),
-                          SizedBox(height: 16),
-                          const Text('å†™ä½œé£æ ¼',
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 8),
-                          DropdownButtonFormField<String>(
-                            value: style,
-                            decoration: const InputDecoration(
-                                border: OutlineInputBorder()),
-                            items: ['èµ·ç‚¹çˆ†æ¬¾', 'ç•ªèŒ„çˆ½æ–‡', 'ä¼ ç»Ÿæ–‡å­¦', 'è½»å°è¯´']
-                                .map((s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)))
-                                .toList(),
-                            onChanged: (v) {
-                              if (v != null) setDlgState(() => style = v);
-                            },
-                          ),
-                          SizedBox(height: 12),
-                          // å‚æ•°è®¾ç½®æŠ˜å 
-          InkWell(
-            onTap: () => setDlgState(() => showParams = !showParams),
-            child: Row(children: [
-              Text(showParams ? 'â–¼' : 'â–¶',
-                  style: const TextStyle(fontSize: 10, color: Color(0xFF8A7B68))),
-              SizedBox(width: 8),
-              const Text('ç”Ÿæˆå‚æ•°',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8A7B68))),
-            ]),
-          ),
-          if (showParams) ...[
-            SizedBox(height: 8),
-            _paramSlider('æ¸©åº¦', temperature, 0, 2, (v) => setDlgState(() => temperature = v)),
-            _paramSlider('Top-P', topP, 0, 1, (v) => setDlgState(() => topP = v)),
-            _paramSlider('é‡å¤æƒ©ç½š', repPenalty, 0, 2, (v) => setDlgState(() => repPenalty = v)),
-            _paramSlider('æœ€å¤§é•¿åº¦', maxTokens.toDouble(), 100, 32000, (v) => setDlgState(() => maxTokens = v.toInt())),
-          ],
-                        ])),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text(AppLocalizations.of(context)!.s33)),
-                  FilledButton(
-                      onPressed: () {
-                        if (ideaCtrl.text.isNotEmpty) {
-                          Navigator.pop(ctx);
-                          _doGenerate(ideaCtrl.text.trim(), genre, style);
-                        }
-                      },
-                      child: Text(AppLocalizations.of(context)!.s78)),
-                ],
-              );
-            }));
-  }
-
-  void _doGenerate(String idea, String genre, String style) {
-    final ctrl = GenerationController();
-    ctrl.setInput(GenerationInput(idea: idea, genre: genre, style: style));
-    ctrl.startGeneration();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StreamBuilder<GenerationState>(
-        stream: ctrl.stateStream,
-        builder: (ctx, snapshot) {
-          final state = snapshot.data ?? ctrl.currentState;
-          final isStreaming = state is GeneratingSynopsisState ||
-              state is GeneratingOutlineState ||
-              state is GeneratingContentState;
-          final content = state is GeneratingSynopsisState
-              ? state.meta.streamedContent
-              : state is GeneratingOutlineState
-                  ? state.meta.streamedContent
-                  : '';
-          final wordCount = state.streamedWordCount;
-          final progressText = state.progressLabel;
-
-          return AlertDialog(
-            title: Row(children: [
-              if (isStreaming)
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Color(0xFFE8A838)),
-                ),
-              if (isStreaming) SizedBox(width: 12),
-              Text(state is CompletedState
-                  ? 'ç”Ÿæˆå®Œæˆ'
-                  : state is ErrorState
-                      ? 'ç”Ÿæˆå‡ºé”™'
-                      : 'AI å°è¯´ç”Ÿæˆ'),
-            ]),
-            content: SizedBox(
-              width: 500,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0x1AE8A838),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(progressText,
-                        style: const TextStyle(
-                            fontSize: 11, color: Color(0xFFE8A838))),
-                  ),
-                  SizedBox(height: 12),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F0E8),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: content.isEmpty
-                          ? Center(
-                              child: Text('ç­‰å¾… AI è¾“å‡ºâ€¦',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF8A7B68))))
-                          : SingleChildScrollView(
-                              child: Text(content,
-                                  style: const TextStyle(
-                                      fontSize: 14, height: 1.8)),
-                            ),
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Row(children: [
-                    _statChip('ğŸ“ $wordCount å­—', const Color(0xFFE8A838)),
-                    SizedBox(width: 8),
-                    if (isStreaming)
-                      _statChip('â³ ç”Ÿæˆä¸­â€¦', const Color(0xFF5B8C5A)),
-                    if (state is CompletedState)
-                      _statChip('âœ… å®Œæˆ', const Color(0xFF5B8C5A)),
-                    if (state is ErrorState)
-                      _statChip('âŒ ${state.error.message}',
-                          const Color(0xFFD4856B)),
-                  ]),
-                ],
-              ),
-            ),
-            actions: [
-              if (isStreaming)
-                TextButton(
-                  onPressed: () {
-                    ctrl.cancel();
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text('å–æ¶ˆç”Ÿæˆ',
-                      style: TextStyle(color: Color(0xFFE8A838))),
-                ),
-              if (state is CompletedState)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _showResultDialog(state.result.chapters.isNotEmpty
-                        ? state.result.chapters.first.content
-                        : 'ç”Ÿæˆå®Œæˆ');
-                  },
-                  child: const Text('æŸ¥çœ‹ç»“æœ',
-                      style: TextStyle(color: Color(0xFFE8A838))),
-                ),
-              if (state is ErrorState)
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _doGenerate(idea, genre, style);
-                  },
-                  child: const Text('é‡è¯•',
-                      style: TextStyle(color: Color(0xFFE8A838))),
-                ),
-              if (state is CancelledState)
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(AppLocalizations.of(context)!.s22),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-
-    _aiService.generateNovel(idea, genre: genre, style: style).then((result) {
-      if (!mounted) return;
-      final chunks = <String>[];
-      for (var i = 0; i < result.length; i += 20) {
-        chunks.add(result.substring(
-            i, i + 20 > result.length ? result.length : i + 20));
-      }
-      var idx = 0;
-      Future.doWhile(() async {
-        if (idx >= chunks.length || ctrl.currentState is CancelledState) {
-          return false;
-        }
-        ctrl.streamChunk(chunks[idx]);
-        idx++;
-        await Future.delayed(const Duration(milliseconds: 30));
-        return true;
-      }).then((_) {
-        if (ctrl.currentState is! CancelledState &&
-            ctrl.currentState is! ErrorState) {
-          ctrl.phaseComplete(SynopsisResult(
-            synopsis: result,
-            characters: [
-              const CharacterBrief(
-                  name: 'ä¸»è§’')
-            ],
-          ));
-          ctrl.completeAll(NovelResult(
-            synopsis: SynopsisResult(
-              synopsis: result,
-              characters: [
-                const CharacterBrief(
-                    name: 'ä¸»è§’')
-              ],
-            ),
-            outline: const OutlineResult(),
-            chapters: [
-              ChapterContent(
-                  number: 1,
-                  title: 'ç¬¬ä¸€ç« ',
-                  content: result,
-                  wordCount: result.length,
-                  generatedAt: DateTime.now().millisecondsSinceEpoch)
-            ],
-          ));
-        }
-      });
-    }).catchError((e) {
-      ctrl.error(GenerationError(
-          code: 'UNKNOWN', message: e.toString(), retryable: true));
-    });
-  }
-
-  Widget _statChip(String text, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(text, style: TextStyle(fontSize: 11, color: color)),
-    );
-  }
-
-  Widget _paramSlider(String label, double value, double min, double max,
-      ValueChanged<double> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(children: [
-        SizedBox(
-          width: 70,
-          child: Text(label,
-              style:
-                  const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            divisions: 100,
-            activeColor: const Color(0xFFE8A838),
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 50,
-          child: Text(value.toStringAsFixed(1),
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFFE8A838),
-                  fontFamily: 'JetBrainsMono')),
-        ),
+  Widget _aiCard(Map<String, dynamic> a, bool d, Color f2) {
+    return WgCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(a['title'], style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: d ? WgTokens.darkFg : WgTokens.fg))),
+        WgBadge(a['tag'], type: WgBadgeType.info),
       ]),
-    );
+      const SizedBox(height: 8),
+      Text(a['body'], style: TextStyle(fontSize: 13, color: f2, height: 1.6)),
+      const SizedBox(height: 10),
+      Row(children: [
+        WgGhostButton(label: '²ÉÓÃ', small: true, onTap: () {}),
+        const SizedBox(width: 8),
+        WgGhostButton(label: '¸ÄĞ´', small: true, onTap: () {}),
+      ]),
+    ]));
   }
 
-  void _showResultDialog(String content) {
-    showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.s2),
-              content: SizedBox(
-                  width: 600,
-                  height: 400,
-                  child: SingleChildScrollView(
-                      child: Text(content,
-                          style: const TextStyle(fontSize: 14, height: 1.6)))),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(AppLocalizations.of(context)!.s22))
-              ],
-            ));
+  Widget _contextPanel(bool d) {
+    final f2 = d ? WgTokens.darkFg2 : WgTokens.fg2;
+    final ch = _chapters[_selectedChapter];
+    final involved = ['ÁÖÏª', 'ÉòÈ·', 'Óàäé'];
+    final locations = ['¾Éµµ°¸ÊÒ', '±õº£¹«Ô¢', '¼Ò×åÀÏÕ¬'];
+    return SizedBox(width: 300, child: Container(height: double.infinity,
+      decoration: BoxDecoration(
+        color: (d ? WgTokens.darkBg : WgTokens.bg).withValues(alpha: 0.92),
+        border: Border(left: BorderSide(color: WgTokens.borderFor(context)))),
+      child: Column(children: [
+        Padding(padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+          child: Row(children: [
+            Text('±¾ÕÂÉÏÏÂÎÄ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: d ? WgTokens.darkFg : WgTokens.fg)),
+            const Spacer(),
+            _statusBadge(ch['status']),
+          ])),
+        Divider(height: 1, color: WgTokens.border),
+        Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
+          _sectionTitle('µ±Ç°ÕÂ½Ú', f2),
+          const SizedBox(height: 8),
+          Text('${ch['no']} ¡¤ ${ch['title']}', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'NotoSerifSC', color: d ? WgTokens.darkFg : WgTokens.fg)),
+          const SizedBox(height: 6),
+          Text('${ch['words']} ×Ö ¡¤ ¸üĞÂÓÚ ${ch['date']}', style: TextStyle(fontSize: 12, color: f2)),
+          const SizedBox(height: 18),
+          _sectionTitle('³ö³¡ÈËÎï', f2),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [for (final n in involved) _chip(n, d)]),
+          const SizedBox(height: 18),
+          _sectionTitle('³¡¾°µØµã', f2),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [for (final n in locations) _chip(n, d)]),
+          const SizedBox(height: 18),
+          _sectionTitle('Ğ´×÷±Ê¼Ç', f2),
+          const SizedBox(height: 8),
+          WgCard(child: Text('×¢Òâ½Ú×à£º±¾ÕÂĞèÔÚ½áÎ²ÂñÏÂ·´×ª£¬µ«²»Òª¹ıÔç±©Â¶ÉòÈ·µÄÉí·İ¡£', style: TextStyle(fontSize: 13, color: f2, height: 1.6))),
+        ])),
+      ]),
+    ));
   }
 
-  void _showAddCharacterDialog() {
-    final ctrl = TextEditingController();
-    showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.s63),
-              content: TextField(
-                  controller: ctrl,
-                  decoration: const InputDecoration(labelText: 'è§’è‰²åç§°'),
-                  autofocus: true),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(AppLocalizations.of(context)!.s33)),
-                FilledButton(
-                    onPressed: () {
-                      if (ctrl.text.isNotEmpty) {
-                        ServiceLocator.instance.canonService.createCharacter(
-                            worldId: widget.world.id,
-                            name: ctrl.text.trim(),
-                            backstory: '',
-                            motivation: '');
-                        Navigator.pop(ctx);
-                        setState(() => _loadTabData());
-                      }
-                    },
-                    child: Text(AppLocalizations.of(context)!.s24)),
-              ],
-            ));
-  }
+  Widget _sectionTitle(String t, Color f2) => Text(t, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: f2));
 
-  void _showAddChapterDialog() {
-    final firstWork = _works.isNotEmpty ? _works.first : null;
-    final firstVolume = firstWork == null
-        ? null
-        : (_volumes[firstWork.id]?.isNotEmpty == true
-            ? _volumes[firstWork.id]!.first
-            : null);
-    if (firstWork == null || firstVolume == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.s47)));
-      return;
+  Widget _chip(String label, bool d) => Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(color: d ? WgTokens.darkSurface : WgTokens.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: d ? WgTokens.darkBorderLight : WgTokens.borderLight)),
+    child: Text(label, style: TextStyle(fontSize: 12, color: d ? WgTokens.darkFg : WgTokens.fg)));
+
+  Widget _statusBadge(String s) {
+    switch (s) {
+      case 'done':
+        return const WgBadge('ÒÑÍê³É', type: WgBadgeType.success);
+      case 'review':
+        return const WgBadge('ÉóºËÖĞ', type: WgBadgeType.info);
+      case 'draft':
+        return const WgBadge('²İ¸å', type: WgBadgeType.accent);
+      default:
+        return const WgBadge('´ıĞ´', type: WgBadgeType.neutral);
     }
-
-    final ctrl = TextEditingController();
-    showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-              title: Text(AppLocalizations.of(context)!.s62),
-              content: TextField(
-                  controller: ctrl,
-                  decoration: const InputDecoration(labelText: 'ç« èŠ‚æ ‡é¢˜'),
-                  autofocus: true),
-              actions: [
-                TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(AppLocalizations.of(context)!.s33)),
-                FilledButton(
-                    onPressed: () async {
-                      final title = ctrl.text.trim();
-                      if (title.isEmpty) return;
-                      Navigator.pop(ctx);
-                      try {
-                        await _worldService.createChapterWithDocument(
-                          worldId: widget.world.id,
-                          workId: firstWork.id,
-                          volumeId: firstVolume.id,
-                          title: title,
-                        );
-                        await _loadChapters(firstVolume.id);
-                        if (mounted) setState(() {});
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('åˆ›å»ºç« èŠ‚å¤±è´¥: $e')));
-                        }
-                      }
-                    },
-                    child: Text(AppLocalizations.of(context)!.s24)),
-              ],
-            ));
   }
-}
-
-// â”€â”€â”€ Timeline Item Widget â”€â”€â”€
-class _TimelineItem extends StatelessWidget {
-  const _TimelineItem(
-      {required this.time,
-      required this.title,
-      required this.desc,
-      this.isLast = false});
-  final String time;
-  final String title;
-  final String desc;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-              width: 24,
-              child: Column(children: [
-                Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                        color: const Color(0x1AE8A838),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: const Color(0xFFE8A838), width: 2))),
-                if (!isLast)
-                  Expanded(
-                      child:
-                          Container(width: 2, color: const Color(0xFFE8E0D6))),
-              ])),
-          SizedBox(width: 12),
-          Expanded(
-              child: Container(
-            margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFF0EAE0))),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(time,
-                  style:
-                      const TextStyle(fontSize: 11, color: Color(0xFF8A7B68))),
-              SizedBox(height: 2),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF3D3529))),
-              SizedBox(height: 4),
-              Text(desc,
-                  style:
-                      const TextStyle(fontSize: 12, color: Color(0xFF8B7D6B))),
-            ]),
-          )),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsPageProxy extends StatelessWidget {
-  const _SettingsPageProxy();
-  @override
-  Widget build(BuildContext context) => const SettingsPage();
 }

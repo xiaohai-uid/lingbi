@@ -98,21 +98,45 @@ class ClaudeProvider extends BaseLLMClient {
       yield '请先在设置中配置 Claude API Key';
       return;
     }
+    final body = jsonEncode(_buildBody(request));
     try {
       final httpRequest = http.Request('POST', Uri.parse(_baseUrl));
       httpRequest.headers.addAll({
         'Content-Type': 'application/json',
         'x-api-key': _apiKey!,
         'anthropic-version': '2023-06-01',
+        'Accept': 'text/event-stream',
       });
-      httpRequest.body = jsonEncode(_buildBody(request));
+      httpRequest.body = body;
+
       final streamedResponse = await httpRequest.send();
       await for (final chunk
           in streamedResponse.stream.transform(utf8.decoder)) {
-        yield chunk;
+        for (final line in chunk.split('
+')) {
+          if (line.startsWith('data: ')) {
+            final data = line.substring(6);
+            if (data == '[DONE]') return;
+            try {
+              final json = jsonDecode(data);
+              // Support both OpenAI/DeepSeek (choices[0].delta.content)
+              // and Anthropic (delta.text) streaming schemas.
+              String? content;
+              final choices = json['choices'];
+              if (choices is List && choices.isNotEmpty) {
+                content = choices[0]?['delta']?['content'];
+              }
+              content ??= json['delta']?['text'];
+              if (content is String && content.isNotEmpty) yield content;
+            } catch (_) {}
+          }
+        }
       }
     } catch (e) {
-      yield 'Claude API error: $e';
+      throw LLMResponseException(
+        message: 'Claude API error: $e',
+        provider: providerName,
+      );
     }
   }
 
