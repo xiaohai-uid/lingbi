@@ -1,14 +1,97 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:lingbi/services/interfaces/i_project_service.dart';
 import 'package:lingbi/core/models/project.dart';
+import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/database/zvec_service.dart';
+import 'package:lingbi/core/file_system/file_service.dart';
 
 class ProjectService implements IProjectService {
-  final ZVecService _zvec;
+  final ZVecService? _zvec;
+  final FileService _fileService;
 
-  ProjectService({required ZVecService zvecService})
-      : _zvec = zvecService;
+  ProjectService({ZVecService? zvecService, FileService? fileService})
+      : _zvec = zvecService,
+        _fileService = fileService ?? FileService();
 
-  /// 创建新项目
+  /// 创建便携项目 — 先在磁盘建立目录和 .lingbi/project.json，
+  /// 再写入 ZVec（若可用）。
+  Future<Project> createPortableProject({
+    required String name,
+    required String directoryPath,
+    String description = '',
+  }) async {
+    final project = Project(
+      name: name,
+      description: description,
+      directoryPath: directoryPath,
+    );
+    await Directory(directoryPath).create(recursive: true);
+    final lingbiDir = Directory('$directoryPath/.lingbi');
+    await lingbiDir.create();
+    await File('$directoryPath/.lingbi/project.json').writeAsString(
+      jsonEncode(project.toJson()),
+      encoding: utf8,
+    );
+    await _zvec?.upsert('projects', project.id, project.toJson());
+    return project;
+  }
+
+  /// 从目录打开便携项目 — 读取 .lingbi/project.json（若不存在则从目录名推断），
+  /// 扫描磁盘 .md 文件重建文档列表。不要求 ZVec 可用。
+  Future<({Project project, List<Document> documents})> openPortableProject(
+    String directoryPath,
+  ) async {
+    final dir = Directory(directoryPath);
+    if (!await dir.exists()) {
+      throw FileSystemException('项目目录不存在', directoryPath);
+    }
+
+    final sep = Platform.pathSeparator;
+    final metaFile = File('$directoryPath${sep}.lingbi${sep}project.json');
+    Project project;
+    if (metaFile.existsSync()) {
+      final json =
+          jsonDecode(await metaFile.readAsString()) as Map<String, dynamic>;
+      project = Project.fromJson(json);
+    } else {
+      final normalPath = directoryPath.replaceAll('\\', '/');
+      final segments = normalPath.split('/');
+      project = Project(
+        name: segments.lastWhere((s) => s.isNotEmpty),
+        directoryPath: normalPath,
+      );
+    }
+
+    final docs = await scanDocumentsFromDisk(directoryPath, project.id);
+    return (project: project, documents: docs);
+  }
+
+  /// 扫描目录中所有 .md 文件（跳过 .lingbi/），返回 Document 列表。
+  Future<List<Document>> scanDocumentsFromDisk(
+    String directoryPath,
+    String projectId,
+  ) async {
+    final files = await _fileService.listDocuments(directoryPath);
+    final documents = <Document>[];
+    for (final rawPath in files) {
+      final path = rawPath.replaceAll('\\', '/');
+      if (path.contains('/.lingbi/')) continue;
+      final content = await _fileService.readDocument(path);
+      final fileName = path.split('/').last;
+      final title = fileName.endsWith('.md')
+          ? fileName.substring(0, fileName.length - 3)
+          : fileName;
+      documents.add(Document(
+        projectId: projectId,
+        title: title,
+        filePath: path,
+        wordCount: _fileService.countWords(content),
+      ));
+    }
+    return documents;
+  }
+
   @override
   Future<Project> createProject({
     required String name,
@@ -20,35 +103,33 @@ class ProjectService implements IProjectService {
       description: description,
       directoryPath: directoryPath,
     );
-    await _zvec.upsert('projects', project.id, project.toJson());
+    await _zvec?.upsert('projects', project.id, project.toJson());
     return project;
   }
 
-  /// 获取所有项目
   @override
   Future<List<Project>> getProjects() async {
+    if (_zvec == null) return [];
     final results = await _zvec.query('projects');
     return results.map((json) => Project.fromJson(json)).toList();
   }
 
-  /// 根据 ID 获取项目
   @override
   Future<Project?> getProject(String id) async {
+    if (_zvec == null) return null;
     final result = await _zvec.get<Map<String, dynamic>>('projects', id);
     if (result == null) return null;
     return Project.fromJson(result);
   }
 
-  /// 更新项目
   @override
   Future<void> updateProject(Project project) async {
     project.updatedAt = DateTime.now();
-    await _zvec.upsert('projects', project.id, project.toJson());
+    await _zvec?.upsert('projects', project.id, project.toJson());
   }
 
-  /// 删除项目
   @override
   Future<void> deleteProject(String id) async {
-    await _zvec.delete('projects', id);
+    await _zvec?.delete('projects', id);
   }
 }

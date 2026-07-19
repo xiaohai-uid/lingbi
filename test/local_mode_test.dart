@@ -10,6 +10,8 @@ import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/services/export_service.dart';
 import 'package:lingbi/services/version_history_service.dart';
 import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
 
@@ -483,6 +485,150 @@ void main() {
         () => resolveDefaultLocalDir(userProfile: ''),
         throwsA(isA<UnsupportedError>()),
       );
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // 验收标准 6: 便携项目与章节文件契约
+  // 项目与章节的真实来源必须是用户可见的 Markdown 文件；
+  // .lingbi/ 仅保存可重建的内部状态，删除不影响章节内容。
+  // ──────────────────────────────────────────────
+  group('T2: 便携项目与章节文件契约', () {
+    test('创建→重开→删除.lingbi/→内容完整可读写', () async {
+      final projectService = ProjectService(
+        zvecService: null,
+        fileService: FileService(),
+      );
+      final docService = DocumentService(
+        fileService: FileService(),
+        zvecService: null,
+        syncService: null,
+      );
+
+      final projectDir = '${tempDir.path}/test_novel';
+      final chapter1Content = '# 第1章\n\n这是开头。';
+      final chapter2Content = '# 第2章\n\n这是发展。';
+
+      // 1. 创建便携项目（写入磁盘 .lingbi/project.json）
+      final project = await projectService.createPortableProject(
+        name: '测试小说',
+        directoryPath: projectDir,
+      );
+      expect(Directory(projectDir).existsSync(), true);
+      expect(
+        File('$projectDir/.lingbi/project.json').existsSync(),
+        true,
+      );
+
+      // 2. 在用户可见目录下创建 .md 章节
+      final doc1 = await docService.createDocument(
+        projectId: project.id,
+        title: '第1章',
+        directoryPath: projectDir,
+        content: chapter1Content,
+      );
+      final doc2 = await docService.createDocument(
+        projectId: project.id,
+        title: '第2章',
+        directoryPath: projectDir,
+        content: chapter2Content,
+      );
+
+      // 3. 验证 .md 文件位于项目根目录，不在 .lingbi/ 内
+      expect(File(doc1.filePath).existsSync(), true);
+      expect(doc1.filePath, contains('/test_novel/第1章.md'));
+      expect(doc1.filePath, isNot(contains('/.lingbi/')));
+      expect(File(doc2.filePath).existsSync(), true);
+
+      // 4. 关闭并重新打开（模拟新会话）
+      final result1 = await projectService.openPortableProject(projectDir);
+      expect(result1.project.name, '测试小说');
+      expect(result1.documents.length, 2);
+      expect(result1.documents.any((d) => d.title == '第1章'), true);
+      expect(result1.documents.any((d) => d.title == '第2章'), true);
+
+      // 5. 验证内容可读取
+      var content1 =
+          await docService.readContent(result1.documents[0].filePath);
+      expect(content1, contains('开头'));
+
+      // 6. 删除 .lingbi/（模拟索引丢失）后重新打开
+      Directory('$projectDir/.lingbi').deleteSync(recursive: true);
+      expect(Directory('$projectDir/.lingbi').existsSync(), false);
+
+      final result2 = await projectService.openPortableProject(projectDir);
+      // 名称元数据来自 .lingbi/project.json，删除后回退到目录名
+      expect(result2.project.name, 'test_novel');
+      // 但章节文件仍在用户可见目录中，不受影响
+      expect(result2.documents.length, 2);
+
+      // 7. 所有章节仍可发现、读取和编辑
+      for (final doc in result2.documents) {
+        final content = await docService.readContent(doc.filePath);
+        expect(content.isNotEmpty, true);
+      }
+
+      // 编辑保存功能正常
+      final edited = '# 第1章 修改版\n\n已修改。';
+      await docService.saveDocument(result2.documents[0], edited);
+      final saved = File(result2.documents[0].filePath).readAsStringSync();
+      expect(saved, edited);
+
+      // 8. 新创建的章节也存入用户可见目录，不会因 .lingbi 缺失而丢失
+      final doc3 = await docService.createDocument(
+        projectId: result2.project.id,
+        title: '第3章',
+        directoryPath: projectDir,
+        content: '# 第3章\n\n新增章节。',
+      );
+      expect(File(doc3.filePath).existsSync(), true);
+      expect(doc3.filePath, isNot(contains('/.lingbi/')));
+    });
+
+    test('Windows 非法字符安全处理', () async {
+      final docService = DocumentService(
+        fileService: FileService(),
+        zvecService: null,
+        syncService: null,
+      );
+
+      const unsafeTitle = '章:节/测\\试|名?称*';
+      final doc = await docService.createDocument(
+        projectId: 'proj-1',
+        title: unsafeTitle,
+        directoryPath: tempDir.path,
+        content: '# 测试',
+      );
+
+      expect(File(doc.filePath).existsSync(), true);
+      // 非法字符应被替换为 _
+      expect(doc.filePath, contains('章_节_测_试_名_称_'));
+      expect(doc.filePath, endsWith('.md'));
+    });
+
+    test('重命名以文件系统为准', () async {
+      final docService = DocumentService(
+        fileService: FileService(),
+        zvecService: null,
+        syncService: null,
+      );
+
+      final doc = await docService.createDocument(
+        projectId: 'proj-1',
+        title: '原名',
+        directoryPath: tempDir.path,
+        content: '# 原名\n\n内容。',
+      );
+
+      final oldPath = doc.filePath;
+      await docService.renameDocument(doc, '新名');
+
+      expect(File(oldPath).existsSync(), false);
+      expect(File(doc.filePath).existsSync(), true);
+      expect(doc.title, '新名');
+      // 从磁盘读取验证
+      final content = await docService.readContent(doc.filePath);
+      expect(content, '# 原名\n\n内容。');
     });
   });
 
