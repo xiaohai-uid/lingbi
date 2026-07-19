@@ -98,8 +98,7 @@ class ServiceLocator {
       // 层级 4: 依赖特性服务
       locator.codexLinkingService =
           CodexLinkingService(codexService: locator.codexService);
-      locator.settingsService =
-          SettingsService(aiService: locator.aiService);
+      locator.settingsService = SettingsService(aiService: locator.aiService);
 
       // 层级 5: 无依赖工具服务
       locator.exportService = ExportService();

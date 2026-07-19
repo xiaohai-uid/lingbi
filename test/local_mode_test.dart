@@ -147,7 +147,7 @@ void main() {
   group('AC2: 无后端服务时可进入本地写作模式', () {
     test('StorageService 可以不依赖任何网络或后端服务完成初始化', () async {
       final storage = StorageService();
-      
+
       // StorageService 初始化只需要本地文件系统
       await storage.initialize(dbPath: tempDir.path);
 
@@ -207,24 +207,31 @@ void main() {
 
       // 插入多个项目
       await storage.upsert('projects', 'proj-1', {
-        'id': 'proj-1', 'name': '小说A', 'status': 'active',
+        'id': 'proj-1',
+        'name': '小说A',
+        'status': 'active',
       });
       await storage.upsert('projects', 'proj-2', {
-        'id': 'proj-2', 'name': '小说B', 'status': 'archived',
+        'id': 'proj-2',
+        'name': '小说B',
+        'status': 'archived',
       });
       await storage.upsert('projects', 'proj-3', {
-        'id': 'proj-3', 'name': '小说C', 'status': 'active',
+        'id': 'proj-3',
+        'name': '小说C',
+        'status': 'active',
       });
 
       // 过滤查询
-      final activeProjects = await storage.query('projects', filter: {'status': 'active'});
+      final activeProjects =
+          await storage.query('projects', filter: {'status': 'active'});
       expect(activeProjects.length, 2);
       expect(activeProjects[0]['name'], anyOf('小说A', '小说C'));
     });
 
     test('QuotaService 可以在纯内存中工作，无需任何外部服务', () {
       final quota = QuotaService();
-      
+
       expect(quota.dailyLimit, greaterThan(0));
       expect(quota.canUse, true);
       expect(quota.remaining, quota.dailyLimit);
@@ -312,7 +319,8 @@ void main() {
       );
 
       // 版本文件存储在 .lingbi/versions/ 下
-      final versionsDir = Directory('$projectDir/.lingbi/versions/${docId.replaceAll(RegExp(r'[^\w-]'), '_')}');
+      final versionsDir = Directory(
+          '$projectDir/.lingbi/versions/${docId.replaceAll(RegExp(r'[^\w-]'), '_')}');
       expect(versionsDir.existsSync(), true);
 
       // metadata.json 存在
@@ -362,11 +370,13 @@ void main() {
       final outputDir = '${tempDir.path}/exported_project';
 
       final doc1 = Document(
-        projectId: 'proj-1', title: '第1章',
+        projectId: 'proj-1',
+        title: '第1章',
         filePath: '${tempDir.path}/第1章.md',
       );
       final doc2 = Document(
-        projectId: 'proj-1', title: '第2章',
+        projectId: 'proj-1',
+        title: '第2章',
         filePath: '${tempDir.path}/第2章.md',
       );
       final project = Project(name: '导出测试', directoryPath: tempDir.path);
@@ -442,7 +452,6 @@ void main() {
   // ──────────────────────────────────────────────
   group('AC2: ServiceLocator 初始化失败降级', () {
     test('ServiceLocator.failed() 注入降级标记', () async {
-      // 使用可控注入，不依赖环境巧合
       final locator = ServiceLocator.failed(error: 'forced failure for test');
 
       expect(locator.initSucceeded, false);
@@ -460,6 +469,23 @@ void main() {
     });
   });
 
+  // ──────────────────────────────────────────────
+  // 默认本地写作目录解析
+  // ──────────────────────────────────────────────
+  group('resolveDefaultLocalDir', () {
+    test('返回 %USERPROFILE%\\Documents\\灵笔', () {
+      final dir = resolveDefaultLocalDir(userProfile: r'C:\Users\testuser');
+      expect(dir, r'C:\Users\testuser\Documents\灵笔');
+    });
+
+    test('USERPROFILE 为空时抛出 UnsupportedError', () {
+      expect(
+        () => resolveDefaultLocalDir(userProfile: ''),
+        throwsA(isA<UnsupportedError>()),
+      );
+    });
+  });
+
   // AC2 widget 级测试: 降级 UI 本地写作闭环
   _localModeWidgetTests();
 }
@@ -474,7 +500,8 @@ void _localModeWidgetTests() {
     File('${testDir.path}/existing.md').writeAsStringSync('# 现有章节\n\n原有内容。');
 
     try {
-      final failedLocator = ServiceLocator.failed(error: 'injected degraded mode');
+      final failedLocator =
+          ServiceLocator.failed(error: 'injected degraded mode');
 
       await tester.pumpWidget(LingBiApp(
         locator: failedLocator,

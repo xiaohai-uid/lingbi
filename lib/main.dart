@@ -14,6 +14,21 @@ void main() async {
   runApp(const LingBiApp());
 }
 
+/// 解析默认本地写作目录。
+///
+/// Windows 默认返回 %USERPROFILE%\Documents\灵笔。
+/// [userProfile] 用于测试注入；为 null 时从环境变量读取。
+String resolveDefaultLocalDir({String? userProfile}) {
+  final up = userProfile ?? Platform.environment['USERPROFILE'];
+  if (up != null && up.isNotEmpty) {
+    return '$up\\Documents\\灵笔';
+  }
+  throw UnsupportedError(
+    '无法确定默认本地目录。请设置 USERPROFILE 环境变量，'
+    '或手动指定工作目录。',
+  );
+}
+
 class LingBiApp extends StatefulWidget {
   final ServiceLocator? locator;
   final String? localWorkDir;
@@ -77,10 +92,12 @@ class _LocalModeHome extends StatefulWidget {
 class _LocalModeHomeState extends State<_LocalModeHome> {
   final _contentController = TextEditingController();
   final _titleController = TextEditingController(text: '新章节');
+  final _dirInputController = TextEditingController();
 
   String _workDir = '';
   List<String> _files = [];
   String _currentFilePath = '';
+  String? _initError;
 
   @override
   void initState() {
@@ -92,17 +109,33 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
   void dispose() {
     _contentController.dispose();
     _titleController.dispose();
+    _dirInputController.dispose();
     super.dispose();
   }
 
   void _initDir() {
-    String dir;
     if (widget.workDir != null) {
-      dir = widget.workDir!;
-    } else {
-      dir = '${Directory.systemTemp.path}/lingbi_local';
+      _workDir = widget.workDir!.replaceAll('\\', '/');
+      Directory(_workDir).createSync(recursive: true);
+      _refreshFilesSync();
+      return;
     }
-    _workDir = dir.replaceAll('\\', '/');
+    try {
+      _workDir = resolveDefaultLocalDir().replaceAll('\\', '/');
+      Directory(_workDir).createSync(recursive: true);
+      _refreshFilesSync();
+    } on UnsupportedError catch (e) {
+      if (mounted) setState(() => _initError = e.message);
+    }
+  }
+
+  void _applyCustomDir() {
+    final path = _dirInputController.text.trim();
+    if (path.isEmpty) return;
+    setState(() {
+      _initError = null;
+      _workDir = path.replaceAll('\\', '/');
+    });
     Directory(_workDir).createSync(recursive: true);
     _refreshFilesSync();
   }
@@ -112,7 +145,8 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
     if (!dir.existsSync()) {
       _files = [];
     } else {
-      _files = dir.listSync()
+      _files = dir
+          .listSync()
           .whereType<File>()
           .where((f) => f.path.endsWith('.md'))
           .map((f) => f.path.replaceAll('\\', '/'))
@@ -123,7 +157,8 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
   }
 
   void _newChapter() {
-    final name = _titleController.text.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final name =
+        _titleController.text.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     final fileName = name.isEmpty ? '新章节' : name;
     final path = '$_workDir/$fileName.md'.replaceAll('\\', '/');
     File(path).writeAsStringSync('# $fileName\n\n');
@@ -138,13 +173,15 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
     setState(() {
       _currentFilePath = path;
       _contentController.text = content;
-      _titleController.text = path.split(RegExp(r'[/\\]')).last.replaceAll('.md', '');
+      _titleController.text =
+          path.split(RegExp(r'[/\\]')).last.replaceAll('.md', '');
     });
   }
 
   void _save() {
     if (_currentFilePath.isEmpty) return;
-    File(_currentFilePath.replaceAll('\\', '/')).writeAsStringSync(_contentController.text);
+    File(_currentFilePath.replaceAll('\\', '/'))
+        .writeAsStringSync(_contentController.text);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已保存'), duration: Duration(seconds: 1)),
     );
@@ -153,116 +190,169 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('灵笔 — 本地模式')),
-      body: Column(
-        children: [
-          if (_workDir.isEmpty)
-            const Center(child: CircularProgressIndicator())
-          else
-            Expanded(
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 240,
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  key: const ValueKey('chapterTitleInput'),
-                                  controller: _titleController,
-                                  decoration: const InputDecoration(
-                                    labelText: '章节名',
-                                    isDense: true,
-                                    border: OutlineInputBorder(),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                key: const ValueKey('newChapterBtn'),
-                                icon: const Icon(Icons.add),
-                                tooltip: '新建章节',
-                                onPressed: _newChapter,
-                              ),
-                            ],
-                          ),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('灵笔 — 本地模式'),
+            if (_workDir.isNotEmpty)
+              Text(
+                _workDir,
+                style: const TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.normal),
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
+      ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_initError != null) {
+      return _buildErrorUi();
+    }
+    if (_workDir.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Row(
+      children: [
+        SizedBox(
+          width: 240,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('chapterTitleInput'),
+                        controller: _titleController,
+                        decoration: const InputDecoration(
+                          labelText: '章节名',
+                          isDense: true,
+                          border: OutlineInputBorder(),
                         ),
-                        const Divider(height: 1),
-                        Expanded(
-                          child: _files.isEmpty
-                              ? const Center(child: Text('暂无章节，点击 + 新建'))
-                              : ListView.builder(
-                                  itemCount: _files.length,
-                                  itemBuilder: (_, i) {
-                                    final name = _files[i]
-                                        .split(RegExp(r'[/\\]'))
-                                        .last
-                                        .replaceAll('.md', '');
-                                    return ListTile(
-                                      key: ValueKey('file_${_files[i]}'),
-                                      dense: true,
-                                      title: Text(name),
-                                      selected: _files[i] == _currentFilePath,
-                                      onTap: () => _openFile(_files[i]),
-                                    );
-                                  },
-                                ),
-                        ),
-                      ],
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      key: const ValueKey('newChapterBtn'),
+                      icon: const Icon(Icons.add),
+                      tooltip: '新建章节',
+                      onPressed: _newChapter,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _files.isEmpty
+                    ? const Center(child: Text('暂无章节，点击 + 新建'))
+                    : ListView.builder(
+                        itemCount: _files.length,
+                        itemBuilder: (_, i) {
+                          final name = _files[i]
+                              .split(RegExp(r'[/\\]'))
+                              .last
+                              .replaceAll('.md', '');
+                          return ListTile(
+                            key: ValueKey('file_${_files[i]}'),
+                            dense: true,
+                            title: Text(name),
+                            selected: _files[i] == _currentFilePath,
+                            onTap: () => _openFile(_files[i]),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: TextField(
+                    key: const ValueKey('editorField'),
+                    controller: _contentController,
+                    maxLines: null,
+                    expands: true,
+                    textAlignVertical: TextAlignVertical.top,
+                    decoration: const InputDecoration(
+                      hintText: '在此编辑 Markdown 内容…',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.all(12),
                     ),
                   ),
-                  const VerticalDivider(width: 1),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: TextField(
-                              key: const ValueKey('editorField'),
-                              controller: _contentController,
-                              maxLines: null,
-                              expands: true,
-                              textAlignVertical: TextAlignVertical.top,
-                              decoration: const InputDecoration(
-                                hintText: '在此编辑 Markdown 内容…',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.all(12),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
-                            children: [
-                              ElevatedButton.icon(
-                                key: const ValueKey('saveBtn'),
-                                icon: const Icon(Icons.save),
-                                label: const Text('保存'),
-                                onPressed: _save,
-                              ),
-                              const Spacer(),
-                              if (_currentFilePath.isNotEmpty)
-                                Text(
-                                  _currentFilePath.split(RegExp(r'[/\\]')).last,
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
+                ),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    ElevatedButton.icon(
+                      key: const ValueKey('saveBtn'),
+                      icon: const Icon(Icons.save),
+                      label: const Text('保存'),
+                      onPressed: _save,
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    if (_currentFilePath.isNotEmpty)
+                      Text(
+                        _currentFilePath.split(RegExp(r'[/\\]')).last,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorUi() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              '无法确定默认工作目录',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(_initError!, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 16),
+            TextField(
+              key: const ValueKey('dirInputField'),
+              controller: _dirInputController,
+              decoration: const InputDecoration(
+                labelText: '请手动输入工作目录路径',
+                border: OutlineInputBorder(),
+                hintText: r'C:\Users\用户名\Documents\灵笔',
               ),
             ),
-        ],
+            const SizedBox(height: 12),
+            ElevatedButton(
+              key: const ValueKey('confirmDirBtn'),
+              onPressed: _applyCustomDir,
+              child: const Text('确认'),
+            ),
+          ],
+        ),
       ),
     );
   }
