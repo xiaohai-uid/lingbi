@@ -16,6 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _keyControllers['sensenova'] = TextEditingController(text: _settings.getApiKey('sensenova'));
     _keyControllers['deepseek'] = TextEditingController(text: _settings.getApiKey('deepseek'));
     _keyControllers['openai'] = TextEditingController(text: _settings.getApiKey('openai'));
     _keyControllers['claude'] = TextEditingController(text: _settings.getApiKey('claude'));
