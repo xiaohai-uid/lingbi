@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/services/export_service.dart';
@@ -415,13 +416,52 @@ void main() {
       // 创建一个 .md 文件（模拟外部编辑器创建）
       File('$syncDir/my_chapter.md').writeAsStringSync('# 外部创建的章节');
 
-      // 通过 StorageService 查询（模拟索引重建）
-      final results = await storage.query('test_documents');
-      expect(results, isA<List>());
+      // 通过 StorageService 写入数据（模拟索引重建）
+      await storage.upsert('test_documents', 'doc1', {
+        'id': 'doc1',
+        'path': '$syncDir/my_chapter.md',
+        'title': '外部创建的章节',
+      });
 
       // 验证 JSON 文件可被外部工具读取
       final jsonFile = File('$syncDir/test_documents.json');
       expect(jsonFile.existsSync(), true);
+
+      // 验证写入的数据可被查询到
+      final results = await storage.query('test_documents');
+      expect(results.length, 1);
+      expect(results[0]['title'], '外部创建的章节');
+    });
+  });
+
+  // ──────────────────────────────────────────────
+  // 验收标准 2 (扩展): 启动编排失败降级 — ServiceLocator
+  // 初始化失败时应用仍可进入本地模式
+  // ──────────────────────────────────────────────
+  group('AC2: ServiceLocator 初始化失败降级', () {
+    test('ServiceLocator.init() 在无 Flutter 绑定时不会崩溃，设置 initSucceeded=false', () async {
+      // ServiceLocator.init() 中 StorageService.initialize()
+      // 会调用 getApplicationDocumentsDirectory()，
+      // 在测试环境（无 Flutter 插桩绑定）下应抛出异常。
+      // try-catch 应捕获并设置降级标记。
+      final locator = await ServiceLocator.init();
+
+      expect(locator.initSucceeded, false);
+      expect(locator.initError, isNotNull);
+      expect(locator.initError!.isNotEmpty, true);
+      // 即使初始化失败，ServiceLocator 实例也应可访问
+      expect(ServiceLocator.instance, same(locator));
+    });
+
+    test('ServiceLocator 初始化失败后，FileService 仍可独立工作', () async {
+      // 绕开 ServiceLocator，直接使用 FileService
+      final fileService = FileService();
+      final testDir = '${tempDir.path}/fallback_test';
+      await Directory(testDir).create(recursive: true);
+
+      await fileService.writeDocument('$testDir/local.md', '# 本地写作');
+      final content = await fileService.readDocument('$testDir/local.md');
+      expect(content, '# 本地写作');
     });
   });
 }

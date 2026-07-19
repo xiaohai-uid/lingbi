@@ -13,8 +13,12 @@ class StorageService {
 
   Future<void> initialize({String? dbPath}) async {
     if (_initialized) return;
-    final dir = await getApplicationDocumentsDirectory();
-    _basePath = dbPath ?? '${dir.path}/lingbi_data';
+    if (dbPath != null) {
+      _basePath = dbPath;
+    } else {
+      final dir = await getApplicationDocumentsDirectory();
+      _basePath = '${dir.path}/lingbi_data';
+    }
     await Directory(_basePath!).create(recursive: true);
     _initialized = true;
   }

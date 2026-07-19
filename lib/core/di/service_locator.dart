@@ -30,6 +30,10 @@ class ServiceLocator {
   static ServiceLocator? _instance;
   static ServiceLocator get instance => _instance!;
 
+  /// 初始化是否完全成功；false 表示部分服务初始化失败，进入降级模式
+  bool initSucceeded = true;
+  String? initError;
+
   /// ——— 叶子服务（无依赖） ———
   late final StorageService storageService;
   late final FileService fileService;
@@ -53,54 +57,64 @@ class ServiceLocator {
   ServiceLocator._();
 
   /// 初始化所有服务（按依赖拓扑升序）
+  ///
+  /// 如果初始化失败，[initSucceeded] 变为 false 并记录 [initError]，
+  /// 调用方仍可获取 ServiceLocator 实例。
   static Future<ServiceLocator> init() async {
     final locator = ServiceLocator._();
     _instance = locator;
 
-    // 层级 1: 叶子服务（无依赖）
-    locator.storageService = StorageService();
-    locator.fileService = FileService();
-    locator.quotaService = QuotaService();
+    try {
+      // 层级 1: 叶子服务（无依赖）
+      locator.storageService = StorageService();
+      locator.fileService = FileService();
+      locator.quotaService = QuotaService();
 
-    // 层级 2: 依赖叶子服务
-    locator.zvecService = ZVecService(storageService: locator.storageService);
-    locator.syncService = SyncService(
-      fileService: locator.fileService,
-      zvecService: locator.zvecService,
-    );
+      // 层级 2: 依赖叶子服务
+      locator.zvecService = ZVecService(storageService: locator.storageService);
+      locator.syncService = SyncService(
+        fileService: locator.fileService,
+        zvecService: locator.zvecService,
+      );
 
-    // 层级 3: 特性服务
-    locator.documentService = DocumentService(
-      zvecService: locator.zvecService,
-      fileService: locator.fileService,
-      syncService: locator.syncService,
-    );
-    locator.codexService = CodexService(zvecService: locator.zvecService);
-    locator.projectService = ProjectService(zvecService: locator.zvecService);
-    locator.aiService = AIService(quotaService: locator.quotaService);
+      // 层级 3: 特性服务
+      locator.documentService = DocumentService(
+        zvecService: locator.zvecService,
+        fileService: locator.fileService,
+        syncService: locator.syncService,
+      );
+      locator.codexService = CodexService(zvecService: locator.zvecService);
+      locator.projectService = ProjectService(zvecService: locator.zvecService);
+      locator.aiService = AIService(quotaService: locator.quotaService);
 
-    // 层级 4: 依赖特性服务
-    locator.codexLinkingService =
-        CodexLinkingService(codexService: locator.codexService);
-    locator.settingsService =
-        SettingsService(aiService: locator.aiService);
+      // 层级 4: 依赖特性服务
+      locator.codexLinkingService =
+          CodexLinkingService(codexService: locator.codexService);
+      locator.settingsService =
+          SettingsService(aiService: locator.aiService);
 
-    // 层级 5: 无依赖工具服务
-    locator.exportService = ExportService();
-    locator.versionHistoryService = VersionHistoryService();
-    locator.projectTabController = ProjectTabController();
+      // 层级 5: 无依赖工具服务
+      locator.exportService = ExportService();
+      locator.versionHistoryService = VersionHistoryService();
+      locator.projectTabController = ProjectTabController();
 
-    // 初始化需要异步初始化的服务
-    await locator.storageService.initialize();
-    await locator.zvecService.initialize();
-    await locator.settingsService.initialize();
+      // 初始化需要异步初始化的服务
+      await locator.storageService.initialize();
+      await locator.zvecService.initialize();
+      await locator.settingsService.initialize();
+    } catch (e) {
+      locator.initSucceeded = false;
+      locator.initError = e.toString();
+    }
 
     return locator;
   }
 
   /// 释放资源
   Future<void> dispose() async {
-    settingsService.removeListener(() {});
-    await zvecService.close();
+    if (initSucceeded) {
+      settingsService.removeListener(() {});
+      await zvecService.close();
+    }
   }
 }
