@@ -34,6 +34,14 @@ class ServiceLocator {
   bool initSucceeded = true;
   String? initError;
 
+  /// 创建一个降级 ServiceLocator 用于测试（所有服务字段均未初始化）。
+  static ServiceLocator failed({String? error}) {
+    final locator = ServiceLocator._();
+    locator.initSucceeded = false;
+    locator.initError = error ?? 'Degraded mode (test)';
+    return locator;
+  }
+
   /// ——— 叶子服务（无依赖） ———
   late final StorageService storageService;
   late final FileService fileService;

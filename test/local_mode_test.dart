@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/main.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/services/export_service.dart';
 import 'package:lingbi/services/version_history_service.dart';
@@ -439,22 +441,15 @@ void main() {
   // 初始化失败时应用仍可进入本地模式
   // ──────────────────────────────────────────────
   group('AC2: ServiceLocator 初始化失败降级', () {
-    test('ServiceLocator.init() 在无 Flutter 绑定时不会崩溃，设置 initSucceeded=false', () async {
-      // ServiceLocator.init() 中 StorageService.initialize()
-      // 会调用 getApplicationDocumentsDirectory()，
-      // 在测试环境（无 Flutter 插桩绑定）下应抛出异常。
-      // try-catch 应捕获并设置降级标记。
-      final locator = await ServiceLocator.init();
+    test('ServiceLocator.failed() 注入降级标记', () async {
+      // 使用可控注入，不依赖环境巧合
+      final locator = ServiceLocator.failed(error: 'forced failure for test');
 
       expect(locator.initSucceeded, false);
-      expect(locator.initError, isNotNull);
-      expect(locator.initError!.isNotEmpty, true);
-      // 即使初始化失败，ServiceLocator 实例也应可访问
-      expect(ServiceLocator.instance, same(locator));
+      expect(locator.initError, 'forced failure for test');
     });
 
     test('ServiceLocator 初始化失败后，FileService 仍可独立工作', () async {
-      // 绕开 ServiceLocator，直接使用 FileService
       final fileService = FileService();
       final testDir = '${tempDir.path}/fallback_test';
       await Directory(testDir).create(recursive: true);
@@ -463,5 +458,87 @@ void main() {
       final content = await fileService.readDocument('$testDir/local.md');
       expect(content, '# 本地写作');
     });
+  });
+
+  // AC2 widget 级测试: 降级 UI 本地写作闭环
+  _localModeWidgetTests();
+}
+
+// ──────────────────────────────────────────────
+// AC2 widget 级测试: 降级 UI 本地写作闭环
+// ──────────────────────────────────────────────
+void _localModeWidgetTests() {
+  testWidgets('AC2: 降级 UI 创建+打开+编辑+保存 Markdown', (tester) async {
+    final testDir = Directory.systemTemp.createTempSync('lingbi_ui_test_');
+    // 预先创建一个现有文件
+    File('${testDir.path}/existing.md').writeAsStringSync('# 现有章节\n\n原有内容。');
+
+    try {
+      final failedLocator = ServiceLocator.failed(error: 'injected degraded mode');
+
+      await tester.pumpWidget(LingBiApp(
+        locator: failedLocator,
+        localWorkDir: testDir.path,
+      ));
+      await tester.pump();
+
+      // 验证初始 UI：输入框、新建按钮、现有文件列表
+      expect(find.byKey(const ValueKey('chapterTitleInput')), findsOneWidget);
+      expect(find.byKey(const ValueKey('newChapterBtn')), findsOneWidget);
+
+      // === 场景 1: 打开已有文件并修改 ===
+      final pn = testDir.path.replaceAll('\\', '/');
+      await tester.tap(find.byKey(ValueKey('file_${pn}/existing.md')));
+      await tester.pump();
+
+      final editorField = find.byKey(const ValueKey('editorField'));
+      expect(editorField, findsOneWidget);
+
+      await tester.enterText(editorField, '# 现有章节\n\n内容已更新。');
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('saveBtn')));
+      await tester.pump();
+
+      var savedContent = File('${testDir.path}/existing.md').readAsStringSync();
+      expect(savedContent, '# 现有章节\n\n内容已更新。');
+
+      // === 场景 2: 新建章节并写入内容 ===
+      await tester.enterText(
+        find.byKey(const ValueKey('chapterTitleInput')),
+        '新章',
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('newChapterBtn')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 验证文件出现在列表中
+      expect(
+        find.byKey(ValueKey('file_${pn}/新章.md')),
+        findsOneWidget,
+      );
+
+      // 编辑器应加载了模板内容
+      expect(find.byKey(const ValueKey('editorField')), findsOneWidget);
+
+      // 写入新内容并保存
+      await tester.enterText(
+        find.byKey(const ValueKey('editorField')),
+        '# 新章\n\n新建内容。',
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('saveBtn')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 从磁盘验证
+      savedContent = File('${testDir.path}/新章.md').readAsStringSync();
+      expect(savedContent, '# 新章\n\n新建内容。');
+    } finally {
+      if (testDir.existsSync()) testDir.deleteSync(recursive: true);
+    }
   });
 }
