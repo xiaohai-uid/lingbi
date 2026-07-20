@@ -3,11 +3,11 @@
 ## Identity
 
 - Task: `TASK-20260720-V1-WORKFLOW-DRILL`
-- Status: `IN_PROGRESS`
-- Updated: `2026-07-20 22:37 +08:00`
+- Status: `APPROVED`
+- Updated: `2026-07-20 22:42 +08:00`
 - Active branch: `chore/ai-team-v1-mvr`
 - Baseline commit: `46c6d91ebe4f1d150dd7412ec4e453d88640de10`
-- Current commit: `UNCOMMITTED`
+- Current commit: `54e59b9c269ce7d18a488e0d16d64f5aaac90e83` (reviewed workflow checkpoint; review artifacts follow in the final documentation commit)
 
 ## Completed and verified
 
@@ -16,6 +16,7 @@
 - Full and app-focused analyzer failures are pre-existing and recorded — evidence: `EVIDENCE.md#static-analysis`.
 - Workflow structure validation passes for 12 files and seven mandatory rules — evidence: `EVIDENCE.md#workflow-structure-validation`.
 - A separate fresh OpenCode process recovered the task from the explicit repository read list without old chat — evidence: `EVIDENCE.md#fresh-opencode-takeover`.
+- GPT reviewed checkpoint `54e59b9c269ce7d18a488e0d16d64f5aaac90e83` and recorded `APPROVE` in `REVIEW.md`.
 
 ## Current code state
 
@@ -41,7 +42,7 @@
 
 ## Single next action
 
-1. Create a focused checkpoint commit for the workflow infrastructure, then generate `REVIEW_BUNDLE.md` and `REVIEW.md` from that commit.
+1. Use this approved task directory as the reference example when GPT creates the next real task from `.ai/templates/SPEC.template.md`.
 
 ## Do not repeat
 

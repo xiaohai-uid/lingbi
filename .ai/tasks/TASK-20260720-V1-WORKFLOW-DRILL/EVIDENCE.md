@@ -245,3 +245,33 @@ ls -la : parameter 'la' is not valid for Get-ChildItem
 ```
 
 Classification: `PASS_WITH_PROCESS_FINDING`. The fresh process recovered all task context and correctly identified the next action without old chat. The repository contract was updated to require PowerShell-native commands so future execution does not repeat these POSIX-command errors.
+
+## Final workflow verification
+
+Command: PowerShell checked the 14 required operating, template and drill files, enforced a 500-byte minimum, and rejected any baseline-to-working-tree path outside `AGENTS.md` or `.ai/`.
+
+Exit code: `0`
+
+Key output:
+
+```text
+FINAL_WORKFLOW_CHECK=PASS
+FILES_CHECKED=14
+BUSINESS_CHANGES=0
+```
+
+Final regression command:
+
+```powershell
+flutter test
+```
+
+Exit code: `0`
+
+Key output:
+
+```text
+00:00 +88: All tests passed!
+```
+
+Classification: `PASS`. Review artifacts are complete, workflow scope contains no business changes, and the existing executable test gate remains green.
