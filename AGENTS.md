@@ -1,12 +1,24 @@
 # LingBi agent operating contract
 
-This repository uses GPT 5.6 as the decision/review layer and OpenCode as the execution layer. Chat history is disposable; Git files and command evidence are authoritative.
+This repository uses GPT/Codex as the decision/review layer, Qoder Quest for complex execution, Qoder Ultra Review for independent first-pass technical review, and OpenCode for simple or reassigned execution. Chat history is disposable; Git files and command evidence are authoritative.
 
 ## Roles
 
-- **GPT 5.6:** align the goal, issue `.ai/tasks/<TASK-ID>/SPEC.md`, decide architecture, review the real diff/evidence, and return `APPROVE`, `FIX_REQUIRED`, or `ESCALATE` in `REVIEW.md`.
-- **OpenCode:** read the repository contract, implement only the issued scope, run commands, maintain task state, commit checkpoints, and produce review evidence.
+- **GPT/Codex:** plans, classifies, assigns, and makes the final review decision; it does not implement an assigned business-code task.
+- **Qoder Quest:** executes `COMPLEX` tasks in a dedicated worktree.
+- **Qoder Ultra Review:** runs in a separate ordinary Chat context against a frozen Git range and writes first-pass findings only.
+- **OpenCode:** executes `SIMPLE` tasks or a GPT-reassigned released task.
 - **User:** state the goal, transfer repository files or patches between tools, and decide major product/architecture choices. The user is not expected to paraphrase code state or manually test the application.
+
+## Assignment, lease, and review rules
+
+- GPT/Codex records `Complexity`, `Assigned executor`, and `First-pass review` in every task SPEC before execution. `SIMPLE` tasks are assigned to `OPENCODE`; `COMPLEX` tasks are assigned to `QODER` and require first-pass review. A released Qoder task may move to OpenCode only after GPT/Codex explicitly reassigns it in the SPEC.
+- An executor may edit only when it is both the assigned and active executor and `Lease status` is `HELD`. Each task has one execution lease; a second executor must stop when the lease is held.
+- Before changing window, model, or executor, the active executor updates STATE and EVIDENCE, records a safe checkpoint when possible, and releases the lease. The replacement reads repository artifacts and Git evidence, then acquires a new lease.
+- Qoder Ultra Review is separate from Qoder Quest execution: it uses an ordinary Chat context, reviews an explicit frozen baseline-to-checkpoint range, makes no file changes, and writes advisory first-pass findings in `QODER_REVIEW.md`.
+- Completion evidence includes executor provenance, baseline and checkpoint SHAs, diff scope, commands with timestamps and exit codes, and the linked Qoder review when first-pass review is required. Qoder review statuses are `PASS`, `PASS_WITH_FINDINGS`, and `FAIL`; they do not replace command evidence.
+- Only GPT/Codex may record the final `APPROVE`, `FIX_REQUIRED`, or `ESCALATE` decision in `REVIEW.md`. Qoder review cannot authorize integration.
+- Executors and reviewers must not merge or push. Merge or push requires explicit user authorization after the final GPT/Codex decision.
 
 ## Required startup sequence
 
@@ -26,7 +38,7 @@ If the active task directory is unknown, stop and ask for its path. Do not infer
 - Do not expand task scope, change product goals, replace key modules, or weaken acceptance criteria without GPT approval.
 - Record the baseline before editing. Distinguish pre-existing failures and user-owned changes from task changes.
 - Keep unrelated dirty files untouched. Never clean, reset, discard, or commit them.
-- Run the exact acceptance commands in `SPEC.md`. Record command, timestamp, exit code, and key output in `EVIDENCE.md`.
+- Run the exact acceptance commands in `SPEC.md`. Record command, timestamp, exit code, executor provenance, and key output in `EVIDENCE.md`.
 - A prose summary is not acceptance evidence. Completion claims require a Git commit SHA, diff scope, commands, exit codes, and key output.
 - If reliable machine evidence is unavailable, set the task state to `IMPLEMENTED_BUT_UNVERIFIED`; never call it complete.
 - For the same blocker, make at most two autonomous evidence-based attempts. If both fail, stop and create/update `BLOCKER.md`.
@@ -36,9 +48,9 @@ If the active task directory is unknown, stop and ask for its path. Do not infer
 
 ## Task and review lifecycle
 
-Use `.ai/tasks/<TASK-ID>/`. Start from `.ai/templates/`. During execution maintain `STATE.md` and `EVIDENCE.md`; on completion create `REVIEW_BUNDLE.md`; on a decision-layer review create `REVIEW.md`; on escalation create `BLOCKER.md`.
+Use `.ai/tasks/<TASK-ID>/`. Start from `.ai/templates/`. During execution maintain `STATE.md` and `EVIDENCE.md`; on completion create `REVIEW_BUNDLE.md`; for required first-pass review create `QODER_REVIEW.md`; on a GPT/Codex final decision create `REVIEW.md`; on escalation create `BLOCKER.md`.
 
-Only an `APPROVE` review with verifiable evidence permits integration. Do not merge or push unless the user explicitly authorizes it.
+Only a GPT/Codex `APPROVE` review with verifiable evidence permits integration. Do not merge or push unless the user explicitly authorizes it.
 
 ## Repository conventions
 

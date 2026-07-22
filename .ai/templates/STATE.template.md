@@ -9,6 +9,14 @@
 - Baseline commit: `<full SHA>`
 - Current commit: `<full SHA or UNCOMMITTED>`
 
+## Execution lease
+
+- Active executor: `<NONE | OPENCODE | QODER>`
+- Lease status: `<RELEASED | HELD>`
+- Lease acquired at: `<timestamp or N/A>`
+- Worktree path: `<absolute path>`
+- Checkpoint commit: `<full SHA or UNCOMMITTED>`
+
 ## Completed and verified
 
 - `<result>` — evidence: `EVIDENCE.md#<anchor>`

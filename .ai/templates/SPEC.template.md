@@ -9,6 +9,9 @@
 - Baseline commit: `<full SHA>`
 - Risk: `<LOW | MEDIUM | HIGH>`
 - Minimum verification level: `<L0 | L1 | L2 | L3>`
+- Complexity: `<SIMPLE | COMPLEX>`
+- Assigned executor: `<OPENCODE | QODER>`
+- First-pass review: `<REQUIRED | NOT_REQUIRED>`
 
 ## 1. Goal
 

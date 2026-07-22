@@ -6,6 +6,13 @@
 - Baseline commit: `<full SHA>`
 - Current commit: `<full SHA>`
 - Branch: `<branch>`
+- Assigned executor: `<OPENCODE | QODER>`
+- Executor worktree: `<absolute path>`
+- Checkpoint commit: `<full SHA>`
+- First-pass review: `<REQUIRED | NOT_REQUIRED>`
+- Qoder review artifact: `<QODER_REVIEW.md path or N/A>`
+- Frozen Qoder review range: `<exact range or N/A>`
+- Qoder review status: `<PASS | PASS_WITH_FINDINGS | FAIL | NOT_REQUIRED>`
 - Requested outcome: `<APPROVE or identify required fixes>`
 
 ## 2. Actual changes
@@ -56,6 +63,8 @@ Unapproved deviations cannot be accepted.
 
 ## 9. Executor declaration
 
+- [ ] Executor provenance and checkpoint SHA are recorded above.
+- [ ] Required Qoder first-pass review is linked and its status is recorded.
 - [ ] Every completion claim is supported by code, Git, command, or log evidence.
 - [ ] No unverified function is described as complete.
 - [ ] No unrelated change is included.

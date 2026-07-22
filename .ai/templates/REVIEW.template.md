@@ -1,13 +1,16 @@
-# Review result: `<APPROVE | FIX_REQUIRED | ESCALATE>`
+# GPT/Codex final review result: `<APPROVE | FIX_REQUIRED | ESCALATE>`
+
+Only GPT/Codex may complete this template or make the final integration decision. Qoder first-pass review is advisory technical evidence and cannot authorize merge, push, or final approval.
 
 ## Review identity
 
 - Task: `<TASK-ID>`
-- Reviewer: `GPT 5.6 decision layer`
+- Reviewer: `GPT/Codex decision layer`
 - Reviewed branch: `<branch>`
 - Baseline commit: `<full SHA>`
 - Reviewed commit: `<full SHA>`
 - Reviewed evidence: `SPEC.md`, `STATE.md`, `EVIDENCE.md`, `REVIEW_BUNDLE.md`, and `<diff/patch>`
+- Qoder first-pass review: `<QODER_REVIEW.md path or NOT_REQUIRED>`
 
 ## Decision
 

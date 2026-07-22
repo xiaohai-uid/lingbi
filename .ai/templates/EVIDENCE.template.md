@@ -2,6 +2,17 @@
 
 Evidence is append-only. Record concise, decision-relevant output; keep large raw logs in a named repository artifact and link it here. Never record credentials.
 
+## Executor and review provenance
+
+- Assigned executor: `<OPENCODE | QODER>`
+- Active executor: `<OPENCODE | QODER>`
+- Execution worktree: `<absolute path>`
+- Baseline commit: `<full SHA>`
+- Checkpoint commit: `<full SHA or UNCOMMITTED>`
+- Qoder first-pass review: `<REQUIRED | NOT_REQUIRED>`
+- Qoder review artifact: `<QODER_REVIEW.md path or N/A>`
+- Frozen Qoder review range: `<exact range or N/A>`
+
 ## Baseline
 
 - Captured: `<YYYY-MM-DD HH:MM timezone>`
@@ -18,6 +29,7 @@ Evidence is append-only. Record concise, decision-relevant output; keep large ra
 
 - Timestamp: `<YYYY-MM-DD HH:MM timezone>`
 - Purpose: `<acceptance item or diagnosis>`
+- Executor: `<OPENCODE | QODER | GPT/CODEX>`
 - Working directory: `<absolute or repository-relative path>`
 - Command:
 

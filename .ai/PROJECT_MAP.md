@@ -57,6 +57,14 @@ Run only commands relevant to the active task and copy the real results into `EV
 
 The full analyzer and format baseline are already failing. A task may still be reviewable when its specified targeted gates pass, but it must not describe these baseline failures as caused or fixed by the task.
 
-## OpenCode takeover contract
+## Three-role workflow contract
 
-A fresh OpenCode window receives only the repository/worktree path and active task path. It must obtain all other context from `AGENTS.md`, this map, task files, Git history/status, and the baseline diff. If any required file is missing or contradictory, it stops and writes `BLOCKER.md` instead of reconstructing intent from memory.
+- GPT/Codex classifies every task as `SIMPLE` or `COMPLEX`, assigns `OPENCODE` or `QODER`, and owns the final review decision.
+- Qoder Quest executes `COMPLEX` tasks only in a dedicated worktree. Its checkpoint is reviewed by Qoder Ultra Review in a separate ordinary Chat context against a frozen Git range.
+- OpenCode executes `SIMPLE` tasks and may take over a released Qoder task only after an explicit GPT/Codex reassignment.
+- Every task has a single held execution lease. Executors preserve user-owned dirty changes, record evidence and checkpoint SHAs, and release the lease before handoff.
+- Qoder first-pass review is advisory evidence (`PASS`, `PASS_WITH_FINDINGS`, or `FAIL`); only GPT/Codex may approve. No executor or reviewer may merge or push without explicit user authorization.
+
+## Executor startup and takeover contract
+
+A fresh executor window receives only the repository/worktree path and active task path. It must obtain all other context from `AGENTS.md`, this map, task files, Git history/status, and the baseline diff. It must verify that it is the assigned executor and that the execution lease is released before acquiring it. If any required file is missing or contradictory, it stops and writes `BLOCKER.md` instead of reconstructing intent from memory.
