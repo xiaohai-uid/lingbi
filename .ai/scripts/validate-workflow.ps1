@@ -42,6 +42,9 @@ $requiredContracts = @(
   @{ File = 'AGENTS.md'; Pattern = 'Each task has one execution lease' },
   @{ File = 'AGENTS.md'; Pattern = 'SIMPLE.*OPENCODE.*COMPLEX.*QODER.*require first-pass review' },
   @{ File = 'AGENTS.md'; Pattern = 'separate from Qoder Quest execution' },
+  @{ File = 'AGENTS.md'; Pattern = 'strictly read-only for frozen business code and the target Git range' },
+  @{ File = 'AGENTS.md'; Pattern = 'only permitted write is the current task.*QODER_REVIEW\.md' },
+  @{ File = 'AGENTS.md'; Pattern = 'must not modify implementation files, `SPEC\.md`, `STATE\.md`, `EVIDENCE\.md`, `REVIEW_BUNDLE\.md`, or the frozen checkpoint commit' },
   @{ File = 'AGENTS.md'; Pattern = 'Completion evidence includes executor provenance' },
   @{ File = 'AGENTS.md'; Pattern = 'Executors and reviewers must not merge or push' },
   @{ File = '.ai/PROJECT_MAP.md'; Pattern = 'Three-role workflow contract' },
@@ -50,6 +53,9 @@ $requiredContracts = @(
   @{ File = '.ai/tasks/README.md'; Pattern = '### Complex task' },
   @{ File = '.ai/tasks/README.md'; Pattern = '### Released-task takeover' },
   @{ File = '.ai/tasks/README.md'; Pattern = 'separate ordinary Qoder Chat performs read-only Ultra Review' },
+  @{ File = '.ai/tasks/README.md'; Pattern = 'frozen business code and the target Git range' },
+  @{ File = '.ai/tasks/README.md'; Pattern = 'only write `QODER_REVIEW\.md` in the current task directory' },
+  @{ File = '.ai/tasks/README.md'; Pattern = 'must not modify implementation files, `SPEC\.md`, `STATE\.md`, `EVIDENCE\.md`, `REVIEW_BUNDLE\.md`, or the frozen checkpoint commit' },
   @{ File = '.ai/templates/SPEC.template.md'; Pattern = 'Complexity: `<SIMPLE \| COMPLEX>`' },
   @{ File = '.ai/templates/SPEC.template.md'; Pattern = 'Assigned executor: `<OPENCODE \| QODER>`' },
   @{ File = '.ai/templates/SPEC.template.md'; Pattern = 'First-pass review: `<REQUIRED \| NOT_REQUIRED>`' },
@@ -73,7 +79,7 @@ $requiredContracts = @(
   @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'Frozen checkpoint: `<full SHA>`' },
   @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'Ultra Review target: `<exact range or commit>`' },
   @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'Status: `<PASS \| PASS_WITH_FINDINGS \| FAIL>`' },
-  @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'Files modified by reviewer: `NONE`' },
+  @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'Files modified by reviewer: `QODER_REVIEW\.md only`' },
   @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = '\| ID \| Severity \| File:line \| Evidence \| Required disposition \|' },
   @{ File = '.ai/templates/QODER_REVIEW.template.md'; Pattern = 'This report is advisory technical evidence' }
 )

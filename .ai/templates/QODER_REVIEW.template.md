@@ -5,7 +5,7 @@
 - Frozen checkpoint: `<full SHA>`
 - Ultra Review target: `<exact range or commit>`
 - Status: `<PASS | PASS_WITH_FINDINGS | FAIL>`
-- Files modified by reviewer: `NONE`
+- Files modified by reviewer: `QODER_REVIEW.md only`
 
 ## Findings
 

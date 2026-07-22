@@ -34,7 +34,7 @@ Only GPT/Codex final review may move `READY_FOR_REVIEW` to `APPROVED`. Qoder fir
 
 1. GPT/Codex records `COMPLEX`, assigns `QODER`, and requires first-pass review in SPEC.
 2. Qoder Quest acquires the single execution lease in a dedicated worktree, records evidence, freezes a checkpoint, and releases the lease.
-3. A separate ordinary Qoder Chat performs read-only Ultra Review against the frozen range and writes `QODER_REVIEW.md`.
+3. A separate ordinary Qoder Chat performs read-only Ultra Review against frozen business code and the target Git range. It may only write `QODER_REVIEW.md` in the current task directory to normalize `/ultra-review` output; it must not modify implementation files, `SPEC.md`, `STATE.md`, `EVIDENCE.md`, `REVIEW_BUNDLE.md`, or the frozen checkpoint commit.
 4. GPT/Codex makes the final decision in `REVIEW.md`.
 
 ### Released-task takeover
