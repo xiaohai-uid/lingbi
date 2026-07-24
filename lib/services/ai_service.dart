@@ -1,14 +1,25 @@
+import 'dart:async';
+
 import 'package:lingbi/services/interfaces/i_ai_service.dart';
 import 'package:lingbi/services/settings_service.dart';
 import '../core/ai/ai_provider.dart';
+import '../core/ai/ai_response_normalizer.dart';
 import '../core/ai/free_provider.dart';
 import '../core/ai/sensenova_provider.dart';
 import '../core/ai/deepseek_provider.dart';
 import '../core/ai/openai_provider.dart';
 import '../core/ai/claude_provider.dart';
+import '../core/ai/model_registry.dart';
+import '../core/errors/ai_error.dart';
 import 'quota_service.dart';
 
 /// AI 服务 - 管理所有 AI 提供者并负责路由
+///
+/// 集成：
+/// - AiResponseNormalizer（在 Stream<String> 之上，不改 Provider）
+/// - AiErrorMapper（统一错误分级）
+/// - 取消支持（StreamSubscription 管理）
+/// - ModelRegistry（模型元数据查询）
 class AIService implements IAIService {
 
   AIService({required QuotaService quotaService})
@@ -21,6 +32,12 @@ class AIService implements IAIService {
   final QuotaService _quota;
   String _currentProvider = 'free';
   String _projectContext = '';
+
+  /// 当前活跃的流式订阅（用于取消）
+  StreamSubscription<String>? _activeSubscription;
+
+  /// 当前是否有活跃生成
+  bool get isGenerating => _activeSubscription != null;
 
   /// 自定义端点 Provider 映射（id -> OpenAIProvider）
   final Map<String, OpenAIProvider> _customProviders = {};
@@ -150,7 +167,60 @@ class AIService implements IAIService {
     return messages;
   }
 
-  /// 发送聊天消息（流式）
+  /// 获取当前模型信息（从 ModelRegistry 查询）
+  ModelInfo? get currentModelInfo {
+    return ModelRegistry.instance.findModel(
+      currentProvider.currentModelId,
+      providerId: _currentProvider == 'free' ? null : _currentProvider,
+    );
+  }
+
+  /// 获取当前模型 ID
+  String get currentModelId => currentProvider.currentModelId;
+
+  /// 取消当前生成任务
+  void cancelCurrentRequest() {
+    _activeSubscription?.cancel();
+    _activeSubscription = null;
+  }
+
+  /// 测试当前 Provider 连接
+  Future<ConnectionTestResult> testConnection() async {
+    return currentProvider.testConnection();
+  }
+
+  /// 规范化流式聊天（在 Stream<String> 之上）
+  ///
+  /// 返回结构化事件流，区分过程/答案/候选。
+  /// 支持取消：调用 cancelCurrentRequest() 停止生成。
+  Stream<NormalizerEvent> normalizedChat({
+    required String message,
+    double temperature = 0.7,
+    int maxTokens = 2048,
+    bool treatAllAsCandidate = false,
+  }) async* {
+    if (!_quota.tryConsume()) {
+      yield const NormalizerError(
+        message: '今日免费额度已用完。请配置自己的 API Key 或明天再试。',
+      );
+      return;
+    }
+
+    final messages = _buildMessages(message);
+    final normalizer = AiResponseNormalizer(
+      treatAllAsCandidate: treatAllAsCandidate,
+    );
+
+    final rawStream = currentProvider.chat(
+      messages: messages,
+      temperature: temperature,
+      maxTokens: maxTokens,
+    );
+
+    yield* normalizer.normalize(rawStream);
+  }
+
+  /// 发送聊天消息（流式，带错误映射和取消支持）
   @override
   Stream<String> chat({
     required String message,
@@ -163,11 +233,25 @@ class AIService implements IAIService {
     }
 
     final messages = _buildMessages(message);
-    yield* currentProvider.chat(
-      messages: messages,
-      temperature: temperature,
-      maxTokens: maxTokens,
-    );
+    final controller = StreamController<String>();
+
+    _activeSubscription = currentProvider
+        .chat(
+          messages: messages,
+          temperature: temperature,
+          maxTokens: maxTokens,
+        )
+        .listen(
+          (chunk) => controller.add(chunk),
+          onError: (Object error) {
+            final mapped = AiErrorMapper.map(error, provider: _currentProvider);
+            controller.addError(mapped);
+          },
+          onDone: () => controller.close(),
+        );
+
+    yield* controller.stream;
+    _activeSubscription = null;
   }
 
   /// 风格蒸馏：分析文本风格

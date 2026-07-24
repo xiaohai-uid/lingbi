@@ -1,5 +1,5 @@
 /// 应用错误类型体系
-sealed class AppError {
+abstract class AppError {
 
   AppError(this.message, {this.code, this.cause});
   final String message;

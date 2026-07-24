@@ -8,7 +8,7 @@ import 'ai_provider.dart';
 /// Base URL: https://token.sensenova.cn/v1
 /// 免费模型: sensenova-6.7-flash-lite, deepseek-v4-flash
 /// 限额: 每 5 小时 1500 次请求
-class SenseNovaProvider implements AIProvider {
+class SenseNovaProvider extends AIProvider {
 
   SenseNovaProvider({String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,

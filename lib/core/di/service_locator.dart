@@ -3,10 +3,12 @@ import '../../services/canon_service.dart';
 import '../../services/canon_linking_service.dart';
 import '../../services/document_service.dart';
 import '../../services/export_service.dart';
+import '../../services/intent_confirmation_service.dart';
 import '../../services/project_service.dart';
 import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
 import '../../services/settings_service.dart';
+import '../../services/skill_action_service.dart';
 import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../services/version_history_service.dart';
@@ -26,7 +28,8 @@ import '../file_system/sync_service.dart';
 /// 7. AIService ← QuotaService
 /// 8. CanonLinkingService ← CanonService
 /// 9. SettingsService ← AIService
-/// 10. ExportService, VersionHistoryService, ProjectTabController (无依赖)
+/// 10. SkillActionService, IntentConfirmationService (无依赖)
+/// 11. ExportService, VersionHistoryService, ProjectTabController (无依赖)
 class ServiceLocator {
 
   ServiceLocator._();
@@ -65,6 +68,8 @@ class ServiceLocator {
   late final AIService aiService;
   late final CanonLinkingService canonLinkingService;
   late final SettingsService settingsService;
+  late final SkillActionService skillActionService;
+  late final IntentConfirmationService intentConfirmationService;
   late final ExportService exportService;
   late final VersionHistoryService versionHistoryService;
   late final ProjectTabController projectTabController;
@@ -104,7 +109,12 @@ class ServiceLocator {
           CanonLinkingService(canonService: locator.canonService);
       locator.settingsService = SettingsService(aiService: locator.aiService);
 
-      // 层级 5: 无依赖工具服务
+      // 层级 5: 技能服务（无依赖）
+      locator.skillActionService = SkillActionService()
+        ..initializeBuiltinSkills();
+      locator.intentConfirmationService = IntentConfirmationService();
+
+      // 层级 6: 无依赖工具服务
       locator.exportService = ExportService();
       locator.versionHistoryService = VersionHistoryService();
       locator.projectTabController = ProjectTabController();

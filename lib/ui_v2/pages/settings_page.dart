@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lingbi/core/ai/model_registry.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/settings_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import '../components/model_status_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -28,7 +30,6 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _autoSave = true;
   String _editorWidth = 'medium';
   double _temperature = 0.7;
-  String _writingModel = 'gpt-4o-mini';
 
   @override
   void initState() {
@@ -309,13 +310,16 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildAiModelSection(LingBiColors c) {
     final settings = ServiceLocator.instance.settingsService;
     final currentProvider = settings.selectedProvider;
+    final models = ModelRegistry.instance.getModelsForProvider(currentProvider);
+    final selectedModelId = settings.getSelectedModelId(currentProvider);
+
     return _buildSection(
       c: c,
       items: [
         _SettingItem(
           icon: LingBiIcons.model,
-          title: '默认模型',
-          subtitle: 'AI 对话使用的默认模型',
+          title: '默认供应商',
+          subtitle: 'AI 对话使用的默认供应商',
           trailing: SizedBox(
             width: 200,
             child: DropdownButtonFormField<String>(
@@ -345,24 +349,25 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         _SettingItem(
           icon: LingBiIcons.model,
-          title: '写作辅助模型',
-          subtitle: '用于润色、续写等写作功能的模型',
+          title: '模型选择',
+          subtitle: '当前供应商的可用模型',
           trailing: SizedBox(
             width: 200,
             child: DropdownButtonFormField<String>(
-              initialValue: _writingModel,
-              items: const [
-                DropdownMenuItem(
-                  value: 'gpt-4o-mini',
-                  child: Text('GPT-4o Mini'),
-                ),
-                DropdownMenuItem(
-                  value: 'claude-3-haiku',
-                  child: Text('Claude 3 Haiku'),
-                ),
-              ],
-              onChanged: (value) =>
-                  setState(() => _writingModel = value ?? 'gpt-4o-mini'),
+              initialValue: selectedModelId.isEmpty && models.isNotEmpty
+                  ? models.first.id
+                  : selectedModelId,
+              items: models
+                  .map((m) => DropdownMenuItem(
+                        value: m.id,
+                        child: Text('${m.displayName} (${m.contextWindowLabel})'),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  settings.setSelectedModelId(currentProvider, value);
+                }
+              },
               decoration: InputDecoration(
                 filled: true,
                 fillColor: c.surface,
@@ -392,7 +397,35 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
         ),
+        _SettingItem(
+          icon: Icons.wifi_tethering,
+          title: '连接测试',
+          subtitle: '测试当前供应商连接是否正常',
+          trailing: OutlinedButton.icon(
+            onPressed: _testConnection,
+            icon: const Icon(Icons.play_arrow, size: 16),
+            label: const Text('测试'),
+          ),
+        ),
+        // 模型状态栏预览
+        _SettingItem(
+          icon: Icons.info_outline,
+          title: '模型信息',
+          subtitle: '当前模型的详细元数据',
+          trailing: const ModelStatusBar(compact: true),
+        ),
       ],
+    );
+  }
+
+  Future<void> _testConnection() async {
+    final result = await ServiceLocator.instance.aiService.testConnection();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: result.success ? LingBiTokens.success : LingBiTokens.warning,
+      ),
     );
   }
 
@@ -401,7 +434,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (settings.isUsingPlaintextFallback)
+        if (settings.isUsingSessionOnlyKeys)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -417,8 +450,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '安全存储不可用，API Key 当前以明文存储在本地 JSON 文件中。'
-                    '建议设置系统环境变量来提供 API Key。',
+                    settings.secureStorageWarning ??
+                        '安全存储不可用，API Key 仅在本次会话有效，不会保存到磁盘。',
                     style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
                   ),
                 ),

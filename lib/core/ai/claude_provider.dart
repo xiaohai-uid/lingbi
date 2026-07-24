@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
 
-class ClaudeProvider implements AIProvider {
+class ClaudeProvider extends AIProvider {
 
   ClaudeProvider({String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,

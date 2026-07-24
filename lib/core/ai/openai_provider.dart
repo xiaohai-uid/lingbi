@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
 
-class OpenAIProvider implements AIProvider {
+class OpenAIProvider extends AIProvider {
 
   OpenAIProvider({String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,

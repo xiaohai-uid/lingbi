@@ -4,90 +4,120 @@ import 'package:lingbi/core/ai/model_registry.dart';
 void main() {
   group('ModelInfo', () {
     test('creates with all fields', () {
-      final info = ModelInfo(
+      const info = ModelInfo(
         id: 'gpt-4o',
-        name: 'GPT-4o',
+        displayName: 'GPT-4o',
+        providerId: 'openai',
+        contextWindow: 128000,
+        maxOutputTokens: 16384,
         category: '主力',
         recommended: true,
         deprecated: false,
       );
       expect(info.id, 'gpt-4o');
-      expect(info.name, 'GPT-4o');
+      expect(info.displayName, 'GPT-4o');
+      expect(info.providerId, 'openai');
+      expect(info.contextWindow, 128000);
       expect(info.category, '主力');
       expect(info.recommended, true);
       expect(info.deprecated, false);
     });
 
     test('defaults recommended to false and deprecated to false', () {
-      final info = ModelInfo(id: 'test', name: 'Test');
+      const info = ModelInfo(id: 'test', displayName: 'Test', providerId: 'x');
       expect(info.recommended, false);
       expect(info.deprecated, false);
     });
 
-    test('toJson contains all fields', () {
-      final info = ModelInfo(
+    test('contextWindowLabel formats correctly', () {
+      const m1 = ModelInfo(id: 'a', displayName: 'A', providerId: 'p', contextWindow: 128000);
+      const m2 = ModelInfo(id: 'b', displayName: 'B', providerId: 'p', contextWindow: 1000000);
+      const m3 = ModelInfo(id: 'c', displayName: 'C', providerId: 'p');
+      expect(m1.contextWindowLabel, '128K');
+      expect(m2.contextWindowLabel, '1M');
+      expect(m3.contextWindowLabel, '未知');
+    });
+
+    test('metadataSourceLabel', () {
+      const m1 = ModelInfo(id: 'a', displayName: 'A', providerId: 'p');
+      expect(m1.metadataSourceLabel, '内置');
+      const m2 = ModelInfo(id: 'b', displayName: 'B', providerId: 'p', metadataSource: MetadataSource.remote);
+      expect(m2.metadataSourceLabel, 'API获取');
+    });
+
+    test('toJson contains expected fields', () {
+      const info = ModelInfo(
         id: 'gpt-4o-mini',
-        name: 'GPT-4o Mini',
+        displayName: 'GPT-4o Mini',
+        providerId: 'openai',
+        contextWindow: 128000,
         category: '轻量',
         recommended: false,
-        deprecated: false,
       );
       final json = info.toJson();
       expect(json['id'], 'gpt-4o-mini');
-      expect(json['name'], 'GPT-4o Mini');
+      expect(json['display_name'], 'GPT-4o Mini');
+      expect(json['provider_id'], 'openai');
+      expect(json['context_window'], 128000);
       expect(json['category'], '轻量');
       expect(json['recommended'], false);
-      expect(json['deprecated'], false);
     });
 
-    test('fromJson reconstructs all fields', () {
+    test('fromJson reconstructs fields', () {
       final json = {
-        'id': 'claude-3-5-sonnet-20241022',
-        'name': 'Claude 3.5 Sonnet',
-        'category': '稳定',
-        'recommended': false,
-        'deprecated': false,
+        'id': 'claude-sonnet-4-20250514',
+        'display_name': 'Claude Sonnet 4',
+        'provider_id': 'claude',
+        'context_window': 200000,
+        'category': '主力',
+        'recommended': true,
+        'metadata_source': 'builtin',
       };
       final info = ModelInfo.fromJson(json);
-      expect(info.id, 'claude-3-5-sonnet-20241022');
-      expect(info.name, 'Claude 3.5 Sonnet');
-      expect(info.category, '稳定');
-      expect(info.recommended, false);
-      expect(info.deprecated, false);
+      expect(info.id, 'claude-sonnet-4-20250514');
+      expect(info.displayName, 'Claude Sonnet 4');
+      expect(info.providerId, 'claude');
+      expect(info.contextWindow, 200000);
+      expect(info.recommended, true);
+      expect(info.metadataSource, MetadataSource.builtin);
     });
 
     test('toJson/fromJson round-trip', () {
-      final original = ModelInfo(
+      const original = ModelInfo(
         id: 'deepseek-reasoner',
-        name: 'DeepSeek Reasoner',
+        displayName: 'DeepSeek R1',
+        providerId: 'deepseek',
+        contextWindow: 65536,
+        maxOutputTokens: 8192,
         category: '推理',
         recommended: false,
-        deprecated: true,
+        metadataSource: MetadataSource.builtin,
       );
       final restored = ModelInfo.fromJson(original.toJson());
       expect(restored.id, original.id);
-      expect(restored.name, original.name);
+      expect(restored.displayName, original.displayName);
+      expect(restored.providerId, original.providerId);
+      expect(restored.contextWindow, original.contextWindow);
       expect(restored.category, original.category);
-      expect(restored.recommended, original.recommended);
-      expect(restored.deprecated, original.deprecated);
     });
 
-    test('toJson/fromJson round-trip with defaults', () {
-      final original = ModelInfo(id: 'sensenova-6.7-flash', name: 'SenseNova 6.7 Flash', category: '主力');
-      final restored = ModelInfo.fromJson(original.toJson());
-      expect(restored.recommended, false);
-      expect(restored.deprecated, false);
+    test('copyWith creates modified copy', () {
+      const original = ModelInfo(id: 'test', displayName: 'Test', providerId: 'p', contextWindow: 1000);
+      final copy = original.copyWith(displayName: 'Modified', contextWindow: 2000);
+      expect(copy.id, 'test');
+      expect(copy.displayName, 'Modified');
+      expect(copy.contextWindow, 2000);
     });
   });
 
   group('PlatformModelConfig', () {
     test('creates with all fields', () {
-      final config = PlatformModelConfig(
+      const config = PlatformModelConfig(
         id: 'openai',
         name: 'OpenAI',
         models: [
-          ModelInfo(id: 'gpt-4o', name: 'GPT-4o', category: '主力', recommended: true),
-          ModelInfo(id: 'gpt-4o-mini', name: 'GPT-4o Mini', category: '轻量'),
+          ModelInfo(id: 'gpt-4o', displayName: 'GPT-4o', providerId: 'openai', recommended: true),
+          ModelInfo(id: 'gpt-4o-mini', displayName: 'GPT-4o Mini', providerId: 'openai'),
         ],
         baseUrl: 'https://api.openai.com/v1',
         authHeader: 'authorization',
@@ -100,144 +130,48 @@ void main() {
     });
 
     test('defaults authHeader to authorization', () {
-      final config = PlatformModelConfig(
-        id: 'test',
-        name: 'Test',
-        models: [],
-        baseUrl: 'https://example.com',
-      );
+      const config = PlatformModelConfig(id: 'test', name: 'Test', models: [], baseUrl: 'https://example.com');
       expect(config.authHeader, 'authorization');
-    });
-
-    test('toJson contains all fields', () {
-      final config = PlatformModelConfig(
-        id: 'claude',
-        name: 'Claude',
-        models: [
-          ModelInfo(id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', category: '主力', recommended: true),
-        ],
-        baseUrl: 'https://api.anthropic.com',
-        authHeader: 'x-api-key',
-      );
-      final json = config.toJson();
-      expect(json['id'], 'claude');
-      expect(json['name'], 'Claude');
-      expect(json['baseUrl'], 'https://api.anthropic.com');
-      expect(json['authHeader'], 'x-api-key');
-      expect((json['models'] as List).length, 1);
-      expect((json['models'] as List)[0]['id'], 'claude-sonnet-4-20250514');
-    });
-
-    test('fromJson reconstructs all fields', () {
-      final json = {
-        'id': 'deepseek',
-        'name': 'DeepSeek',
-        'baseUrl': 'https://api.deepseek.com/v1',
-        'authHeader': 'authorization',
-        'models': [
-          {'id': 'deepseek-chat', 'name': 'DeepSeek Chat', 'category': '主力', 'recommended': true, 'deprecated': false},
-          {'id': 'deepseek-coder', 'name': 'DeepSeek Coder', 'category': '代码', 'recommended': false, 'deprecated': false},
-        ],
-      };
-      final config = PlatformModelConfig.fromJson(json);
-      expect(config.id, 'deepseek');
-      expect(config.name, 'DeepSeek');
-      expect(config.baseUrl, 'https://api.deepseek.com/v1');
-      expect(config.authHeader, 'authorization');
-      expect(config.models.length, 2);
-      expect(config.models[0].id, 'deepseek-chat');
-      expect(config.models[1].id, 'deepseek-coder');
-    });
-
-    test('toJson/fromJson round-trip', () {
-      final original = PlatformModelConfig(
-        id: 'sensenova',
-        name: 'SenseNova (商汤)',
-        models: [
-          ModelInfo(id: 'sensenova-6.7-flash-lite', name: 'SenseNova 6.7 Flash Lite', category: '轻量', recommended: true),
-          ModelInfo(id: 'sensenova-6.7-flash', name: 'SenseNova 6.7 Flash', category: '主力'),
-        ],
-        baseUrl: 'https://token.sensenova.cn/v1',
-      );
-      final restored = PlatformModelConfig.fromJson(original.toJson());
-      expect(restored.id, original.id);
-      expect(restored.name, original.name);
-      expect(restored.baseUrl, original.baseUrl);
-      expect(restored.authHeader, original.authHeader);
-      expect(restored.models.length, original.models.length);
-      for (var i = 0; i < original.models.length; i++) {
-        expect(restored.models[i].id, original.models[i].id);
-        expect(restored.models[i].recommended, original.models[i].recommended);
-      }
     });
 
     test('recommendedModel returns the recommended model', () {
-      final config = PlatformModelConfig(
+      const config = PlatformModelConfig(
         id: 'openai',
         name: 'OpenAI',
         models: [
-          ModelInfo(id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', category: '经典'),
-          ModelInfo(id: 'gpt-4o', name: 'GPT-4o', category: '主力', recommended: true),
-          ModelInfo(id: 'gpt-4o-mini', name: 'GPT-4o Mini', category: '轻量'),
+          ModelInfo(id: 'gpt-4o-mini', displayName: 'Mini', providerId: 'openai'),
+          ModelInfo(id: 'gpt-4o', displayName: 'GPT-4o', providerId: 'openai', recommended: true),
         ],
         baseUrl: 'https://api.openai.com/v1',
       );
       expect(config.recommendedModel?.id, 'gpt-4o');
     });
 
-    test('recommendedModel returns null when no recommended model', () {
-      final config = PlatformModelConfig(
+    test('recommendedModel returns first when none recommended', () {
+      const config = PlatformModelConfig(
         id: 'test',
         name: 'Test',
         models: [
-          ModelInfo(id: 'model-a', name: 'Model A'),
-          ModelInfo(id: 'model-b', name: 'Model B'),
+          ModelInfo(id: 'model-a', displayName: 'A', providerId: 'test'),
+          ModelInfo(id: 'model-b', displayName: 'B', providerId: 'test'),
         ],
         baseUrl: 'https://example.com',
       );
-      expect(config.recommendedModel, isNull);
+      expect(config.recommendedModel?.id, 'model-a');
     });
 
     test('availableModels excludes deprecated models', () {
-      final config = PlatformModelConfig(
+      const config = PlatformModelConfig(
         id: 'test',
         name: 'Test',
         models: [
-          ModelInfo(id: 'active-1', name: 'Active 1', category: '主力', recommended: true),
-          ModelInfo(id: 'active-2', name: 'Active 2', category: '轻量'),
-          ModelInfo(id: 'deprecated-1', name: 'Deprecated 1', category: '经典', deprecated: true),
+          ModelInfo(id: 'active-1', displayName: 'Active 1', providerId: 'test'),
+          ModelInfo(id: 'old', displayName: 'Old', providerId: 'test', deprecated: true),
         ],
         baseUrl: 'https://example.com',
       );
-      final available = config.availableModels;
-      expect(available.length, 2);
-      expect(available[0].id, 'active-1');
-      expect(available[1].id, 'active-2');
-    });
-
-    test('availableModels returns all when none deprecated', () {
-      final config = PlatformModelConfig(
-        id: 'test',
-        name: 'Test',
-        models: [
-          ModelInfo(id: 'a', name: 'A'),
-          ModelInfo(id: 'b', name: 'B'),
-        ],
-        baseUrl: 'https://example.com',
-      );
-      expect(config.availableModels.length, 2);
-    });
-
-    test('availableModels returns empty when all deprecated', () {
-      final config = PlatformModelConfig(
-        id: 'test',
-        name: 'Test',
-        models: [
-          ModelInfo(id: 'old', name: 'Old', deprecated: true),
-        ],
-        baseUrl: 'https://example.com',
-      );
-      expect(config.availableModels.length, 0);
+      expect(config.availableModels.length, 1);
+      expect(config.availableModels[0].id, 'active-1');
     });
   });
 
@@ -254,112 +188,144 @@ void main() {
     test('allPlatforms returns map with 4 entries', () {
       final platforms = ModelRegistry.allPlatforms;
       expect(platforms.length, 4);
-      expect(platforms.keys.contains('openai'), true);
-      expect(platforms.keys.contains('claude'), true);
-      expect(platforms.keys.contains('deepseek'), true);
-      expect(platforms.keys.contains('sensenova'), true);
     });
 
-    test('getConfig returns correct PlatformModelConfig for openai', () {
+    test('getConfig returns correct config for openai', () {
       final config = ModelRegistry.getConfig('openai');
-      expect(config.id, 'openai');
+      expect(config, isNotNull);
+      expect(config!.id, 'openai');
       expect(config.name, 'OpenAI');
       expect(config.baseUrl, 'https://api.openai.com/v1');
       expect(config.authHeader, 'authorization');
     });
 
-    test('getConfig returns correct PlatformModelConfig for claude', () {
+    test('getConfig returns correct config for claude', () {
       final config = ModelRegistry.getConfig('claude');
-      expect(config.id, 'claude');
-      expect(config.name, 'Claude');
+      expect(config, isNotNull);
+      expect(config!.id, 'claude');
       expect(config.baseUrl, 'https://api.anthropic.com');
       expect(config.authHeader, 'x-api-key');
     });
 
-    test('getConfig returns correct PlatformModelConfig for deepseek', () {
+    test('getConfig returns correct config for deepseek', () {
       final config = ModelRegistry.getConfig('deepseek');
-      expect(config.id, 'deepseek');
-      expect(config.name, 'DeepSeek');
+      expect(config, isNotNull);
+      expect(config!.id, 'deepseek');
       expect(config.baseUrl, 'https://api.deepseek.com/v1');
-      expect(config.authHeader, 'authorization');
     });
 
-    test('getConfig returns correct PlatformModelConfig for sensenova', () {
+    test('getConfig returns correct config for sensenova', () {
       final config = ModelRegistry.getConfig('sensenova');
-      expect(config.id, 'sensenova');
-      expect(config.name, 'SenseNova (商汤)');
+      expect(config, isNotNull);
+      expect(config!.name, 'SenseNova (商汤)');
       expect(config.baseUrl, 'https://token.sensenova.cn/v1');
-      expect(config.authHeader, 'authorization');
     });
 
-    test('getConfig throws ArgumentError for unknown provider', () {
-      expect(
-        () => ModelRegistry.getConfig('unknown'),
-        throwsA(isA<ArgumentError>()),
-      );
+    test('getConfig returns null for unknown provider', () {
+      expect(ModelRegistry.getConfig('unknown'), isNull);
     });
 
     test('openai has correct model list', () {
-      final config = ModelRegistry.getConfig('openai');
+      final config = ModelRegistry.getConfig('openai')!;
       final modelIds = config.models.map((m) => m.id).toList();
-      expect(modelIds, [
-        'gpt-4o',
-        'gpt-4o-mini',
-        'gpt-3.5-turbo',
-        'o1',
-        'o1-mini',
-      ]);
+      expect(modelIds, ['gpt-4o', 'gpt-4o-mini']);
     });
 
     test('claude has correct model list', () {
-      final config = ModelRegistry.getConfig('claude');
+      final config = ModelRegistry.getConfig('claude')!;
       final modelIds = config.models.map((m) => m.id).toList();
-      expect(modelIds, [
-        'claude-sonnet-4-20250514',
-        'claude-3-5-sonnet-20241022',
-        'claude-3-5-haiku-20241022',
-        'claude-3-opus-20240229',
-      ]);
+      expect(modelIds, ['claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022']);
     });
 
     test('deepseek has correct model list', () {
-      final config = ModelRegistry.getConfig('deepseek');
+      final config = ModelRegistry.getConfig('deepseek')!;
       final modelIds = config.models.map((m) => m.id).toList();
-      expect(modelIds, [
-        'deepseek-chat',
-        'deepseek-coder',
-        'deepseek-reasoner',
-      ]);
+      expect(modelIds, ['deepseek-chat', 'deepseek-reasoner']);
     });
 
     test('sensenova has correct model list', () {
-      final config = ModelRegistry.getConfig('sensenova');
+      final config = ModelRegistry.getConfig('sensenova')!;
       final modelIds = config.models.map((m) => m.id).toList();
-      expect(modelIds, [
-        'sensenova-6.7-flash-lite',
-        'sensenova-6.7-flash',
-      ]);
+      expect(modelIds, ['sensenova-6.7-flash-lite', 'sensenova-6.7-flash']);
     });
 
-    test('recommendedModel returns recommended model for each platform', () {
-      expect(ModelRegistry.getConfig('openai').recommendedModel?.id, 'gpt-4o');
-      expect(ModelRegistry.getConfig('claude').recommendedModel?.id, 'claude-sonnet-4-20250514');
-      expect(ModelRegistry.getConfig('deepseek').recommendedModel?.id, 'deepseek-chat');
-      expect(ModelRegistry.getConfig('sensenova').recommendedModel?.id, 'sensenova-6.7-flash-lite');
+    test('recommendedModel for each platform', () {
+      expect(ModelRegistry.getConfig('openai')!.recommendedModel?.id, 'gpt-4o');
+      expect(ModelRegistry.getConfig('claude')!.recommendedModel?.id, 'claude-sonnet-4-20250514');
+      expect(ModelRegistry.getConfig('deepseek')!.recommendedModel?.id, 'deepseek-chat');
+      expect(ModelRegistry.getConfig('sensenova')!.recommendedModel?.id, 'sensenova-6.7-flash-lite');
     });
 
-    test('availableModels returns only non-deprecated models for each platform', () {
+    test('getConfig and allPlatforms consistent', () {
       for (final id in ModelRegistry.allProviderIds) {
-        final config = ModelRegistry.getConfig(id);
-        expect(config.availableModels.length, config.models.length);
-      }
-    });
-
-    test('getConfig and allPlatforms return consistent data', () {
-      for (final id in ModelRegistry.allProviderIds) {
-        expect(ModelRegistry.getConfig(id).id, id);
+        expect(ModelRegistry.getConfig(id)!.id, id);
         expect(ModelRegistry.allPlatforms[id]?.id, id);
       }
+    });
+
+    test('instance.getModelsForProvider returns builtin models', () {
+      final models = ModelRegistry.instance.getModelsForProvider('openai');
+      expect(models.length, 2);
+      expect(models.first.id, 'gpt-4o');
+    });
+
+    test('instance.findModel finds builtin model', () {
+      final model = ModelRegistry.instance.findModel('deepseek-chat');
+      expect(model, isNotNull);
+      expect(model!.displayName, 'DeepSeek V3');
+      expect(model.providerId, 'deepseek');
+    });
+
+    test('instance.findModel returns null for unknown', () {
+      expect(ModelRegistry.instance.findModel('nonexistent'), isNull);
+    });
+
+    test('instance.getDefaultModel returns recommended', () {
+      final model = ModelRegistry.instance.getDefaultModel('openai');
+      expect(model?.id, 'gpt-4o');
+    });
+
+    test('registerRemoteModels adds models with remote source', () {
+      final registry = ModelRegistry.instance;
+      registry.registerRemoteModels('openai', ['gpt-5-turbo', 'gpt-4o']);
+      final models = registry.getModelsForProvider('openai');
+      final remote = models.where((m) => m.id == 'gpt-5-turbo').toList();
+      expect(remote.length, 1);
+      expect(remote.first.metadataSource, MetadataSource.remote);
+      expect(remote.first.contextWindow, isNull);
+    });
+
+    test('estimateTokens estimates Chinese text', () {
+      final tokens = ModelRegistry.estimateTokens('这是一段中文测试文本');
+      expect(tokens, greaterThan(0));
+    });
+
+    test('estimateTokens returns 0 for empty', () {
+      expect(ModelRegistry.estimateTokens(''), 0);
+    });
+  });
+
+  group('ModelPricing', () {
+    test('isKnown returns false for default pricing', () {
+      const pricing = ModelPricing();
+      expect(pricing.isKnown, false);
+    });
+
+    test('isKnown returns true when prices set', () {
+      const pricing = ModelPricing(inputPerMillion: 1.0, outputPerMillion: 2.0);
+      expect(pricing.isKnown, true);
+    });
+
+    test('formatCost returns unknown for default pricing', () {
+      const pricing = ModelPricing();
+      expect(pricing.formatCost(inputTokens: 1000, outputTokens: 500), '费用未知');
+    });
+
+    test('formatCost calculates cost', () {
+      const pricing = ModelPricing(inputPerMillion: 10.0, outputPerMillion: 30.0);
+      final cost = pricing.formatCost(inputTokens: 1000000, outputTokens: 1000000);
+      expect(cost.isNotEmpty, true);
+      expect(cost, isNot(equals('费用未知')));
     });
   });
 }

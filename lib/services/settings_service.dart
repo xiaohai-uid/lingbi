@@ -58,6 +58,10 @@ class CustomEndpointConfig {
 }
 
 /// 设置服务 - 管理主题、AI 模型选择、API Keys 的持久化
+///
+/// API Key 安全规则：
+/// - 公开构建中禁止把 API Key 回退保存到明文 JSON
+/// - 安全存储失败时：提示无法安全保存，允许本次会话临时使用，不得静默持久化
 class SettingsService extends ChangeNotifier implements ISettingsService {
 
   SettingsService({required AIService aiService})
@@ -74,11 +78,20 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   /// 自定义端点列表
   List<CustomEndpointConfig> _customEndpoints = [];
 
-  /// 安全存储是否可用（CI 无 keychain 环境下为 false，回退到明文 JSON）
+  /// 安全存储是否可用
   bool _secureStorageAvailable = false;
 
-  /// 当前是否使用明文 JSON 存储 API Key（安全存储不可用时的回退）
-  bool get isUsingPlaintextFallback => !_secureStorageAvailable;
+  /// 会话临时 Key（安全存储不可用时，仅存内存，不持久化）
+  final Map<String, String> _sessionOnlyKeys = {};
+
+  /// 安全存储失败提示（UI 层监听此标记显示提示）
+  String? secureStorageWarning;
+
+  /// 当前选择的模型 ID（每个 provider 一个）
+  final Map<String, String> _selectedModelIds = {};
+
+  /// 当前是否使用会话临时 Key（安全存储不可用）
+  bool get isUsingSessionOnlyKeys => _sessionOnlyKeys.isNotEmpty;
 
   /// 安全存储 key 前缀
   static const _secureKeyPrefix = 'api_key_';
@@ -95,7 +108,19 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       List.unmodifiable(_customEndpoints);
 
   @override
-  String getApiKey(String provider) => _apiKeys[provider] ?? '';
+  String getApiKey(String provider) =>
+      _apiKeys[provider] ?? _sessionOnlyKeys[provider] ?? '';
+
+  /// 获取指定 provider 的模型 ID
+  String getSelectedModelId(String provider) =>
+      _selectedModelIds[provider] ?? '';
+
+  /// 设置模型 ID
+  void setSelectedModelId(String provider, String modelId) {
+    _selectedModelIds[provider] = modelId;
+    notifyListeners();
+    _save();
+  }
 
   /// 初始化 & 加载持久化设置
   @override
@@ -125,10 +150,32 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   }
 
   /// 设置 API Key
+  ///
+  /// 安全存储可用时写入安全存储；
+  /// 安全存储不可用时仅保存为会话临时 Key，不持久化。
   @override
   void setApiKey(String provider, String key) {
     _apiKeys[provider] = key;
     _aiService.configureApiKey(provider, key);
+
+    if (_secureStorageAvailable) {
+      // 异步写入安全存储
+      _secureStorage
+          .write(key: '$_secureKeyPrefix$provider', value: key)
+          .catchError((e) {
+        // 安全存储写入失败 → 降级为会话临时
+        _sessionOnlyKeys[provider] = key;
+        secureStorageWarning =
+            '无法安全保存 $provider 的 API Key，本次会话临时使用，关闭应用后需重新输入。';
+        notifyListeners();
+      });
+    } else {
+      // 安全存储不可用 → 会话临时
+      _sessionOnlyKeys[provider] = key;
+      secureStorageWarning =
+          '安全存储不可用，API Key 仅在本次会话有效，不会保存到磁盘。';
+    }
+
     notifyListeners();
     _save();
   }
@@ -193,7 +240,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       debugPrint('SettingsService: 安全存储不可用，回退到明文 JSON — $e');
     }
 
-    // 3. 从配置文件加载非敏感配置 & 检查旧版明文 apiKeys
+    // 3. 从配置文件加载非敏感配置
     if (_settingsPath != null) {
       final file = File(_settingsPath!);
       if (await file.exists()) {
@@ -202,11 +249,19 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
           final json = jsonDecode(content) as Map<String, dynamic>;
           _themeMode = _parseThemeMode(json['themeMode'] as String?);
           _selectedProvider = json['selectedProvider'] as String? ?? 'free';
+          // 加载模型 ID 选择
+          if (json['selectedModelIds'] is Map) {
+            (json['selectedModelIds'] as Map).forEach((k, v) {
+              if (v is String && v.isNotEmpty) {
+                _selectedModelIds[k.toString()] = v;
+              }
+            });
+          }
+          // 旧版明文 apiKeys：尝试迁移到安全存储，不保留在 JSON
           if (json['apiKeys'] is Map) {
             (json['apiKeys'] as Map).forEach((k, v) {
               final keyStr = k.toString();
               if (v is String && v.isNotEmpty && !_apiKeys.containsKey(keyStr)) {
-                _apiKeys[keyStr] = v;
                 legacyApiKeys[keyStr] = v;
               }
             });
@@ -223,6 +278,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     }
 
     // 4. 若发现旧版明文 apiKeys 且安全存储可用，迁移到安全存储并从 JSON 删除
+    //    安全存储不可用时，旧版明文 Key 不加载（禁止明文回退）
     if (legacyApiKeys.isNotEmpty && _secureStorageAvailable) {
       for (final entry in legacyApiKeys.entries) {
         try {
@@ -230,6 +286,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
             key: '$_secureKeyPrefix${entry.key}',
             value: entry.value,
           );
+          _apiKeys[entry.key] = entry.value;
         } catch (e) {
           debugPrint('SettingsService: 迁移 API key ${entry.key} 失败 — $e');
         }
@@ -264,10 +321,11 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   Future<void> _save() async {
     if (_settingsPath == null) return;
     try {
-      // API Keys 写入安全存储（若可用）；否则保留在 JSON 中作为 fallback
-      var includeApiKeysInJson = !_secureStorageAvailable;
+      // API Keys 仅写入安全存储；禁止明文 JSON 回退
       if (_secureStorageAvailable) {
         for (final entry in _apiKeys.entries) {
+          // 跳过会话临时 Key
+          if (_sessionOnlyKeys.containsKey(entry.key)) continue;
           try {
             await _secureStorage.write(
               key: '$_secureKeyPrefix${entry.key}',
@@ -275,8 +333,10 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
             );
           } catch (e) {
             debugPrint('SettingsService: 写入安全存储失败 — $e');
-            // 写入失败则本次 fallback 到 JSON
-            includeApiKeysInJson = true;
+            // 不 fallback 到 JSON，标记为会话临时
+            _sessionOnlyKeys[entry.key] = entry.value;
+            secureStorageWarning =
+                '部分 API Key 无法安全保存，仅在本次会话有效。';
           }
         }
       }
@@ -286,11 +346,18 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       final data = <String, dynamic>{
         'themeMode': _themeMode.name,
         'selectedProvider': _selectedProvider,
-        'customEndpoints': _customEndpoints.map((e) => e.toJson()).toList(),
+        'selectedModelIds': _selectedModelIds,
+        'customEndpoints': _customEndpoints
+            .map((e) => CustomEndpointConfig(
+                  id: e.id,
+                  name: e.name,
+                  baseUrl: e.baseUrl,
+                  apiKey: '', // 不在 JSON 中保存 apiKey
+                  modelId: e.modelId,
+                ).toJson())
+            .toList(),
+        // 禁止在 JSON 中写入 apiKeys
       };
-      if (includeApiKeysInJson) {
-        data['apiKeys'] = _apiKeys;
-      }
       await file.writeAsString(jsonEncode(data));
     } catch (_) {}
   }

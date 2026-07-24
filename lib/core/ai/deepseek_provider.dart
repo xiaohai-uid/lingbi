@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
 
-class DeepSeekProvider implements AIProvider {
+class DeepSeekProvider extends AIProvider {
 
   DeepSeekProvider({String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,
