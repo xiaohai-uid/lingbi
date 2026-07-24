@@ -4,6 +4,7 @@ import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import 'model_status_bar.dart';
 
 class _ChatMessage {
 
@@ -146,6 +147,10 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
       child: Column(
         children: [
           _buildHeader(c),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: ModelStatusBar(compact: true),
+          ),
           _buildTabs(c),
           Expanded(
             child: TabBarView(

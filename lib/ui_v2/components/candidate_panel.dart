@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lingbi/core/ai/ai_response_normalizer.dart';
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
+import 'model_status_bar.dart';
 
 /// 候选采纳模式
 enum AdoptMode {
@@ -135,6 +136,8 @@ class _CandidatePanelState extends State<CandidatePanel> {
             ),
           ),
           const Spacer(),
+          const ModelStatusBar(compact: true),
+          const SizedBox(width: 8),
           if (widget.isStreaming)
             SizedBox(
               width: 14,

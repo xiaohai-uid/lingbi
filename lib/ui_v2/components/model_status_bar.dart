@@ -1,12 +1,13 @@
 /// 模型状态栏
 ///
-/// 显示：供应商、modelId、元数据来源、上下文窗口已知或未知、
-/// 本次上下文估算、输出上限、费用估算或"费用未知"
+/// 显示：供应商·modelId / 上下文窗口或“未知” / 本次上下文 / 输出上限 / 费用估算或“费用未知”
+/// 支持 ModelSnapshot 显示（运行中任务不受全局切换影响）
 library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/ai/model_registry.dart';
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/core/models/model_snapshot.dart';
 
 /// 模型状态栏组件
 class ModelStatusBar extends StatelessWidget {
@@ -14,6 +15,7 @@ class ModelStatusBar extends StatelessWidget {
     super.key,
     this.contextTokens = 0,
     this.compact = false,
+    this.snapshot,
   });
 
   /// 本次上下文估算 token 数
@@ -22,12 +24,16 @@ class ModelStatusBar extends StatelessWidget {
   /// 紧凑模式（仅显示关键信息）
   final bool compact;
 
+  /// 任务快照（运行中任务使用，不受全局切换影响）
+  final ModelSnapshot? snapshot;
+
   @override
   Widget build(BuildContext context) {
     final aiService = ServiceLocator.instance.aiService;
     final modelInfo = aiService.currentModelInfo;
-    final providerName = aiService.currentProviderName;
-    final modelId = aiService.currentModelId;
+    final providerName = snapshot?.providerId ?? aiService.currentProviderName;
+    final modelId = snapshot?.modelId ?? aiService.currentModelId;
+    final displayName = snapshot?.displayName ?? modelInfo?.displayName ?? modelId;
 
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.bodySmall?.copyWith(
@@ -52,11 +58,10 @@ class ModelStatusBar extends StatelessWidget {
         runSpacing: 4,
         children: [
           _buildItem('供应商', _providerDisplayName(providerName), valueStyle, labelStyle),
-          _buildItem('模型', modelId.isEmpty ? '未选择' : modelId, valueStyle, labelStyle),
-          _buildItem('元数据', modelInfo?.metadataSourceLabel ?? '未知', valueStyle, labelStyle),
+          _buildItem('模型', displayName.isEmpty ? '未选择' : displayName, valueStyle, labelStyle),
           _buildItem(
             '上下文窗口',
-            modelInfo?.contextWindowLabel ?? '未知',
+            snapshot?.contextWindowLabel ?? modelInfo?.contextWindowLabel ?? '未知',
             valueStyle,
             labelStyle,
           ),
@@ -68,12 +73,12 @@ class ModelStatusBar extends StatelessWidget {
           ),
           _buildItem(
             '输出上限',
-            modelInfo?.maxOutputLabel ?? '未知',
+            snapshot?.maxOutputLabel ?? modelInfo?.maxOutputLabel ?? '未知',
             valueStyle,
             labelStyle,
           ),
           _buildItem(
-            '费用估算',
+            '费用',
             _estimateCost(modelInfo),
             valueStyle,
             labelStyle,
@@ -137,10 +142,14 @@ class ModelStatusBar extends StatelessWidget {
   }
 
   String _estimateCost(ModelInfo? modelInfo) {
+    // 快照优先
+    if (snapshot != null) {
+      return snapshot!.pricingLabel;
+    }
     if (modelInfo == null || !modelInfo.pricing.isKnown) {
       return '费用未知';
     }
-    // 假设输出 500 tokens
+    // 内置已知→估算
     return modelInfo.pricing.formatCost(
       inputTokens: contextTokens,
       outputTokens: 500,
