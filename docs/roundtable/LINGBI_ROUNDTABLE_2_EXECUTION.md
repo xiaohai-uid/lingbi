@@ -1,5 +1,10 @@
 # 灵笔第二次圆桌会议：技术实现对照与执行方案
 
+> **勘误 (2026-07-24)**：
+> - 用户提供的第三个 URL `http://111.170.163.42:4650/` 实际对应 **OpenWrite App v1.2.6**，而非 DreamEngine。
+> - “DreamEngine/幻海Opus”身份判断**废弃**。
+> - 后续对照对象修正为：**灵笔、OpenWrite App (v1.2.6)、OpenWrite CLI (v5.8.0)**。
+
 > 会议时间：2026-07-24（第二次）
 > 触发：用户要求深入研究 http://111.170.163.42:4650/ (OpenWrite) 的技术细节
 > 新增证据：OpenWrite Python CLI v5.8.0 源码（novel_service.py, context_package.py, project_lock.py）

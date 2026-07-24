@@ -1,5 +1,11 @@
 # 灵笔 × OpenWrite × DreamEngine 下一代架构圆桌会议
 
+> **勘误 (2026-07-24)**：
+> - 用户提供的第三个 URL `http://111.170.163.42:4650/` 实际对应 **OpenWrite App v1.2.6**（Flutter 桌面+移动端），而非 DreamEngine。
+> - “DreamEngine/幻海Opus”身份判断**废弃**，公开互联网无可验证信息。
+> - 后续对照对象修正为：**灵笔、OpenWrite App (v1.2.6)、OpenWrite CLI (v5.8.0)**。
+> - 本文档中所有 DreamEngine 相关标记 (UNVERIFIED) 保留为历史记录，不作为架构依据。
+
 > 会议时间：2026-07-24
 > 召集人：架构总召集人
 > 仓库：`c:\codex\worktrees\lingbi-review-v1-mvr`
