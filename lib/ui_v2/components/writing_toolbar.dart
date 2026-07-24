@@ -16,6 +16,7 @@ abstract class FormatCommands {
   static const code = 'code';
   static const undo = 'undo';
   static const redo = 'redo';
+  static const aiWriting = 'aiWriting';
 }
 
 class WritingToolbar extends StatelessWidget {
@@ -74,6 +75,37 @@ class WritingToolbar extends StatelessWidget {
             const _ToolItem(Icons.undo, null, FormatCommands.undo),
             const _ToolItem(Icons.redo, null, FormatCommands.redo),
           ], c),
+          _divider(c),
+          // AI 写作按钮
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onFormatCommand != null
+                  ? () => onFormatCommand!(FormatCommands.aiWriting)
+                  : null,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+              child: Container(
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16, color: c.accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      'AI 写作',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: c.accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const Spacer(),
           Text(
             '$wordCount 字',

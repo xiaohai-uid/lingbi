@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
+import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/models/document.dart' as app;
+import 'package:lingbi/services/skill_action_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import '../components/writing_toolbar.dart';
+import '../components/slash_command_menu.dart';
 
 class EditorPage extends StatefulWidget {
 
@@ -37,6 +40,15 @@ class _EditorPageState extends State<EditorPage> {
   final _titleController = TextEditingController();
   StreamSubscription? _changesSubscription;
   bool _contentLoaded = false;
+
+  // AI 写作状态
+  bool _showAiPanel = false;
+  bool _showSlashMenu = false;
+  final _instructionController = TextEditingController();
+  SkillAction? _selectedSkill;
+  bool _isGenerating = false;
+  String _streamingText = '';
+  String? _aiError;
 
   @override
   void initState() {
@@ -171,6 +183,7 @@ class _EditorPageState extends State<EditorPage> {
     _quillFocusNode.dispose();
     _quillController.dispose();
     _titleController.dispose();
+    _instructionController.dispose();
     super.dispose();
   }
 
@@ -180,6 +193,9 @@ class _EditorPageState extends State<EditorPage> {
 
   void _handleFormatCommand(String command) {
     switch (command) {
+      case FormatCommands.aiWriting:
+        _toggleAiPanel();
+        return;
       case FormatCommands.bold:
         _toggleAttribute(Attribute.bold);
       case FormatCommands.italic:
@@ -225,6 +241,109 @@ class _EditorPageState extends State<EditorPage> {
     _quillController.formatSelection(attr);
   }
 
+  // ---------------------------------------------------------------------------
+  // AI 写作
+  // ---------------------------------------------------------------------------
+
+  void _toggleAiPanel() {
+    setState(() => _showAiPanel = !_showAiPanel);
+  }
+
+  /// 检查是否有项目和章节
+  String? _validateAiReady() {
+    if (widget.projectId == null || widget.projectId!.isEmpty) {
+      return '请先打开一个项目';
+    }
+    if (widget.documentId == null || widget.documentId!.isEmpty) {
+      return '请先选择一个章节';
+    }
+    return null;
+  }
+
+  Future<void> _startGeneration() async {
+    final validationError = _validateAiReady();
+    if (validationError != null) {
+      setState(() => _aiError = validationError);
+      return;
+    }
+
+    final instruction = _instructionController.text.trim();
+    if (instruction.isEmpty) {
+      setState(() => _aiError = '请输入写作要求');
+      return;
+    }
+
+    // 先保存文档
+    if (_isDirty) {
+      await _save();
+      if (_isDirty) {
+        // 保存失败
+        setState(() => _aiError = '文档保存失败，无法基于过期内容生成');
+        return;
+      }
+    }
+
+    setState(() {
+      _isGenerating = true;
+      _aiError = null;
+      _streamingText = '';
+    });
+
+    // 本阶段使用 AIService 直接生成（待 Task 5 接入完整管线）
+    try {
+      final aiService = ServiceLocator.instance.aiService;
+      final buffer = StringBuffer();
+      final skillId = _selectedSkill?.id ?? 'smart-continuation';
+      final systemPrompt = '你是一个专业的小说写作助手。技能: $skillId。'
+          '请根据用户要求续写或改写内容，直接输出正文，不要加解释。';
+
+      await for (final chunk in aiService.currentProvider.chat(
+        messages: [
+          ChatMessage(role: 'system', content: systemPrompt),
+          ChatMessage(role: 'user', content: instruction),
+        ],
+        maxTokens: 4096,
+      )) {
+        if (!mounted) return;
+        buffer.write(chunk);
+        setState(() => _streamingText = buffer.toString());
+      }
+
+      if (mounted) {
+        setState(() => _isGenerating = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _aiError = 'AI 生成失败: $e';
+        });
+      }
+    }
+  }
+
+  void _cancelGeneration() {
+    setState(() {
+      _isGenerating = false;
+      _streamingText = '';
+    });
+  }
+
+  void _onSlashDetected() {
+    final skills = ServiceLocator.instance.skillActionService.registeredSkills;
+    if (skills.isNotEmpty) {
+      setState(() => _showSlashMenu = true);
+    }
+  }
+
+  void _onSkillSelected(SkillAction skill) {
+    setState(() {
+      _selectedSkill = skill;
+      _showSlashMenu = false;
+      _showAiPanel = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
@@ -241,29 +360,47 @@ class _EditorPageState extends State<EditorPage> {
               onFormatCommand: _handleFormatCommand,
               wordCount: _content.length,
             ),
+            if (_showAiPanel) _buildAiWritingPanel(c),
             Expanded(
-              child: GestureDetector(
-                onTap: () {},
-                child: Container(
-                  color: c.bg,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: LingBiTokens.space10,
-                          vertical: LingBiTokens.space8,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: 720,
-                            minHeight: constraints.maxHeight,
-                          ),
-                          child: _buildEditor(c),
-                        ),
-                      );
-                    },
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: () {},
+                    child: Container(
+                      color: c.bg,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: LingBiTokens.space10,
+                              vertical: LingBiTokens.space8,
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: 720,
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: _buildEditor(c),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
-                ),
+                  // 斜杠命令菜单
+                  if (_showSlashMenu)
+                    Positioned(
+                      left: 80,
+                      top: 40,
+                      child: SlashCommandMenu(
+                        skills: ServiceLocator.instance.skillActionService
+                            .registeredSkills,
+                        onSelected: _onSkillSelected,
+                        onDismiss: () =>
+                            setState(() => _showSlashMenu = false),
+                      ),
+                    ),
+                ],
               ),
             ),
             _buildStatusBar(c),
@@ -331,6 +468,131 @@ class _EditorPageState extends State<EditorPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAiWritingPanel(LingBiColors c) {
+    return Container(
+      padding: const EdgeInsets.all(LingBiTokens.space3),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(
+          bottom: BorderSide(color: c.borderOpaque.withValues(alpha: 0.3)),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 标题行
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 16, color: c.accent),
+              const SizedBox(width: 6),
+              Text('AI 写作',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: c.fg)),
+              const Spacer(),
+              if (_selectedSkill != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    _selectedSkill!.name,
+                    style: TextStyle(fontSize: 11, color: c.accent),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.close, size: 16, color: c.muted),
+                onPressed: () => setState(() => _showAiPanel = false),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // 输入区
+          TextField(
+            controller: _instructionController,
+            maxLines: 2,
+            decoration: InputDecoration(
+              hintText: '输入写作要求，如“续写主角进入咖啡馆的场景”…',
+              hintStyle: TextStyle(fontSize: 13, color: c.muted),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(
+                    color: c.borderOpaque.withValues(alpha: 0.3)),
+              ),
+              contentPadding: const EdgeInsets.all(8),
+            ),
+            style: TextStyle(fontSize: 13, color: c.fg),
+            onSubmitted: (_) => _startGeneration(),
+          ),
+          const SizedBox(height: 8),
+          // 操作按钮
+          Row(
+            children: [
+              if (_isGenerating)
+                TextButton.icon(
+                  onPressed: _cancelGeneration,
+                  icon: const Icon(Icons.stop, size: 16),
+                  label: const Text('停止'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                )
+              else
+                FilledButton.icon(
+                  onPressed: _startGeneration,
+                  icon: const Icon(Icons.play_arrow, size: 16),
+                  label: const Text('开始生成'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: c.accent,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _onSlashDetected,
+                child: Text('选择技能 (/)',
+                    style: TextStyle(fontSize: 12, color: c.muted)),
+              ),
+            ],
+          ),
+          // 错误提示
+          if (_aiError != null) ...[
+            const SizedBox(height: 6),
+            Text(_aiError!,
+                style: const TextStyle(fontSize: 12, color: Colors.red)),
+          ],
+          // 流式输出预览
+          if (_streamingText.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxHeight: 120),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: c.bg,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                    color: c.borderOpaque.withValues(alpha: 0.2)),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  _streamingText,
+                  style: TextStyle(fontSize: 13, color: c.fg, height: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 

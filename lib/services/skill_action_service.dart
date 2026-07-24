@@ -364,7 +364,7 @@ class SmartContinuationSkill extends SkillAction {
 /// 文本/对话润色
 class TextPolishSkill extends SkillAction {
   @override
-  String get id => 'text-polish';
+  String get id => 'dialogue-polish';
   @override
   String get name => '文本润色';
   @override

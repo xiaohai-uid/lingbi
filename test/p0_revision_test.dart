@@ -220,7 +220,7 @@ void main() {
 
     test('内置技能 ID 正确', () {
       final ids = service.registeredSkills.map((s) => s.id).toSet();
-      expect(ids, containsAll(['smart-continuation', 'text-polish', 'deai-polisher']));
+      expect(ids, containsAll(['smart-continuation', 'dialogue-polish', 'deai-polisher']));
     });
 
     test('getSkill 返回正确技能', () {
@@ -245,10 +245,10 @@ void main() {
 
     test('skillsForInput 无选区时排除 selection-only 技能', () {
       final skills = service.skillsForInput(hasSelection: false);
-      // text-polish 和 deai-polisher 需要 selection
+      // dialogue-polish 和 deai-polisher 需要 selection
       final ids = skills.map((s) => s.id).toSet();
       expect(ids.contains('smart-continuation'), true);
-      expect(ids.contains('text-polish'), false);
+      expect(ids.contains('dialogue-polish'), false);
       expect(ids.contains('deai-polisher'), false);
     });
 
@@ -292,7 +292,7 @@ void main() {
 
     test('文本润色 使用选中文本', () {
       final result = service.executeSkill(
-        skillId: 'text-polish',
+        skillId: 'dialogue-polish',
         context: const SkillContext(
           selectedText: '这是需要润色的文本段落。',
           fullDocument: '全文内容',
