@@ -407,6 +407,16 @@ class _SettingsPageState extends State<SettingsPage> {
             label: const Text('测试'),
           ),
         ),
+        _SettingItem(
+          icon: Icons.science_outlined,
+          title: '测试生成',
+          subtitle: '使用固定提示词验证模型可正常工作（可能产生少量 Token 费用）',
+          trailing: OutlinedButton.icon(
+            onPressed: _testGeneration,
+            icon: const Icon(Icons.auto_awesome, size: 16),
+            label: const Text('测试生成'),
+          ),
+        ),
         // 模型状态栏预览
         _SettingItem(
           icon: Icons.info_outline,
@@ -414,19 +424,91 @@ class _SettingsPageState extends State<SettingsPage> {
           subtitle: '当前模型的详细元数据',
           trailing: const ModelStatusBar(compact: true),
         ),
+        _SettingItem(
+          icon: Icons.replay,
+          title: '重新配置向导',
+          subtitle: '重新打开首次配置向导，重新选择供应商和模型',
+          trailing: OutlinedButton.icon(
+            onPressed: _reopenWizard,
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('打开向导'),
+          ),
+        ),
       ],
     );
   }
 
   Future<void> _testConnection() async {
-    final result = await ServiceLocator.instance.aiService.testConnection();
+    final result = await ServiceLocator.instance.aiService.testConnectionUnified();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(result.message),
+        content: Text(result.success
+            ? '连接成功 (${result.latencyMs}ms)${result.responsePreview != null ? " — ${result.responsePreview}" : ""}'
+            : result.message),
         backgroundColor: result.success ? LingBiTokens.success : LingBiTokens.warning,
       ),
     );
+  }
+
+  Future<void> _testGeneration() async {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('测试生成中，请稍候...')),
+    );
+    try {
+      final buffer = StringBuffer();
+      await for (final chunk in ServiceLocator.instance.aiService.testGeneration()) {
+        buffer.write(chunk);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(buffer.isNotEmpty
+              ? '测试生成成功：${buffer.toString().length > 60 ? "${buffer.toString().substring(0, 57)}..." : buffer}'
+              : '生成结果为空，请检查配置'),
+          backgroundColor: buffer.isNotEmpty ? LingBiTokens.success : LingBiTokens.warning,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('测试生成失败: $e'),
+          backgroundColor: LingBiTokens.warning,
+        ),
+      );
+    }
+  }
+
+  void _reopenWizard() {
+    ServiceLocator.instance.settingsService.resetOnboarding();
+  }
+
+  Future<void> _confirmDeleteKey(String provider) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除 API Key'),
+        content: const Text(
+          '删除后，该供应商将无法继续调用，现有项目内容不会被删除。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ServiceLocator.instance.settingsService.deleteApiKey(provider);
+    }
   }
 
   Widget _buildApiKeySection(LingBiColors c) {
@@ -464,72 +546,128 @@ class _SettingsPageState extends State<SettingsPage> {
         _SettingItem(
           icon: LingBiIcons.apiKey,
           title: 'SenseNova API Key',
-          subtitle: '用于 SenseNova 模型',
+          subtitle: settings.hasApiKey('sensenova')
+              ? (settings.isSessionOnlyKey('sensenova') ? '已配置（仅本次会话）' : '已配置')
+              : '未配置',
           trailing: SizedBox(
-            width: 240,
-            child: TextField(
-              controller: _sensenovaKeyController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'sk-...',
-                suffixIcon: Icon(LingBiIcons.edit, size: 16),
-              ),
-              onSubmitted: (value) =>
-                  settings.setApiKey('sensenova', value.trim()),
+            width: 280,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _sensenovaKeyController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'sk-...',
+                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    ),
+                    onSubmitted: (value) =>
+                        settings.setApiKey('sensenova', value.trim()),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  tooltip: '删除 Key',
+                  onPressed: () => _confirmDeleteKey('sensenova'),
+                ),
+              ],
             ),
           ),
         ),
         _SettingItem(
           icon: LingBiIcons.apiKey,
           title: 'DeepSeek API Key',
-          subtitle: '用于 DeepSeek 模型',
+          subtitle: settings.hasApiKey('deepseek')
+              ? (settings.isSessionOnlyKey('deepseek') ? '已配置（仅本次会话）' : '已配置')
+              : '未配置',
           trailing: SizedBox(
-            width: 240,
-            child: TextField(
-              controller: _deepseekKeyController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'sk-...',
-                suffixIcon: Icon(LingBiIcons.edit, size: 16),
-              ),
-              onSubmitted: (value) =>
-                  settings.setApiKey('deepseek', value.trim()),
+            width: 280,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _deepseekKeyController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'sk-...',
+                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    ),
+                    onSubmitted: (value) =>
+                        settings.setApiKey('deepseek', value.trim()),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  tooltip: '删除 Key',
+                  onPressed: () => _confirmDeleteKey('deepseek'),
+                ),
+              ],
             ),
           ),
         ),
         _SettingItem(
           icon: LingBiIcons.apiKey,
           title: 'OpenAI API Key',
-          subtitle: '用于 GPT 系列模型',
+          subtitle: settings.hasApiKey('openai')
+              ? (settings.isSessionOnlyKey('openai') ? '已配置（仅本次会话）' : '已配置')
+              : '未配置',
           trailing: SizedBox(
-            width: 240,
-            child: TextField(
-              controller: _openaiKeyController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'sk-...',
-                suffixIcon: Icon(LingBiIcons.edit, size: 16),
-              ),
-              onSubmitted: (value) =>
-                  settings.setApiKey('openai', value.trim()),
+            width: 280,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _openaiKeyController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'sk-...',
+                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    ),
+                    onSubmitted: (value) =>
+                        settings.setApiKey('openai', value.trim()),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  tooltip: '删除 Key',
+                  onPressed: () => _confirmDeleteKey('openai'),
+                ),
+              ],
             ),
           ),
         ),
         _SettingItem(
           icon: LingBiIcons.apiKey,
           title: 'Anthropic API Key',
-          subtitle: '用于 Claude 系列模型',
+          subtitle: settings.hasApiKey('claude')
+              ? (settings.isSessionOnlyKey('claude') ? '已配置（仅本次会话）' : '已配置')
+              : '未配置',
           trailing: SizedBox(
-            width: 240,
-            child: TextField(
-              controller: _anthropicKeyController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                hintText: 'sk-ant-...',
-                suffixIcon: Icon(LingBiIcons.edit, size: 16),
-              ),
-              onSubmitted: (value) =>
-                  settings.setApiKey('claude', value.trim()),
+            width: 280,
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _anthropicKeyController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'sk-ant-...',
+                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    ),
+                    onSubmitted: (value) =>
+                        settings.setApiKey('claude', value.trim()),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  tooltip: '删除 Key',
+                  onPressed: () => _confirmDeleteKey('claude'),
+                ),
+              ],
             ),
           ),
         ),
