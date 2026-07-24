@@ -227,7 +227,42 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
 
   @override
   String getApiKey(String provider) =>
-      _apiKeys[provider] ?? _sessionOnlyKeys[provider] ?? '';
+      _sessionOnlyKeys[provider] ?? _apiKeys[provider] ?? '';
+
+  /// 设置临时会话 Key（仅存内存，优先级高于持久 Key）
+  ///
+  /// 规则：只存内存 / 不写 settings.json / 不写安全存储 / 退出清除 / UI 标注“仅本次会话”
+  void setSessionApiKey(String provider, String key) {
+    _sessionOnlyKeys[provider] = key;
+    _aiService.configureApiKey(provider, key);
+    notifyListeners();
+  }
+
+  /// 删除 API Key
+  ///
+  /// 删安全存储 / 删内存缓存 / 刷新 Provider 状态。
+  /// 不删 Provider 或模型元数据。
+  Future<void> deleteApiKey(String provider) async {
+    _apiKeys.remove(provider);
+    _sessionOnlyKeys.remove(provider);
+    // 删除安全存储
+    if (_secureStorageAvailable) {
+      try {
+        await _secureStorage.delete(key: '$_secureKeyPrefix$provider');
+      } catch (_) {}
+    }
+    // 刷新 Provider 状态（配置空 key）
+    _aiService.configureApiKey(provider, '');
+    notifyListeners();
+    _save();
+  }
+
+  /// 检查指定 provider 是否有有效 API Key
+  bool hasApiKey(String provider) => getApiKey(provider).isNotEmpty;
+
+  /// 检查指定 provider 是否使用会话临时 Key
+  bool isSessionOnlyKey(String provider) =>
+      _sessionOnlyKeys.containsKey(provider);
 
   /// 获取指定 provider 的模型 ID
   String getSelectedModelId(String provider) =>
@@ -528,4 +563,13 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         return ThemeMode.system;
     }
   }
+}
+
+/// API Key 日志脱敏工具
+///
+/// 推荐完全不记录 API Key。如必须记录，使用此函数脱敏。
+/// 示例：sk-abc...xyz → sk-a...z
+String maskApiKey(String key) {
+  if (key.length <= 4) return '***';
+  return '${key.substring(0, 3)}...${key[key.length - 1]}';
 }
