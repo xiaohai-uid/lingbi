@@ -6,11 +6,13 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/models/document.dart' as app;
+import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import '../components/writing_toolbar.dart';
 import '../components/slash_command_menu.dart';
+import '../components/candidate_panel.dart';
 
 class EditorPage extends StatefulWidget {
 
@@ -49,6 +51,8 @@ class _EditorPageState extends State<EditorPage> {
   bool _isGenerating = false;
   String _streamingText = '';
   String? _aiError;
+  CandidateEntry? _currentCandidate;
+  bool _showCandidatePanel = false;
 
   @override
   void initState() {
@@ -310,7 +314,19 @@ class _EditorPageState extends State<EditorPage> {
       }
 
       if (mounted) {
-        setState(() => _isGenerating = false);
+        setState(() {
+          _isGenerating = false;
+          // 生成完成，创建候选条目并显示 CandidatePanel
+          _currentCandidate = CandidateEntry(
+            id: 'local-${DateTime.now().millisecondsSinceEpoch}',
+            chapterId: widget.documentId ?? '',
+            content: buffer.toString(),
+            status: CandidateStatus.pending,
+            model: aiService.currentProviderName,
+            createdAt: DateTime.now(),
+          );
+          _showCandidatePanel = true;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -344,6 +360,57 @@ class _EditorPageState extends State<EditorPage> {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // 候选采纳（编辑器内存操作，进入撤销栈）
+  // ---------------------------------------------------------------------------
+
+  void _handleAdopt(AdoptMode mode) {
+    final candidate = _currentCandidate;
+    if (candidate == null) return;
+    final text = candidate.content;
+
+    switch (mode) {
+      case AdoptMode.insertAtCursor:
+        final offset = _quillController.selection.start;
+        _quillController.replaceText(offset, 0, text, null);
+      case AdoptMode.replaceSelection:
+        final start = _quillController.selection.start;
+        final length = _quillController.selection.end - start;
+        _quillController.replaceText(start, length, text, null);
+      case AdoptMode.appendToEnd:
+        final docLength = _quillController.document.length;
+        // 在文档末尾插入（留一个换行）
+        _quillController.replaceText(docLength - 1, 0, '\n$text', null);
+    }
+
+    setState(() {
+      _content = _extractPlainText();
+      _isDirty = true;
+      _showCandidatePanel = false;
+      _currentCandidate = null;
+      _streamingText = '';
+    });
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 30), _save);
+  }
+
+  void _handleDiscard() {
+    setState(() {
+      _showCandidatePanel = false;
+      _currentCandidate = null;
+      _streamingText = '';
+    });
+  }
+
+  void _handleRegenerate() {
+    setState(() {
+      _showCandidatePanel = false;
+      _currentCandidate = null;
+      _streamingText = '';
+    });
+    _startGeneration();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
@@ -361,6 +428,19 @@ class _EditorPageState extends State<EditorPage> {
               wordCount: _content.length,
             ),
             if (_showAiPanel) _buildAiWritingPanel(c),
+            // 候选面板
+            if (_showCandidatePanel && _currentCandidate != null)
+              Padding(
+                padding: const EdgeInsets.all(LingBiTokens.space3),
+                child: CandidatePanel(
+                  candidate: _currentCandidate!,
+                  processBlocks: const [],
+                  isStreaming: false,
+                  onAdopt: _handleAdopt,
+                  onDiscard: _handleDiscard,
+                  onRegenerate: _handleRegenerate,
+                ),
+              ),
             Expanded(
               child: Stack(
                 children: [
