@@ -91,6 +91,9 @@ class ConnectionTestResult {
     required this.latencyMs,
     this.modelId = '',
     required this.message,
+    this.providerId = '',
+    this.responsePreview,
+    this.errorCategory,
   });
 
   /// 是否连接成功
@@ -104,6 +107,18 @@ class ConnectionTestResult {
 
   /// 结果消息（成功或错误描述）
   final String message;
+
+  /// 供应商 ID
+  final String providerId;
+
+  /// 响应预览（仅成功时生成，最多 80 字符，去换行控制字符）
+  final String? responsePreview;
+
+  /// 错误分类（失败时的中文分类）
+  final String? errorCategory;
+
+  /// 延迟（Duration 形式）
+  Duration get latency => Duration(milliseconds: latencyMs);
 
   @override
   String toString() => success

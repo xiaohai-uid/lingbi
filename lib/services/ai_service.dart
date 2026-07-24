@@ -189,6 +189,108 @@ class AIService implements IAIService {
     return currentProvider.testConnection();
   }
 
+  /// 统一连接测试（增强版）
+  ///
+  /// 测试提示词：「只回复：连接成功」，maxTokens: 10。
+  /// 成功判定：收到有效非空可解析响应（不要求逐字匹配）。
+  /// 不记录 Authorization Header / API Key / 完整 URL 参数 / 完整响应体。
+  Future<ConnectionTestResult> testConnectionUnified({
+    String? providerId,
+    String? modelId,
+  }) async {
+    final pid = providerId ?? _currentProvider;
+    final provider = _resolveProvider(pid);
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final response = await provider.chatSync(
+        messages: [const ChatMessage(role: 'user', content: '只回复：连接成功')],
+        maxTokens: 10,
+      );
+      stopwatch.stop();
+
+      final trimmed = response.trim();
+      if (trimmed.isEmpty) {
+        return ConnectionTestResult(
+          success: false,
+          latencyMs: stopwatch.elapsedMilliseconds,
+          modelId: modelId ?? provider.currentModelId,
+          providerId: pid,
+          message: '收到空响应，请检查模型配置',
+          errorCategory: '空响应',
+        );
+      }
+
+      return ConnectionTestResult(
+        success: true,
+        latencyMs: stopwatch.elapsedMilliseconds,
+        modelId: modelId ?? provider.currentModelId,
+        providerId: pid,
+        message: '连接成功',
+        responsePreview: _buildResponsePreview(trimmed),
+      );
+    } catch (e) {
+      stopwatch.stop();
+      final category = _classifyError(e);
+      return ConnectionTestResult(
+        success: false,
+        latencyMs: stopwatch.elapsedMilliseconds,
+        modelId: modelId ?? provider.currentModelId,
+        providerId: pid,
+        message: category,
+        errorCategory: category,
+      );
+    }
+  }
+
+  /// 生成响应预览（最多 80 字符，去换行控制字符）
+  String _buildResponsePreview(String response) {
+    // 去除换行和控制字符
+    final cleaned = response
+        .replaceAll(RegExp(r'[\r\n\t]'), ' ')
+        .replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '')
+        .trim();
+    if (cleaned.length <= 80) return cleaned;
+    return '${cleaned.substring(0, 77)}...';
+  }
+
+  /// 错误分类（9 种）
+  String _classifyError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('401') || msg.contains('unauthorized')) {
+      return '密钥无效，请检查 API Key 是否复制完整';
+    }
+    if (msg.contains('403') || msg.contains('forbidden')) {
+      return '权限不足，请检查账户状态';
+    }
+    if (msg.contains('404') || msg.contains('not found')) {
+      return '模型不存在，请检查 modelId 配置';
+    }
+    if (msg.contains('429') || msg.contains('rate limit')) {
+      return '频率限制，请稍后重试';
+    }
+    if (msg.contains('balance') || msg.contains('insufficient') ||
+        msg.contains('余额')) {
+      return '余额不足，请充值后重试';
+    }
+    if (msg.contains('socket') || msg.contains('timeout') ||
+        msg.contains('connection') || msg.contains('network')) {
+      return '网络不可达，请检查网络连接';
+    }
+    if (msg.contains('500') || msg.contains('502') || msg.contains('503') ||
+        msg.contains('internal server')) {
+      return '服务端错误，请稍后重试';
+    }
+    if (msg.contains('empty') || msg.contains('空')) {
+      return '空响应，请检查模型配置';
+    }
+    if (msg.contains('format') || msg.contains('parse') ||
+        msg.contains('json')) {
+      return '格式异常，响应无法解析';
+    }
+    return '连接失败，请检查配置';
+  }
+
   /// 根据 providerId 发现模型列表
   ///
   /// 规则：
