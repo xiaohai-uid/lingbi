@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/modules/pipeline/project_session_scope.dart';
 import 'package:lingbi/ui/layout/main_scaffold.dart';
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/ui/layout/sidebar/project_tree.dart';
@@ -15,6 +16,7 @@ import 'package:lingbi/ui/layout/ai_panel/ai_panel.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
 import 'package:lingbi/ui/pages/canon_page.dart';
 import 'package:lingbi/ui/pages/story_canvas_page.dart';
+import 'package:lingbi/ui/widgets/novel_writing_panel.dart';
 import 'package:lingbi/ui/widgets/version_history_panel.dart';
 
 class ProjectPage extends StatefulWidget {
@@ -32,6 +34,26 @@ class _ProjectPageState extends State<ProjectPage> {
   final VersionHistoryService _versionHistory = ServiceLocator.instance.versionHistoryService;
   Document? _currentDocument;
   String _editorContent = '';
+  bool _isDirty = false;
+  late ProjectSessionScope _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _session = ProjectSessionScope(
+      projectId: widget.project.id,
+      projectDir: widget.project.directoryPath,
+      documentService: ServiceLocator.instance.documentService,
+      canonService: ServiceLocator.instance.canonService,
+      aiService: ServiceLocator.instance.aiService,
+    );
+  }
+
+  @override
+  void dispose() {
+    _session.dispose();
+    super.dispose();
+  }
 
   Future<void> _saveDocument(String content) async {
     if (_currentDocument == null) return;
@@ -57,7 +79,10 @@ class _ProjectPageState extends State<ProjectPage> {
       setState(() {
         _currentDocument = doc;
         _editorContent = content;
+        _isDirty = false;
       });
+      // 绑定章节到项目会话
+      _session.bindChapter(chapterId: doc.id, filePath: doc.filePath);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
@@ -267,6 +292,88 @@ class _ProjectPageState extends State<ProjectPage> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700));
   }
 
+  /// 构建 AI 面板区域（包含聊天 + 写作两个 Tab）
+  Widget _buildAiPanelArea() {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          const TabBar(
+            tabs: [
+              Tab(text: 'AI 对话', icon: Icon(Icons.chat_bubble_outline, size: 16)),
+              Tab(text: 'AI 写作', icon: Icon(Icons.auto_stories, size: 16)),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                AIPanel(projectId: widget.project.id, projectName: widget.project.name),
+                _buildWritingTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 写作 Tab 内容
+  Widget _buildWritingTab() {
+    if (_currentDocument == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.touch_app, size: 40, color: Colors.grey),
+              SizedBox(height: 12),
+              Text('请先在左侧选择一个章节', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return NovelWritingPanel(
+      service: _session.novelService,
+      chapterId: _currentDocument!.id,
+      targetFilePath: _currentDocument!.filePath,
+      originalContent: _editorContent,
+      onAdopted: _onCandidateAdopted,
+      isDirty: _isDirty,
+      onSaveBeforeWrite: _saveBeforeWrite,
+    );
+  }
+
+  /// 采纳后刷新编辑器
+  Future<void> _onCandidateAdopted() async {
+    if (_currentDocument == null) return;
+    try {
+      final content = await _documentService.readContent(_currentDocument!.filePath);
+      setState(() {
+        _editorContent = content;
+        _isDirty = false;
+      });
+      _showMessage('✅ 候选已采纳，编辑器已刷新');
+    } catch (e) {
+      _showError('刷新编辑器失败: $e');
+    }
+  }
+
+  /// AI 写作前强制保存
+  Future<bool> _saveBeforeWrite() async {
+    if (_currentDocument == null) return false;
+    try {
+      await _saveDocument(_editorContent);
+      setState(() => _isDirty = false);
+      return true;
+    } catch (e) {
+      _showError('保存失败，无法开始 AI 写作: $e');
+      return false;
+    }
+  }
+
   void _openVersionHistory() {
     if (_currentDocument == null) {
       _showMessage('请先打开一个文档');
@@ -324,8 +431,11 @@ class _ProjectPageState extends State<ProjectPage> {
           initialContent: _editorContent,
           documentTitle: _currentDocument?.title,
           onSave: _currentDocument != null ? _saveDocument : null,
+          onContentChanged: (_) {
+            if (!_isDirty) setState(() => _isDirty = true);
+          },
         ),
-        aiPanel: AIPanel(projectId: widget.project.id, projectName: widget.project.name),
+        aiPanel: _buildAiPanelArea(),
       ),
     );
 

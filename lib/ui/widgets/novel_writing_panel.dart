@@ -32,6 +32,8 @@ class NovelWritingPanel extends StatefulWidget {
     this.previousChapterId,
     this.originalContent = '',
     this.onAdopted,
+    this.isDirty = false,
+    this.onSaveBeforeWrite,
   });
 
   final NovelApplicationService service;
@@ -40,6 +42,12 @@ class NovelWritingPanel extends StatefulWidget {
   final String? previousChapterId;
   final String originalContent;
   final VoidCallback? onAdopted;
+
+  /// 编辑器是否有未保存修改
+  final bool isDirty;
+
+  /// AI 写作前强制保存回调，返回 true 表示保存成功
+  final Future<bool> Function()? onSaveBeforeWrite;
 
   @override
   State<NovelWritingPanel> createState() => _NovelWritingPanelState();
@@ -69,6 +77,12 @@ class _NovelWritingPanelState extends State<NovelWritingPanel> {
   // ─── 操作 ──────────────────────────────────────────────────────
 
   Future<void> _startGeneration() async {
+    // 未保存检查：编辑器存在未保存修改时，先强制保存
+    if (widget.isDirty && widget.onSaveBeforeWrite != null) {
+      final saved = await widget.onSaveBeforeWrite!();
+      if (!saved) return;
+    }
+
     setState(() {
       _state = WritingPanelState.preparing;
       _streamBuffer = '';
