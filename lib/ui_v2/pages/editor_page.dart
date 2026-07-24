@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/core/errors/ai_error.dart';
 import 'package:lingbi/core/models/document.dart' as app;
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'package:lingbi/services/skill_action_service.dart';
@@ -13,6 +14,8 @@ import '../theme/lingbi_icons.dart';
 import '../components/writing_toolbar.dart';
 import '../components/slash_command_menu.dart';
 import '../components/candidate_panel.dart';
+import '../components/model_status_bar.dart';
+import '../components/error_banner.dart';
 
 class EditorPage extends StatefulWidget {
 
@@ -597,6 +600,9 @@ class _EditorPageState extends State<EditorPage> {
               ),
             ],
           ),
+          // 模型状态栏
+          const SizedBox(height: 8),
+          const ModelStatusBar(compact: true),
           const SizedBox(height: 8),
           // 输入区
           TextField(
@@ -644,11 +650,21 @@ class _EditorPageState extends State<EditorPage> {
               ),
             ],
           ),
-          // 错误提示
+          // 错误提示（使用 ErrorBanner）
           if (_aiError != null) ...[
             const SizedBox(height: 6),
-            Text(_aiError!,
-                style: const TextStyle(fontSize: 12, color: Colors.red)),
+            ErrorBanner(
+              error: UserFacingError(
+                title: '生成错误',
+                message: _aiError!,
+                dataRetained: _streamingText.isNotEmpty,
+                nextStep: '请检查配置或重试',
+                canRetry: true,
+                recoveryAction: RecoveryAction.retry,
+              ),
+              onRetry: _startGeneration,
+              onDismiss: () => setState(() => _aiError = null),
+            ),
           ],
           // 流式输出预览
           if (_streamingText.isNotEmpty) ...[
