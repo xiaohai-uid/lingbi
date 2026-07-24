@@ -6,6 +6,118 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../services/ai_service.dart';
 
+/// 当前引导配置 schema 版本
+///
+/// 升级此值时：重新展示向导，但保留安全存储中的 API Key、
+/// 已有 Provider 和模型配置，不清空用户项目数据。
+const int currentOnboardingSchemaVersion = 1;
+
+/// 首次启动引导状态
+class OnboardingState {
+  const OnboardingState({
+    required this.completed,
+    required this.schemaVersion,
+    this.completedAt,
+    this.selectedProviderId,
+    this.selectedModelId,
+    this.localOnlyMode = false,
+    this.lastStep = 0,
+  });
+
+  /// 全新安装时的初始状态
+  const OnboardingState.initial()
+      : completed = false,
+        schemaVersion = currentOnboardingSchemaVersion,
+        completedAt = null,
+        selectedProviderId = null,
+        selectedModelId = null,
+        localOnlyMode = false,
+        lastStep = 0;
+
+  factory OnboardingState.fromJson(Map<String, dynamic> json) {
+    return OnboardingState(
+      completed: json['completed'] as bool? ?? false,
+      schemaVersion: json['schemaVersion'] as int? ?? 0,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'] as String)
+          : null,
+      selectedProviderId: json['selectedProviderId'] as String?,
+      selectedModelId: json['selectedModelId'] as String?,
+      localOnlyMode: json['localOnlyMode'] as bool? ?? false,
+      lastStep: json['lastStep'] as int? ?? 0,
+    );
+  }
+
+  /// 是否已完成引导
+  final bool completed;
+
+  /// 配置 schema 版本
+  final int schemaVersion;
+
+  /// 完成时间
+  final DateTime? completedAt;
+
+  /// 选择的供应商 ID
+  final String? selectedProviderId;
+
+  /// 选择的模型 ID
+  final String? selectedModelId;
+
+  /// 是否为本地写作模式
+  final bool localOnlyMode;
+
+  /// 上次停留步骤（中途退出恢复）
+  final int lastStep;
+
+  /// 是否需要展示引导向导
+  ///
+  /// 条件：未完成 或 schema 版本不匹配
+  bool get needsOnboarding =>
+      !completed || schemaVersion != currentOnboardingSchemaVersion;
+
+  Map<String, dynamic> toJson() => {
+        'completed': completed,
+        'schemaVersion': schemaVersion,
+        if (completedAt != null) 'completedAt': completedAt!.toIso8601String(),
+        if (selectedProviderId != null)
+          'selectedProviderId': selectedProviderId,
+        if (selectedModelId != null) 'selectedModelId': selectedModelId,
+        'localOnlyMode': localOnlyMode,
+        'lastStep': lastStep,
+      };
+
+  OnboardingState copyWith({
+    bool? completed,
+    int? schemaVersion,
+    DateTime? completedAt,
+    String? selectedProviderId,
+    String? selectedModelId,
+    bool? localOnlyMode,
+    int? lastStep,
+  }) {
+    return OnboardingState(
+      completed: completed ?? this.completed,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      completedAt: completedAt ?? this.completedAt,
+      selectedProviderId: selectedProviderId ?? this.selectedProviderId,
+      selectedModelId: selectedModelId ?? this.selectedModelId,
+      localOnlyMode: localOnlyMode ?? this.localOnlyMode,
+      lastStep: lastStep ?? this.lastStep,
+    );
+  }
+
+  /// 重置引导状态（从设置页重新打开向导）
+  ///
+  /// 保留 schema 版本为当前值，清除完成标记和步骤。
+  OnboardingState reset() {
+    return OnboardingState(
+      completed: false,
+      schemaVersion: currentOnboardingSchemaVersion,
+      lastStep: 0,
+    );
+  }
+}
+
 /// 自定义端点配置数据类
 class CustomEndpointConfig {
 
@@ -89,6 +201,12 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
 
   /// 当前选择的模型 ID（每个 provider 一个）
   final Map<String, String> _selectedModelIds = {};
+
+  /// 首次启动引导状态
+  OnboardingState _onboardingState = const OnboardingState.initial();
+
+  /// 获取当前引导状态
+  OnboardingState get onboardingState => _onboardingState;
 
   /// 当前是否使用会话临时 Key（安全存储不可用）
   bool get isUsingSessionOnlyKeys => _sessionOnlyKeys.isNotEmpty;
@@ -177,6 +295,38 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     }
 
     notifyListeners();
+    _save();
+  }
+
+  /// 完成引导向导
+  void completeOnboarding({
+    String? providerId,
+    String? modelId,
+    bool localOnly = false,
+  }) {
+    _onboardingState = OnboardingState(
+      completed: true,
+      schemaVersion: currentOnboardingSchemaVersion,
+      completedAt: DateTime.now(),
+      selectedProviderId: providerId,
+      selectedModelId: modelId,
+      localOnlyMode: localOnly,
+      lastStep: 7,
+    );
+    notifyListeners();
+    _save();
+  }
+
+  /// 重置引导状态（设置页重新打开向导）
+  void resetOnboarding() {
+    _onboardingState = _onboardingState.reset();
+    notifyListeners();
+    _save();
+  }
+
+  /// 更新引导步骤（中途退出恢复）
+  void updateOnboardingStep(int step) {
+    _onboardingState = _onboardingState.copyWith(lastStep: step);
     _save();
   }
 
@@ -273,6 +423,11 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
                 .map((e) => CustomEndpointConfig.fromJson(e))
                 .toList();
           }
+          // 加载引导状态
+          if (json['onboarding'] is Map<String, dynamic>) {
+            _onboardingState = OnboardingState.fromJson(
+                json['onboarding'] as Map<String, dynamic>);
+          }
         } catch (_) {}
       }
     }
@@ -347,6 +502,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         'themeMode': _themeMode.name,
         'selectedProvider': _selectedProvider,
         'selectedModelIds': _selectedModelIds,
+        'onboarding': _onboardingState.toJson(),
         'customEndpoints': _customEndpoints
             .map((e) => CustomEndpointConfig(
                   id: e.id,
