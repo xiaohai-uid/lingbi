@@ -184,6 +184,51 @@ class AIService implements IAIService {
     _activeSubscription = null;
   }
 
+  /// 隔离测试生成（不消耗配额、不修改项目状态）
+  ///
+  /// 固定提示词：「请用一句不超过 30 字的中文，描写雨夜中的旧车站。」
+  /// 隔离保证：
+  /// - 不调用 _quota.tryConsume()
+  /// - 不读取/修改 _projectContext
+  /// - 不调用 CandidateService / DocumentService / CanonService / BookStateStore
+  /// - 不创建持久任务记录
+  /// - 支持取消
+  /// - 输出仅存向导临时 UI 状态
+  Stream<String> testGeneration({
+    String? providerId,
+    int maxTokens = 100,
+  }) async* {
+    final provider = providerId != null
+        ? _resolveProvider(providerId)
+        : currentProvider;
+
+    final controller = StreamController<String>();
+    _activeSubscription = provider
+        .chat(
+          messages: const [
+            ChatMessage(
+              role: 'user',
+              content: '请用一句不超过 30 字的中文，描写雨夜中的旧车站。',
+            ),
+          ],
+          maxTokens: maxTokens,
+        )
+        .listen(
+          (chunk) => controller.add(chunk),
+          onError: (Object error) {
+            final mapped = AiErrorMapper.map(
+              error,
+              provider: providerId ?? _currentProvider,
+            );
+            controller.addError(mapped);
+          },
+          onDone: () => controller.close(),
+        );
+
+    yield* controller.stream;
+    _activeSubscription = null;
+  }
+
   /// 测试当前 Provider 连接
   Future<ConnectionTestResult> testConnection() async {
     return currentProvider.testConnection();

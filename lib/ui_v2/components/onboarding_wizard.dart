@@ -756,9 +756,8 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
     try {
       final aiService = ServiceLocator.instance.aiService;
       final buffer = StringBuffer();
-      await for (final chunk in aiService.chat(
-        message: '请用一句不超过 30 字的中文，描写雨夜中的旧车站。',
-        maxTokens: 100,
+      await for (final chunk in aiService.testGeneration(
+        providerId: _selectedProvider,
       )) {
         buffer.write(chunk);
         if (mounted) {
