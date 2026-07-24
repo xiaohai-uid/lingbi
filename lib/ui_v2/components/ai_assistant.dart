@@ -19,9 +19,17 @@ class _ChatMessage {
 
 class AiAssistantPanel extends StatefulWidget {
 
-  const AiAssistantPanel({super.key, this.projectId, this.projectName});
+  const AiAssistantPanel({
+    super.key,
+    this.projectId,
+    this.projectName,
+    this.onConvertToCandidate,
+  });
   final String? projectId;
   final String? projectName;
+
+  /// “转为候选”回调 — 将 AI 回复转入 CandidateService，不直接修改编辑器
+  final ValueChanged<String>? onConvertToCandidate;
 
   @override
   State<AiAssistantPanel> createState() => _AiAssistantPanelState();
@@ -382,52 +390,83 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                 color: c.borderOpaque.withValues(alpha: 0.3),
               ),
             ),
-            child: text.isEmpty && isStreaming
-                ? SizedBox(
-                    height: 20,
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: c.accent.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        const SizedBox(width: LingBiTokens.space2),
-                        Text(
-                          '思考中…',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: c.muted,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: c.fg,
-                        height: 1.6,
-                      ),
-                      children: [
-                        TextSpan(text: text),
-                        if (isStreaming)
-                          TextSpan(
-                            text: ' ▍',
-                            style: TextStyle(
-                              color: c.accent.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w300,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                text.isEmpty && isStreaming
+                    ? SizedBox(
+                        height: 20,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: c.accent.withValues(alpha: 0.6),
+                              ),
                             ),
+                            const SizedBox(width: LingBiTokens.space2),
+                            Text(
+                              '思考中…',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: c.muted,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                            color: c.fg,
+                            height: 1.6,
                           ),
-                      ],
+                          children: [
+                            TextSpan(text: text),
+                            if (isStreaming)
+                              TextSpan(
+                                text: ' ▍',
+                                style: TextStyle(
+                                  color: c.accent.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w300,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                // “转为候选”按钮（仅在非流式且有内容时显示）
+                if (!isStreaming && text.isNotEmpty && widget.onConvertToCandidate != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: InkWell(
+                      onTap: () => widget.onConvertToCandidate!(text),
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.note_add_outlined,
+                                size: 13, color: c.accent),
+                            const SizedBox(width: 4),
+                            Text(
+                              '转为候选',
+                              style: TextStyle(
+                                  fontSize: 11, color: c.accent),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
+              ],
+            ),
           ),
         ),
       ],
