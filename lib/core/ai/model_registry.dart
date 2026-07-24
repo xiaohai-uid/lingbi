@@ -444,6 +444,33 @@ class ModelRegistry {
     }
   }
 
+  /// 替换指定供应商的 remote 模型列表
+  ///
+  /// 新 remote 结果替换同一 Provider 旧 remote。
+  /// 不覆盖 builtin / 不覆盖 manual。
+  void replaceRemoteModels(String providerId, List<String> modelIds) {
+    final current = _customModels[providerId] ?? [];
+    // 保留 manual 模型
+    final manualModels =
+        current.where((m) => m.metadataSource == MetadataSource.manual).toList();
+    // 用新列表替换所有 remote 模型
+    final builtinIds =
+        _platforms[providerId]?.models.map((m) => m.id).toSet() ?? {};
+    final newRemoteModels = modelIds
+        .where((id) => !builtinIds.contains(id))
+        .map((id) => ModelInfo(
+              id: id,
+              displayName: id,
+              providerId: providerId,
+              contextWindow: null,
+              maxOutputTokens: null,
+              metadataSource: MetadataSource.remote,
+              description: '从 API 获取的模型',
+            ))
+        .toList();
+    _customModels[providerId] = [...manualModels, ...newRemoteModels];
+  }
+
   /// 添加用户手动配置的模型
   void addCustomModel(ModelInfo model) {
     final withSource = model.copyWith(metadataSource: MetadataSource.manual);

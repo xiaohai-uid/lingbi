@@ -42,6 +42,9 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
   String _generationOutput = '';
   bool _isGenerating = false;
 
+  // 模型发现状态
+  bool _isDiscovering = false;
+
   static const _totalSteps = 8;
 
   @override
@@ -357,8 +360,25 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('选择模型',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+        Row(
+          children: [
+            const Expanded(
+              child: Text('选择模型',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            ),
+            TextButton.icon(
+              onPressed: _isDiscovering ? null : _discoverModels,
+              icon: _isDiscovering
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh, size: 16),
+              label: Text(_isDiscovering ? '发现中...' : '发现更多模型'),
+            ),
+          ],
+        ),
         const SizedBox(height: 16),
         ...models.map((model) {
           final isSelected = _selectedModelId == model.id;
@@ -375,11 +395,23 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
             ),
             child: ListTile(
               title: Text(model.displayName),
-              subtitle: Text(
-                '上下文: ${model.contextWindowLabel} | '
-                '输出: ${model.maxOutputLabel} | '
-                '${model.metadataSourceLabel}',
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ID: ${model.id} · ${model.metadataSourceLabel}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  Text(
+                    '上下文: ${model.contextWindowLabel} | '
+                    '输出: ${model.maxOutputLabel} | '
+                    '流式: ${model.capabilities.supportsStreaming ? "支持" : "未验证"} | '
+                    '${model.pricing.isKnown ? "输入 ¥${model.pricing.inputPerMillion}/M · 输出 ¥${model.pricing.outputPerMillion}/M" : "费用未知"}',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ],
               ),
+              isThreeLine: true,
               trailing: isSelected
                   ? Icon(Icons.check_circle,
                       color: Theme.of(context).colorScheme.primary)
@@ -746,6 +778,19 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
       });
     } finally {
       setState(() => _isGenerating = false);
+    }
+  }
+
+  Future<void> _discoverModels() async {
+    setState(() => _isDiscovering = true);
+    try {
+      final aiService = ServiceLocator.instance.aiService;
+      await aiService.discoverModels(_selectedProvider);
+      if (mounted) setState(() {});
+    } catch (_) {
+      // 发现失败不阻止手工选择
+    } finally {
+      if (mounted) setState(() => _isDiscovering = false);
     }
   }
 }

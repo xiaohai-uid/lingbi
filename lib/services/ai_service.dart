@@ -189,6 +189,45 @@ class AIService implements IAIService {
     return currentProvider.testConnection();
   }
 
+  /// 根据 providerId 发现模型列表
+  ///
+  /// 规则：
+  /// - 根据 providerId 解析对应 Provider（不用 currentProvider）
+  /// - 新 remote 结果替换同一 Provider 旧 remote
+  /// - 不覆盖 builtin / 不覆盖 manual
+  /// - 失败不阻止手工填写 / 不等同连接失败
+  Future<List<ModelInfo>> discoverModels(String providerId) async {
+    final provider = _resolveProvider(providerId);
+    try {
+      final modelIds = await provider.listModels();
+      if (modelIds.isNotEmpty) {
+        ModelRegistry.instance.replaceRemoteModels(providerId, modelIds);
+      }
+    } catch (_) {
+      // 发现失败不阻止手工填写，不等同连接失败
+    }
+    return ModelRegistry.instance.getModelsForProvider(providerId);
+  }
+
+  /// 根据 providerId 解析 Provider 实例
+  AIProvider _resolveProvider(String providerId) {
+    switch (providerId) {
+      case 'sensenova':
+        return _sensenovaProvider;
+      case 'deepseek':
+        return _deepseekProvider;
+      case 'openai':
+        return _openaiProvider;
+      case 'claude':
+        return _claudeProvider;
+      default:
+        if (_customProviders.containsKey(providerId)) {
+          return _customProviders[providerId]!;
+        }
+        return _freeProvider;
+    }
+  }
+
   /// 规范化流式聊天（在 Stream<String> 之上）
   ///
   /// 返回结构化事件流，区分过程/答案/候选。
