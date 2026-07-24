@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/codex_entry.dart';
+import 'package:lingbi/core/models/canon_entry.dart';
 import 'package:lingbi/utils/markdown_helper.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
 import 'package:lingbi/services/quota_service.dart';
@@ -77,39 +77,39 @@ void main() {
     });
   });
 
-  group('CodexEntry', () {
+  group('CanonEntry', () {
     test('creates with default type and UUID', () {
-      final entry = CodexEntry(
+      final entry = CanonEntry(
         projectId: 'proj-1',
         name: '张三',
-        type: CodexEntryType.character,
+        type: CanonEntryType.character,
       );
       expect(entry.projectId, 'proj-1');
       expect(entry.name, '张三');
-      expect(entry.type, CodexEntryType.character);
+      expect(entry.type, CanonEntryType.character);
       expect(entry.id.isNotEmpty, true);
     });
 
     test('serializes to/from JSON', () {
-      final entry = CodexEntry(
+      final entry = CanonEntry(
         projectId: 'proj-1',
         name: '长安城',
-        type: CodexEntryType.location,
+        type: CanonEntryType.location,
         description: '唐朝都城',
       );
       final json = entry.toJson();
-      final restored = CodexEntry.fromJson(json);
+      final restored = CanonEntry.fromJson(json);
       expect(restored.name, '长安城');
-      expect(restored.type, CodexEntryType.location);
+      expect(restored.type, CanonEntryType.location);
       expect(restored.description, '唐朝都城');
     });
 
-    test('CodexEntryType enum has all values', () {
-      expect(CodexEntryType.values.length, 4);
-      expect(CodexEntryType.values.contains(CodexEntryType.character), true);
-      expect(CodexEntryType.values.contains(CodexEntryType.location), true);
-      expect(CodexEntryType.values.contains(CodexEntryType.lore), true);
-      expect(CodexEntryType.values.contains(CodexEntryType.plotNode), true);
+    test('CanonEntryType enum has all values', () {
+      expect(CanonEntryType.values.length, 4);
+      expect(CanonEntryType.values.contains(CanonEntryType.character), true);
+      expect(CanonEntryType.values.contains(CanonEntryType.location), true);
+      expect(CanonEntryType.values.contains(CanonEntryType.lore), true);
+      expect(CanonEntryType.values.contains(CanonEntryType.plotNode), true);
     });
   });
 

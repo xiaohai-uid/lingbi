@@ -7,11 +7,6 @@ import 'package:lingbi/core/models/document.dart';
 import 'project_item.dart';
 
 class ProjectTree extends StatefulWidget {
-  final ValueChanged<Document>? onDocumentSelected;
-  final ValueChanged<Project>? onProjectSelected;
-  final VoidCallback? onNewProject;
-  final VoidCallback? onOpenProject;
-  final String? filterProjectId;
 
   const ProjectTree({
     super.key,
@@ -21,6 +16,11 @@ class ProjectTree extends StatefulWidget {
     this.onOpenProject,
     this.filterProjectId,
   });
+  final ValueChanged<Document>? onDocumentSelected;
+  final ValueChanged<Project>? onProjectSelected;
+  final VoidCallback? onNewProject;
+  final VoidCallback? onOpenProject;
+  final String? filterProjectId;
 
   @override
   State<ProjectTree> createState() => _ProjectTreeState();
@@ -201,10 +201,10 @@ class _ProjectTreeState extends State<ProjectTree> {
 
 /// 文档列表项
 class _DocItem extends StatelessWidget {
-  final Document doc;
-  final VoidCallback onTap;
 
   const _DocItem({required this.doc, required this.onTap});
+  final Document doc;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -244,11 +244,11 @@ class _DocItem extends StatelessWidget {
 /// 小图标按钮
 
 class _IconBtn extends StatelessWidget {
+
+  const _IconBtn({required this.icon, required this.tooltip, this.onPressed});
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
-
-  const _IconBtn({required this.icon, required this.tooltip, this.onPressed});
 
   @override
   Widget build(BuildContext context) {

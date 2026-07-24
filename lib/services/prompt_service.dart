@@ -6,11 +6,6 @@ library prompt_service;
 
 /// 类型化 Prompt 模板
 class PromptTemplate {
-  final String id;
-  final String name;
-  final String description;
-  final String systemPrompt;
-  final PromptConstraints constraints;
 
   const PromptTemplate({
     required this.id,
@@ -19,29 +14,28 @@ class PromptTemplate {
     required this.systemPrompt,
     this.constraints = const PromptConstraints(),
   });
+  final String id;
+  final String name;
+  final String description;
+  final String systemPrompt;
+  final PromptConstraints constraints;
 }
 
 /// Prompt 生成约束
 class PromptConstraints {
-  final int minChars;
-  final int maxChars;
-  final List<String> rules;
 
   const PromptConstraints({
     this.minChars = 500,
     this.maxChars = 30000,
     this.rules = const [],
   });
+  final int minChars;
+  final int maxChars;
+  final List<String> rules;
 }
 
 /// 写作类型指南
 class GenreGuide {
-  final String id;
-  final String name;
-  final String description;
-  final List<String> corePrinciples;
-  final List<String> conventions;
-  final Map<String, String> designPatterns;
 
   const GenreGuide({
     required this.id,
@@ -51,17 +45,23 @@ class GenreGuide {
     this.conventions = const [],
     this.designPatterns = const {},
   });
+  final String id;
+  final String name;
+  final String description;
+  final List<String> corePrinciples;
+  final List<String> conventions;
+  final Map<String, String> designPatterns;
 }
 
 /// Prompt 服务
 class PromptService {
-  final Map<String, PromptTemplate> _templates = {};
-  final Map<String, GenreGuide> _genres = {};
 
   PromptService() {
     _initBuiltinTemplates();
     _initBuiltinGenres();
   }
+  final Map<String, PromptTemplate> _templates = {};
+  final Map<String, GenreGuide> _genres = {};
 
   /// 获取指定 ID 的 Prompt 模板
   PromptTemplate? getTemplate(String id) => _templates[id];
@@ -88,7 +88,7 @@ class PromptService {
   }
 
   void _initBuiltinTemplates() {
-    _templates['expand_idea'] = PromptTemplate(
+    _templates['expand_idea'] = const PromptTemplate(
       id: 'expand_idea',
       name: '创意展开',
       description: '从用户创意展开为完整故事梗概',
@@ -107,8 +107,6 @@ class PromptService {
 类型：{{genre}}
 风格：{{style}}''',
       constraints: PromptConstraints(
-        minChars: 500,
-        maxChars: 30000,
         rules: [
           '冲突前置：开篇3-5%篇幅内出现强力冲突',
           '金手指设计：主角有独特优势',
@@ -118,7 +116,7 @@ class PromptService {
       ),
     );
 
-    _templates['style_analysis'] = PromptTemplate(
+    _templates['style_analysis'] = const PromptTemplate(
       id: 'style_analysis',
       name: '风格分析',
       description: '分析文本的写作风格特征',
@@ -137,7 +135,7 @@ class PromptService {
 {{text}}''',
     );
 
-    _templates['novel_deconstruction'] = PromptTemplate(
+    _templates['novel_deconstruction'] = const PromptTemplate(
       id: 'novel_deconstruction',
       name: '小说拆解',
       description: '分析小说的结构和叙事手法',
@@ -159,7 +157,7 @@ class PromptService {
 
     // ─── v3.1 新增模板 ───
 
-    _templates['generate_outline'] = PromptTemplate(
+    _templates['generate_outline'] = const PromptTemplate(
       id: 'generate_outline',
       name: '生成卷章细纲',
       description: '从故事梗概生成完整的卷-章-场景细纲结构',
@@ -212,7 +210,7 @@ class PromptService {
 ```''',
     );
 
-    _templates['stream_scene'] = PromptTemplate(
+    _templates['stream_scene'] = const PromptTemplate(
       id: 'stream_scene',
       name: '生成场景正文',
       description: '基于场景细纲流式生成正文内容',
@@ -242,7 +240,7 @@ class PromptService {
 直接输出正文内容，不要标题、不要解说。''',
     );
 
-    _templates['character_check'] = PromptTemplate(
+    _templates['character_check'] = const PromptTemplate(
       id: 'character_check',
       name: '角色一致性检测',
       description: '检测文本中的角色行为是否与人设一致',
@@ -271,7 +269,7 @@ class PromptService {
 ```''',
     );
 
-    _templates['identity_detect'] = PromptTemplate(
+    _templates['identity_detect'] = const PromptTemplate(
       id: 'identity_detect',
       name: '身份识别',
       description: '分析场景中角色的身份称谓',
@@ -304,7 +302,7 @@ class PromptService {
   }
 
   void _initBuiltinGenres() {
-    _genres['fantasy'] = GenreGuide(
+    _genres['fantasy'] = const GenreGuide(
       id: 'fantasy',
       name: '奇幻',
       description: '架空世界、魔法系统、种族文明',
@@ -327,7 +325,7 @@ class PromptService {
       },
     );
 
-    _genres['mystery'] = GenreGuide(
+    _genres['mystery'] = const GenreGuide(
       id: 'mystery',
       name: '悬疑',
       description: '推理破案、线索布局、真相揭晓',
@@ -350,7 +348,7 @@ class PromptService {
       },
     );
 
-    _genres['urban'] = GenreGuide(
+    _genres['urban'] = const GenreGuide(
       id: 'urban',
       name: '都市',
       description: '现代都市背景，现实与超现实的交织',

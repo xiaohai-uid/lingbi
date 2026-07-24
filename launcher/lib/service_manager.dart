@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:process_run/process_run.dart';
 
 /// Service Manager — 本地模式：启动/停止所有微服务子进程
 class ServiceManager {
@@ -34,10 +33,10 @@ class ServiceManager {
       port: 8083,
       env: {'PORT': '8083'},
     ),
-    'Codex': ServiceConfig(
+    'Canon': ServiceConfig(
       command: 'dart',
       args: ['run', 'bin/server.dart'],
-      cwd: 'lingbi_server/microservices/codex',
+      cwd: 'lingbi_server/microservices/canon',
       port: 8084,
       env: {'PORT': '8084'},
     ),
@@ -115,6 +114,8 @@ class ServiceManager {
     ),
   };
 
+  static ServiceConfig? getConfig(String name) => _services[name];
+
   static Future<void> startAllLocal(
     Map<String, ServiceStatus> statusMap,
     Map<String, Process> processes,
@@ -189,7 +190,7 @@ class ServiceManager {
 
     while (DateTime.now().isBefore(deadline)) {
       try {
-        final socket = await Socket.connect('localhost', port, timeout: 2);
+        final socket = await Socket.connect('localhost', port, timeout: const Duration(seconds: 2));
         socket.destroy();
         return true;
       } catch (_) {

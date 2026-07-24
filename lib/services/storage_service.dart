@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 文件存储服务 — Windows 上 zvec 不可用时的降级方案
 class StorageService {
+
+  StorageService();
   String? _basePath;
   bool _initialized = false;
 
-  StorageService();
+  /// 写操作串行化锁，防止并发读-改-写丢数据
+  Future<void> _writeLock = Future.value();
 
   bool get isInitialized => _initialized;
 
@@ -47,7 +51,14 @@ class StorageService {
     }
   }
 
-  Future<void> upsert(String collection, String id, Map<String, dynamic> data) async {
+  Future<void> upsert(String collection, String id, Map<String, dynamic> data) {
+    // 串行化：每个写操作等待前一个完成，防止并发读-改-写丢数据
+    final future = _writeLock.then((_) => _doUpsert(collection, id, data));
+    _writeLock = future.then((_) {}, onError: (_) {});
+    return future;
+  }
+
+  Future<void> _doUpsert(String collection, String id, Map<String, dynamic> data) async {
     final items = await _loadCollection(collection);
     final index = items.indexWhere((item) => item['id'] == id);
     if (index >= 0) {
@@ -58,7 +69,13 @@ class StorageService {
     await _saveCollection(collection, items);
   }
 
-  Future<void> delete(String collection, String id) async {
+  Future<void> delete(String collection, String id) {
+    final future = _writeLock.then((_) => _doDelete(collection, id));
+    _writeLock = future.then((_) {}, onError: (_) {});
+    return future;
+  }
+
+  Future<void> _doDelete(String collection, String id) async {
     final items = await _loadCollection(collection);
     items.removeWhere((item) => item['id'] == id);
     await _saveCollection(collection, items);
@@ -67,12 +84,35 @@ class StorageService {
   Future<List<Map<String, dynamic>>> _loadCollection(String name) async {
     final file = File('$_basePath/$name.json');
     if (!await file.exists()) return [];
-    final content = await file.readAsString();
-    return List<Map<String, dynamic>>.from(jsonDecode(content));
+    try {
+      final content = await file.readAsString();
+      final decoded = jsonDecode(content);
+      if (decoded is List) {
+        return List<Map<String, dynamic>>.from(decoded);
+      }
+      debugPrint('StorageService: $name.json 内容不是 List，返回空列表');
+      return [];
+    } catch (e) {
+      debugPrint('StorageService: 损坏的 JSON 文件 $name.json，返回空列表 — $e');
+      return [];
+    }
   }
 
   Future<void> _saveCollection(String name, List<Map<String, dynamic>> items) async {
     final file = File('$_basePath/$name.json');
-    await file.writeAsString(jsonEncode(items));
+    final tmpFile = File('$_basePath/$name.json.tmp');
+    try {
+      // 先写临时文件
+      await tmpFile.writeAsString(jsonEncode(items));
+      // 原子重命名覆盖目标文件（Windows 同盘 rename 是原子操作）
+      await tmpFile.rename(file.path);
+    } catch (e) {
+      // 临时文件写/重命名失败，清理后 fallback 到直接写
+      debugPrint('StorageService: 原子写失败，回退到直接写 — $e');
+      try {
+        if (await tmpFile.exists()) await tmpFile.delete();
+      } catch (_) {}
+      await file.writeAsString(jsonEncode(items));
+    }
   }
 }

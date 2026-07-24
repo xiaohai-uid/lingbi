@@ -1,0 +1,53 @@
+import 'package:flutter/material.dart';
+
+class LingBiIcons {
+  LingBiIcons._();
+
+  static const IconData project = Icons.folder_outlined;
+  static const IconData editor = Icons.edit_note_outlined;
+  static const IconData canon = Icons.menu_book_outlined;
+  static const IconData storyboard = Icons.dashboard_customize_outlined;
+  static const IconData history = Icons.history_outlined;
+  static const IconData importExport = Icons.import_export_outlined;
+  static const IconData settings = Icons.settings_outlined;
+  static const IconData skillMarket = Icons.store_outlined;
+  static const IconData aiAssistant = Icons.auto_awesome_outlined;
+  static const IconData search = Icons.search_outlined;
+  static const IconData add = Icons.add_outlined;
+  static const IconData close = Icons.close_outlined;
+  static const IconData menu = Icons.menu_outlined;
+  static const IconData sun = Icons.light_mode_outlined;
+  static const IconData moon = Icons.dark_mode_outlined;
+  static const IconData chevronRight = Icons.chevron_right_outlined;
+  static const IconData chevronLeft = Icons.chevron_left_outlined;
+  static const IconData chevronDown = Icons.expand_more_outlined;
+  static const IconData dragHandle = Icons.drag_indicator_outlined;
+  static const IconData delete = Icons.delete_outline;
+  static const IconData edit = Icons.edit_outlined;
+  static const IconData restore = Icons.restore_outlined;
+  static const IconData download = Icons.download_outlined;
+  static const IconData upload = Icons.upload_outlined;
+  static const IconData wordCount = Icons.text_fields_outlined;
+  static const IconData template = Icons.auto_stories_outlined;
+  static const IconData character = Icons.people_outlined;
+  static const IconData location = Icons.public_outlined;
+  static const IconData timeline = Icons.timeline_outlined;
+  static const IconData note = Icons.sticky_note_2_outlined;
+  static const IconData tag = Icons.label_outlined;
+  static const IconData filter = Icons.filter_list_outlined;
+  static const IconData grid = Icons.grid_view_outlined;
+  static const IconData listView = Icons.view_list_outlined;
+  static const IconData send = Icons.send_outlined;
+  static const IconData stop = Icons.stop_outlined;
+  static const IconData globe = Icons.language_outlined;
+  static const IconData book = Icons.book_outlined;
+  static const IconData check = Icons.check_outlined;
+  static const IconData more = Icons.more_horiz_outlined;
+  static const IconData chapter = Icons.article_outlined;
+  static const IconData folderOpen = Icons.folder_open_outlined;
+  static const IconData apiKey = Icons.vpn_key_outlined;
+  static const IconData model = Icons.smart_toy_outlined;
+  static const IconData palette = Icons.palette_outlined;
+  static const IconData save = Icons.save_outlined;
+  static const IconData tune = Icons.tune_outlined;
+}

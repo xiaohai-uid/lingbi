@@ -4,11 +4,6 @@ import 'dart:io';
 
 /// 版本快照元数据
 class VersionInfo {
-  final String id;
-  final String docId;
-  final DateTime timestamp;
-  final int wordCount;
-  final String summary;
 
   VersionInfo({
     required this.id,
@@ -18,14 +13,6 @@ class VersionInfo {
     this.summary = '',
   });
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'docId': docId,
-        'timestamp': timestamp.toIso8601String(),
-        'wordCount': wordCount,
-        'summary': summary,
-      };
-
   factory VersionInfo.fromJson(Map<String, dynamic> json) => VersionInfo(
         id: json['id'] as String,
         docId: json['docId'] as String,
@@ -33,6 +20,19 @@ class VersionInfo {
         wordCount: json['wordCount'] as int? ?? 0,
         summary: json['summary'] as String? ?? '',
       );
+  final String id;
+  final String docId;
+  final DateTime timestamp;
+  final int wordCount;
+  final String summary;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'docId': docId,
+        'timestamp': timestamp.toIso8601String(),
+        'wordCount': wordCount,
+        'summary': summary,
+      };
 }
 
 /// 版本历史服务 - 文档快照存储与恢复
@@ -57,7 +57,7 @@ class VersionHistoryService implements IVersionHistoryService {
 
     // 保存内容快照
     final contentFile = File('${versionsDir.path}/$id.md');
-    await contentFile.writeAsString(content, encoding: utf8);
+    await contentFile.writeAsString(content);
 
     // 更新元数据
     final metadataFile = File('${versionsDir.path}/metadata.json');
@@ -117,7 +117,7 @@ class VersionHistoryService implements IVersionHistoryService {
   }) async {
     final file = File('$projectDir/.lingbi/versions/$docId/$versionId.md');
     if (!await file.exists()) return null;
-    return await file.readAsString(encoding: utf8);
+    return file.readAsString();
   }
 
   /// 恢复指定版本到文档

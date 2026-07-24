@@ -28,8 +28,8 @@ void main() {
       expect(config!.port, equals(8083));
     });
 
-    test('routes /api/v1/codex requests to port 8084', () {
-      final config = routeToMicroservice('/api/v1/codex/refactor');
+    test('routes /api/v1/canon requests to port 8084', () {
+      final config = routeToMicroservice('/api/v1/canon/refactor');
       expect(config, isNotNull);
       expect(config!.port, equals(8084));
     });

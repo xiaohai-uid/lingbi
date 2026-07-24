@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
 class EditorToolbar extends StatelessWidget {
-  final QuillController controller;
-  final VoidCallback? onSave;
 
   const EditorToolbar({super.key, required this.controller, this.onSave});
+  final QuillController controller;
+  final VoidCallback? onSave;
 
   @override
   Widget build(BuildContext context) {

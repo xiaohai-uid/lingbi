@@ -34,8 +34,8 @@ sealed class Result<T> {
 
 /// 成功结果
 class Success<T> extends Result<T> {
-  final T value;
   const Success(this.value);
+  final T value;
 
   @override
   R when<R>({
@@ -58,8 +58,8 @@ class Success<T> extends Result<T> {
 
 /// 失败结果
 class Failure<T> extends Result<T> {
-  final AppError error;
   const Failure(this.error);
+  final AppError error;
 
   @override
   R when<R>({

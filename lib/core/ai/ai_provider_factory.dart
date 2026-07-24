@@ -1,16 +1,17 @@
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/ai/free_provider.dart';
+import 'package:lingbi/core/ai/sensenova_provider.dart';
 import 'package:lingbi/core/ai/deepseek_provider.dart';
 import 'package:lingbi/core/ai/openai_provider.dart';
 import 'package:lingbi/core/ai/claude_provider.dart';
 
 /// AI Provider 工厂 — 根据名称创建/获取 Provider 实例
 class AIProviderFactory {
-  final String? Function(String provider) _getApiKey;
-  final Map<String, AIProvider> _cache = {};
 
   AIProviderFactory({required String? Function(String) getApiKey})
       : _getApiKey = getApiKey;
+  final String? Function(String provider) _getApiKey;
+  final Map<String, AIProvider> _cache = {};
 
   /// 获取指定名称的 Provider
   ///
@@ -46,8 +47,9 @@ class AIProviderFactory {
   AIProvider _createProvider(String name, {String? modelOverride}) {
     switch (name) {
       case 'free':
+        return FreeProvider();
       case 'sensenova':
-        return FreeProvider(modelOverride: modelOverride);
+        return SenseNovaProvider(apiKey: _getApiKey('sensenova'), modelOverride: modelOverride);
       case 'deepseek':
         return DeepSeekProvider(apiKey: _getApiKey('deepseek'), modelOverride: modelOverride);
       case 'openai':
@@ -55,7 +57,7 @@ class AIProviderFactory {
       case 'claude':
         return ClaudeProvider(apiKey: _getApiKey('claude'), modelOverride: modelOverride);
       default:
-        return FreeProvider(modelOverride: modelOverride);
+        return FreeProvider();
     }
   }
 

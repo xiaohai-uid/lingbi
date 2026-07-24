@@ -18,14 +18,12 @@ dependencies:
   # 网络
   http: ^1.2.0
   web_socket_channel: ^3.0.0
-  # 状态管理
-  provider: ^6.1.0
-  # UI
-  window_manager: ^0.4.0
   # 工具
   uuid: ^4.3.0
   # 导出
   pdf: ^3.11.0
+  # 安全存储
+  flutter_secure_storage: ^9.2.0
 
 dev_dependencies:
   flutter_test:

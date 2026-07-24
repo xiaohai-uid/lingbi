@@ -3,11 +3,11 @@ import 'package:lingbi/services/storage_service.dart';
 
 /// 故事节拍存储仓库 — 基于 StorageService (JSON 文件)
 class StoryBeatsRepository {
-  final StorageService _storage;
-  static const _collection = 'story_beats';
 
   StoryBeatsRepository({required StorageService storageService})
       : _storage = storageService;
+  final StorageService _storage;
+  static const _collection = 'story_beats';
 
   /// 获取项目所有节拍，按 sequence 排序
   Future<List<StoryBeat>> getBeats(String projectId) async {

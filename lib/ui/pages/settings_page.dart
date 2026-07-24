@@ -134,7 +134,9 @@ class _SettingsPageState extends State<SettingsPage> {
               title: Text(_providerLabel(p)),
               subtitle: Text(_providerDesc(p)),
               value: p,
+              // ignore: deprecated_member_use
               groupValue: _settings.selectedProvider,
+              // ignore: deprecated_member_use
               onChanged: (v) {
                 if (v != null) {
                   _settings.setProvider(v);
@@ -173,8 +175,8 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class _SectionHeader extends StatelessWidget {
-  final String title;
   const _SectionHeader({required this.title});
+  final String title;
 
   @override
   Widget build(BuildContext context) {

@@ -8,7 +8,7 @@
 
 - ✍️ **WYSIWYG 编辑器** — 基于 flutter_quill 的所见即所得富文本编辑
 - 🤖 **AI 写作助手** — 智能续写、风格分析、小说结构拆解（支持 DeepSeek/OpenAI/Claude/SenseNova）
-- 📚 **世界构建 (Codex)** — 角色、地点、传说、情节线索管理
+- 📚 **世界构建 (Canon)** — 角色、地点、传说、情节线索管理
 - 🎨 **故事画布** — 可视化情节节拍编排与拖拽排序
 - 🔍 **联网搜索** — DuckDuckGo 集成搜索
 - 📄 **文档管理** — 项目/文档树组织
@@ -64,21 +64,60 @@ flutter build windows --release
 | file_picker | 文件选择与保存 |
 | pdf | PDF 导出 |
 
+## 微服务架构
+
+灵笔后端采用 11 微服务架构，通过 API Gateway 统一路由：
+
+| 服务 | 端口 | 运行时 | 职责 |
+|------|------|--------|------|
+| API Gateway | 8080 | Dart Frog | 统一路由代理 |
+| AI Provider | 8081 | Dart Frog | AI 模型调用 |
+| Project | 8082 | Dart Frog | 项目 CRUD + 树形结构 |
+| Document | 8083 | Dart Frog | 文档管理 + FTS5 搜索 |
+| Canon | 8084 | Dart Frog | 正典条目 + 语义搜索 |
+| Export | 8085 | Dart Frog | MD/TXT/PDF 导出 |
+| Version | 8086 | Dart Frog | 版本快照 + LZO 压缩 |
+| Settings | 8087 | Node.js | 用户设置 + AES-256 加密 |
+| Quota | 8088 | Dart Frog | AI 调用配额 |
+| Storage | 8089 | Dart Frog | 向量存储 + 余弦搜索 |
+| Sync | 8090 | Dart Frog | 文件双向同步 |
+| Canvas | 8091 | Node.js | 故事画布布局算法 |
+
+### Docker 一键部署
+
+```bash
+cp .env.example .env
+# 编辑 .env 填入 API Keys
+docker-compose up -d
+docker-compose ps   # 确认全部 healthy
+```
+
+详见 [DEPLOY.md](DEPLOY.md)
+
 ## 项目结构
 
 ```
 lingbi/
-├── lib/
-│   ├── core/          # 核心：AI Providers、数据库、文件系统
-│   ├── services/      # 业务服务层
-│   ├── ui/            # UI 组件
-│   │   ├── layout/    # 布局组件
-│   │   ├── pages/     # 页面
-│   │   ├── widgets/   # 可复用组件
-│   │   └── theme/     # 主题配置
-│   └── utils/         # 工具函数
-├── test/              # 测试
-└── docs/              # 文档
+├── lib/                  # 客户端 (Flutter Desktop)
+│   ├── core/             # 核心：AI Providers、数据库、DI
+│   ├── services/         # 业务服务层
+│   ├── ui/               # UI 组件
+│   │   ├── layout/       # 布局组件
+│   │   ├── pages/        # 页面
+│   │   ├── widgets/      # 可复用组件
+│   │   └── theme/        # 主题配置
+│   └── utils/            # 工具函数
+├── test/                 # 客户端测试
+├── lingbi_server/        # 服务端 (Dart Frog + Node.js)
+│   ├── lib/              # API Gateway + 代理
+│   ├── microservices/    # 11 个微服务
+│   └── test/             # 服务端集成测试
+├── launcher/             # 一键启动器 (Flutter Desktop)
+├── community/            # 社区资源
+│   ├── skill-registry.json
+│   └── website/          # 社区网站 (GitHub Pages)
+├── docker-compose.yml    # Docker 编排
+└── .env.example          # 环境变量模板
 ```
 
 ## 贡献指南
@@ -88,6 +127,12 @@ lingbi/
 ## 许可证
 
 [MIT](LICENSE)
+
+## 相关链接
+
+- [部署指南 (DEPLOY.md)](DEPLOY.md)
+- [领域语言 (CONTEXT.md)](CONTEXT.md)
+- [社区网站](community/website/index.html)
 
 ## 安全说明
 

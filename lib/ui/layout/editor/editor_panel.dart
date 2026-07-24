@@ -5,10 +5,6 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'editor_toolbar.dart';
 
 class EditorPanel extends StatefulWidget {
-  final String? initialContent;
-  final String? documentTitle;
-  final ValueChanged<String>? onContentChanged;
-  final Future<void> Function(String content)? onSave;
 
   const EditorPanel({
     super.key,
@@ -17,6 +13,10 @@ class EditorPanel extends StatefulWidget {
     this.onContentChanged,
     this.onSave,
   });
+  final String? initialContent;
+  final String? documentTitle;
+  final ValueChanged<String>? onContentChanged;
+  final Future<void> Function(String content)? onSave;
 
   @override
   State<EditorPanel> createState() => _EditorPanelState();
@@ -32,6 +32,7 @@ class _EditorPanelState extends State<EditorPanel> {
   bool _isDirty = false;
   SaveStatus _saveStatus = SaveStatus.saved;
   bool _contentLoaded = false;
+  int _saveGeneration = 0; // 防止文档切换后旧保存覆盖新状态
 
   @override
   void initState() {
@@ -70,9 +71,14 @@ class _EditorPanelState extends State<EditorPanel> {
     super.didUpdateWidget(oldWidget);
     // 文档切换时保存当前内容
     if (widget.initialContent != oldWidget.initialContent) {
+      // 使旧保存操作失效，防止其完成后覆盖新文档状态
+      _saveGeneration++;
       // 如果当前有未保存内容，先保存
-      if (_isDirty) {
-        _autoSave();
+      if (_isDirty && widget.onSave != null) {
+        final contentToSave = _currentContent;
+        final onSave = widget.onSave!;
+        // fire-and-forget：保存旧文档内容
+        onSave(contentToSave).catchError((_) {});
       }
       // 再加载新文档
       _loadContent(widget.initialContent ?? '');
@@ -100,8 +106,30 @@ class _EditorPanelState extends State<EditorPanel> {
 
   void _loadContent(String content) {
     _contentLoaded = false;
+    // 取消旧订阅并释放旧控制器
+    _changesSubscription?.cancel();
+    final oldController = _controller;
     final doc = Document()..insert(0, content);
     _controller = QuillController(document: doc, selection: const TextSelection.collapsed(offset: 0));
+    // 释放旧控制器（初始化时 _controller 已存在）
+    if (oldController.document != doc) {
+      oldController.dispose();
+    }
+    // 重新订阅新控制器的变化
+    _changesSubscription = _controller.document.changes.listen((_) {
+      if (!_contentLoaded) return;
+      final text = plainText;
+      if (text != _currentContent) {
+        _currentContent = text;
+        if (!_isDirty && text != _lastSavedContent) {
+          setState(() {
+            _isDirty = true;
+            _saveStatus = SaveStatus.unsaved;
+          });
+        }
+        widget.onContentChanged?.call(text);
+      }
+    });
     _contentLoaded = true;
   }
 
@@ -122,15 +150,19 @@ class _EditorPanelState extends State<EditorPanel> {
 
   Future<void> _performSave() async {
     if (widget.onSave == null) return;
+    final generation = _saveGeneration;
     setState(() => _saveStatus = SaveStatus.saving);
     try {
       await widget.onSave!(_currentContent);
+      // 如果文档已切换，丢弃这次保存结果
+      if (generation != _saveGeneration) return;
       _lastSavedContent = _currentContent;
       setState(() {
         _isDirty = false;
         _saveStatus = SaveStatus.saved;
       });
     } catch (e) {
+      if (generation != _saveGeneration) return;
       setState(() => _saveStatus = SaveStatus.error);
     }
   }
@@ -240,8 +272,6 @@ class _EditorPanelState extends State<EditorPanel> {
               config: const QuillEditorConfig(
                 placeholder: '开始写作...',
                 padding: EdgeInsets.symmetric(vertical: 20),
-                scrollable: true,
-                autoFocus: false,
                 expands: true,
               ),
             ),

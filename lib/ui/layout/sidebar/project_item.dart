@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lingbi/core/models/project.dart';
 
 class ProjectItem extends StatelessWidget {
-  final Project project;
-  final bool isExpanded;
-  final VoidCallback onTap;
 
   const ProjectItem({
     super.key,
@@ -12,6 +9,9 @@ class ProjectItem extends StatelessWidget {
     required this.isExpanded,
     required this.onTap,
   });
+  final Project project;
+  final bool isExpanded;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {

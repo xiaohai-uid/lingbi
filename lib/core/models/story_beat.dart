@@ -1,11 +1,5 @@
 /// 故事节拍模型
 class StoryBeat {
-  final String id;
-  final String projectId;
-  String title;
-  String description;
-  int colorIndex;
-  int sequence;
 
   StoryBeat({
     String? id,
@@ -16,15 +10,6 @@ class StoryBeat {
     this.sequence = 0,
   }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'projectId': projectId,
-        'title': title,
-        'description': description,
-        'colorIndex': colorIndex,
-        'sequence': sequence,
-      };
-
   factory StoryBeat.fromJson(Map<String, dynamic> json) => StoryBeat(
         id: json['id'] as String,
         projectId: json['projectId'] as String,
@@ -33,6 +18,21 @@ class StoryBeat {
         colorIndex: json['colorIndex'] as int? ?? 0,
         sequence: json['sequence'] as int? ?? 0,
       );
+  final String id;
+  final String projectId;
+  String title;
+  String description;
+  int colorIndex;
+  int sequence;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'projectId': projectId,
+        'title': title,
+        'description': description,
+        'colorIndex': colorIndex,
+        'sequence': sequence,
+      };
 
   StoryBeat copyWith({
     String? title,

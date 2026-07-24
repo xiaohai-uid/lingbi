@@ -1,5 +1,5 @@
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/services/codex_linking_service.dart';
+import 'package:lingbi/services/canon_linking_service.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/ui/widgets/web_search_widget.dart';
@@ -7,7 +7,10 @@ import 'package:lingbi/ui/pages/settings_page.dart';
 import 'chat_widget.dart';
 
 class AIPanel extends StatefulWidget {
-  const AIPanel({super.key});
+
+  const AIPanel({super.key, this.projectId, this.projectName});
+  final String? projectId;
+  final String? projectName;
 
   @override
   State<AIPanel> createState() => _AIPanelState();
@@ -16,19 +19,32 @@ class AIPanel extends StatefulWidget {
 class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final AIService _aiService = ServiceLocator.instance.aiService;
-  // ignore: unused_field
-  final CodexLinkingService _linkingService = ServiceLocator.instance.codexLinkingService;
+  final CanonLinkingService _linkingService = ServiceLocator.instance.canonLinkingService;
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatEntry> _messages = [];
   bool _isLoading = false;
-  String _codexSummary = '';
+  String _canonSummary = '';
   String? _currentProjectId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // 初始化时绑定项目上下文
+    if (widget.projectId != null) {
+      _currentProjectId = widget.projectId;
+      _setupProjectContext();
+    }
+  }
+
+  @override
+  void didUpdateWidget(AIPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.projectId != oldWidget.projectId && widget.projectId != null) {
+      _currentProjectId = widget.projectId;
+      _setupProjectContext();
+    }
   }
 
   @override
@@ -39,17 +55,35 @@ class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+  /// 设置项目上下文：通知 AIService 并加载 Canon 摘要
+  void _setupProjectContext() {
+    final name = widget.projectName ?? '';
+    _aiService.setProjectContext('项目名称：$name\n项目 ID：$_currentProjectId');
+    _loadCanonSummary();
+  }
+
   void setProject(String projectId) {
     _currentProjectId = projectId;
-    _loadCodexSummary();
+    _setupProjectContext();
   }
 
-  Future<void> _loadCodexSummary() async {
+  Future<void> _loadCanonSummary() async {
     if (_currentProjectId == null) return;
-    setState(() => _codexSummary = '📚 知识库关联\n\n选择文档后自动检测角色/地点提及');
+    try {
+      final summary = await _linkingService.generateCanonSummary(_currentProjectId!, '');
+      if (mounted) {
+        setState(() => _canonSummary = summary.isEmpty
+            ? '📚 正典关联\n\n暂无关联的正典条目，请在正典页面添加角色/地点。'
+            : summary);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _canonSummary = '📚 正典关联\n\n选择文档后自动检测角色/地点提及');
+      }
+    }
   }
 
-  void _sendMessage() async {
+  Future<void> _sendMessage() async {
     final text = _inputController.text.trim();
     if (text.isEmpty || _isLoading) return;
 
@@ -77,7 +111,7 @@ class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _messages[entryIndex] = ChatEntry(role: 'assistant', content: '错误: $e', isStreaming: false);
+        _messages[entryIndex] = ChatEntry(role: 'assistant', content: '错误: $e');
       });
     }
 
@@ -86,7 +120,6 @@ class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
         _messages[entryIndex] = ChatEntry(
           role: 'assistant',
           content: _messages[entryIndex].content,
-          isStreaming: false,
         );
         _isLoading = false;
       });
@@ -260,13 +293,13 @@ class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
               ),
               // Web search tab
               const WebSearchWidget(),
-              // Codex linking tab
+              // Canon linking tab
               SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('📚 知识库关联', style: theme.textTheme.titleMedium),
+                    Text('📚 正典关联', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 12),
                     Text(
                       '当前文档中检测到的角色、地点和传说条目将显示在这里。',
@@ -277,7 +310,7 @@ class _AIPanelState extends State<AIPanel> with SingleTickerProviderStateMixin {
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Text(
-                          _codexSummary,
+                          _canonSummary,
                           style: theme.textTheme.bodySmall,
                         ),
                       ),

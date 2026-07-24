@@ -1,6 +1,8 @@
 import 'package:lingbi/services/interfaces/i_ai_service.dart';
+import 'package:lingbi/services/settings_service.dart';
 import '../core/ai/ai_provider.dart';
 import '../core/ai/free_provider.dart';
+import '../core/ai/sensenova_provider.dart';
 import '../core/ai/deepseek_provider.dart';
 import '../core/ai/openai_provider.dart';
 import '../core/ai/claude_provider.dart';
@@ -8,7 +10,11 @@ import 'quota_service.dart';
 
 /// AI 服务 - 管理所有 AI 提供者并负责路由
 class AIService implements IAIService {
+
+  AIService({required QuotaService quotaService})
+      : _quota = quotaService;
   final FreeProvider _freeProvider = FreeProvider();
+  final SenseNovaProvider _sensenovaProvider = SenseNovaProvider();
   final DeepSeekProvider _deepseekProvider = DeepSeekProvider();
   final OpenAIProvider _openaiProvider = OpenAIProvider();
   final ClaudeProvider _claudeProvider = ClaudeProvider();
@@ -16,8 +22,8 @@ class AIService implements IAIService {
   String _currentProvider = 'free';
   String _projectContext = '';
 
-  AIService({required QuotaService quotaService})
-      : _quota = quotaService;
+  /// 自定义端点 Provider 映射（id -> OpenAIProvider）
+  final Map<String, OpenAIProvider> _customProviders = {};
 
   @override
   String get currentProviderName => _currentProvider;
@@ -25,14 +31,18 @@ class AIService implements IAIService {
   @override
   List<AIProvider> get availableProviders {
     final list = <AIProvider>[_freeProvider];
+    if (_sensenovaProvider.isAvailable) list.add(_sensenovaProvider);
     if (_deepseekProvider.isAvailable) list.add(_deepseekProvider);
     if (_openaiProvider.isAvailable) list.add(_openaiProvider);
     if (_claudeProvider.isAvailable) list.add(_claudeProvider);
+    list.addAll(_customProviders.values);
     return list;
   }
 
   AIProvider get currentProvider {
     switch (_currentProvider) {
+      case 'sensenova':
+        return _sensenovaProvider;
       case 'deepseek':
         return _deepseekProvider;
       case 'openai':
@@ -40,13 +50,18 @@ class AIService implements IAIService {
       case 'claude':
         return _claudeProvider;
       default:
+        // 检查自定义 Provider
+        if (_customProviders.containsKey(_currentProvider)) {
+          return _customProviders[_currentProvider]!;
+        }
         return _freeProvider;
     }
   }
 
   @override
   void setProvider(String name) {
-    if (['free', 'deepseek', 'openai', 'claude'].contains(name)) {
+    final builtIn = ['free', 'sensenova', 'deepseek', 'openai', 'claude'];
+    if (builtIn.contains(name) || _customProviders.containsKey(name)) {
       _currentProvider = name;
     }
   }
@@ -60,12 +75,61 @@ class AIService implements IAIService {
   @override
   void configureApiKey(String provider, String key) {
     switch (provider) {
+      case 'sensenova':
+        _sensenovaProvider.apiKey = key;
       case 'deepseek':
         _deepseekProvider.apiKey = key;
       case 'openai':
         _openaiProvider.apiKey = key;
       case 'claude':
         _claudeProvider.apiKey = key;
+    }
+  }
+
+  /// 注册自定义 Provider（从 CustomEndpointConfig 创建/更新 OpenAIProvider）
+  void registerCustomProvider(CustomEndpointConfig config) {
+    final provider = OpenAIProvider(
+      apiKey: config.apiKey,
+      modelOverride: config.modelId,
+    );
+    provider.baseUrl = config.baseUrl;
+    _customProviders[config.id] = provider;
+  }
+
+  /// 移除自定义 Provider
+  void unregisterCustomProvider(String id) {
+    _customProviders.remove(id);
+    if (_currentProvider == id) {
+      _currentProvider = 'free';
+    }
+  }
+
+  /// 设置自定义端点的 Base URL
+  void setCustomBaseUrl(String providerId, String url) {
+    final provider = _customProviders[providerId];
+    if (provider != null) {
+      provider.baseUrl = url;
+    }
+  }
+
+  /// 测试自定义端点连接（发送一条简单消息验证可用性）
+  Future<String> testCustomEndpoint(CustomEndpointConfig config) async {
+    final provider = OpenAIProvider(
+      apiKey: config.apiKey,
+      modelOverride: config.modelId,
+    );
+    provider.baseUrl = config.baseUrl;
+    try {
+      final result = await provider.chatSync(
+        messages: [const ChatMessage(role: 'user', content: 'Hi')],
+        maxTokens: 5,
+      );
+      if (result.contains('error') || result.contains('Error')) {
+        return result;
+      }
+      return '连接成功';
+    } catch (e) {
+      return '连接失败: $e';
     }
   }
 
@@ -116,7 +180,7 @@ class AIService implements IAIService {
       ),
       ChatMessage(role: 'user', content: text),
     ];
-    return await currentProvider.chatSync(messages: messages, maxTokens: 1024);
+    return currentProvider.chatSync(messages: messages, maxTokens: 1024);
   }
 
   /// 小说拆解：分析小说结构
@@ -129,7 +193,7 @@ class AIService implements IAIService {
       ),
       ChatMessage(role: 'user', content: text),
     ];
-    return await currentProvider.chatSync(messages: messages, maxTokens: 2048);
+    return currentProvider.chatSync(messages: messages);
   }
 
   /// 智能续写
@@ -147,8 +211,12 @@ class AIService implements IAIService {
 
   Future<void> dispose() async {
     await _freeProvider.dispose();
+    await _sensenovaProvider.dispose();
     await _deepseekProvider.dispose();
     await _openaiProvider.dispose();
     await _claudeProvider.dispose();
+    for (final p in _customProviders.values) {
+      await p.dispose();
+    }
   }
 }

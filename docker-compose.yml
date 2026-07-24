@@ -1,7 +1,7 @@
 services:
   api-gateway:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.gateway
     ports:
       - "8080:8080"
@@ -21,8 +21,12 @@ services:
 
   ai-provider:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: ai_provider
+        FRAMEWORK: dart_frog
+        PORT: 8081
     ports:
       - "8081:8081"
     volumes:
@@ -42,8 +46,12 @@ services:
 
   project:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: project
+        FRAMEWORK: dart_frog
+        PORT: 8082
     ports:
       - "8082:8082"
     volumes:
@@ -60,8 +68,12 @@ services:
 
   document:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: document
+        FRAMEWORK: dart_frog
+        PORT: 8083
     ports:
       - "8083:8083"
     volumes:
@@ -76,10 +88,14 @@ services:
       timeout: 5s
       retries: 3
 
-  codex:
+  canon:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: canon
+        FRAMEWORK: dart_frog
+        PORT: 8084
     ports:
       - "8084:8084"
     volumes:
@@ -96,8 +112,12 @@ services:
 
   export:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: export
+        FRAMEWORK: dart_frog
+        PORT: 8085
     ports:
       - "8085:8085"
     volumes:
@@ -114,8 +134,12 @@ services:
 
   version:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: version
+        FRAMEWORK: dart_frog
+        PORT: 8086
     ports:
       - "8086:8086"
     volumes:
@@ -132,8 +156,11 @@ services:
 
   settings:
     build:
-      context: ../lingbi_server/microservices/settings
+      context: ./lingbi_server/microservices/settings
       dockerfile: ../../docker/Dockerfile.node
+      args:
+        ENTRY_SCRIPT: service.js
+        PORT: 8087
     ports:
       - "8087:8087"
     volumes:
@@ -151,8 +178,13 @@ services:
 
   quota:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: quota
+        FRAMEWORK: shelf
+        ENTRY: main.dart
+        PORT: 8088
     ports:
       - "8088:8088"
     volumes:
@@ -169,8 +201,12 @@ services:
 
   storage:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: storage
+        FRAMEWORK: dart_frog
+        PORT: 8089
     ports:
       - "8089:8089"
     volumes:
@@ -187,8 +223,12 @@ services:
 
   sync:
     build:
-      context: ../lingbi_server
+      context: ./lingbi_server
       dockerfile: Dockerfile.dart
+      args:
+        SERVICE: sync
+        FRAMEWORK: dart_frog
+        PORT: 8090
     ports:
       - "8090:8090"
     volumes:
@@ -205,8 +245,11 @@ services:
 
   canvas:
     build:
-      context: ../lingbi_server/microservices/canvas
+      context: ./lingbi_server/microservices/canvas
       dockerfile: ../../docker/Dockerfile.node
+      args:
+        ENTRY_SCRIPT: index.js
+        PORT: 8091
     ports:
       - "8091:8091"
     environment:

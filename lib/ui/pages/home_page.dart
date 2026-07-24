@@ -25,15 +25,25 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final ProjectService _projectService = ServiceLocator.instance.projectService;
   final DocumentService _documentService = ServiceLocator.instance.documentService;
-  final ProjectTabController _tabController = ProjectTabController();
+  final ProjectTabController _tabController = ServiceLocator.instance.projectTabController;
   Document? _currentDocument;
   String _editorContent = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
+  }
 
   void _onProjectSelected(Project project) {
     _tabController.openProject(project);
   }
 
-  void _onDocumentSelected(Document doc) async {
+  Future<void> _onDocumentSelected(Document doc) async {
     try {
       final content = await _documentService.readContent(doc.filePath);
       setState(() {
@@ -141,7 +151,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController.removeListener(_onTabChanged);
+    // 不 dispose — 由 ServiceLocator 统一管理生命周期
     super.dispose();
   }
 

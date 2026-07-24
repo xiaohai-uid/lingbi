@@ -47,8 +47,8 @@ class MarkdownHelper {
 }
 
 class HeadingNode {
-  final int level;
-  final String text;
 
   HeadingNode({required this.level, required this.text});
+  final int level;
+  final String text;
 }

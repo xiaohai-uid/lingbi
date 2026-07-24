@@ -1,10 +1,10 @@
 /// 应用错误类型体系
 sealed class AppError {
+
+  AppError(this.message, {this.code, this.cause});
   final String message;
   final String? code;
   final Object? cause;
-
-  AppError(this.message, {this.code, this.cause});
 
   @override
   String toString() => message;

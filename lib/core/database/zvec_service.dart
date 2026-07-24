@@ -6,13 +6,13 @@ import '../../services/storage_service.dart';
 /// 使用 zvec 0.5.1 原生 API。
 /// Windows 上自动降级为文件存储。
 class ZVecService {
+
+  ZVecService({required StorageService storageService})
+      : _storage = storageService;
   final StorageService _storage;
   bool _useZvec = false;
   bool _initialized = false;
   String _dbPath = 'lingbi_data';
-
-  ZVecService({required StorageService storageService})
-      : _storage = storageService;
 
   bool get isInitialized => _initialized;
 
@@ -45,7 +45,7 @@ class ZVecService {
 
   Future<dynamic> _tryLoadZvec() async {
     try {
-      return await Future.value(null);
+      return await Future.value();
     } catch (_) {
       return null;
     }
@@ -86,7 +86,7 @@ class ZVecService {
     if (_useZvec) {
       return [];
     }
-    return await _storage.query(collectionName, filter: filter, limit: limit);
+    return _storage.query(collectionName, filter: filter, limit: limit);
   }
 
   /// 向量语义搜索（Windows 不可用）
@@ -98,7 +98,7 @@ class ZVecService {
     int limit = 10,
   }) async {
     // Windows 不支持向量搜索，降级为普通查询
-    return await query(collectionName, filter: filter, limit: limit);
+    return query(collectionName, filter: filter, limit: limit);
   }
 
   /// 更新向量字段（Windows 不可用）

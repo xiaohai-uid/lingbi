@@ -1,5 +1,4 @@
 import 'package:lingbi/services/interfaces/i_export_service.dart';
-import 'dart:convert';
 import 'dart:io';
 import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/models/project.dart';
@@ -17,7 +16,7 @@ class ExportService implements IExportService {
     required String savePath,
   }) async {
     final file = File(savePath);
-    await file.writeAsString(content, encoding: utf8);
+    await file.writeAsString(content);
   }
 
   /// 导出为纯文本（去除 Markdown 标记）
@@ -28,7 +27,7 @@ class ExportService implements IExportService {
   }) async {
     final plainText = _stripMarkdown(content);
     final file = File(savePath);
-    await file.writeAsString(plainText, encoding: utf8);
+    await file.writeAsString(plainText);
   }
 
   /// 导出为 PDF
@@ -66,7 +65,7 @@ class ExportService implements IExportService {
         case 'txt':
           filePath = '${dir.path}/$safeName.txt';
           final plainText = _stripMarkdown(content);
-          await File(filePath).writeAsString(plainText, encoding: utf8);
+          await File(filePath).writeAsString(plainText);
           break;
         case 'pdf':
           filePath = '${dir.path}/$safeName.pdf';
@@ -75,7 +74,7 @@ class ExportService implements IExportService {
           break;
         default:
           filePath = '${dir.path}/$safeName.md';
-          await File(filePath).writeAsString(content, encoding: utf8);
+          await File(filePath).writeAsString(content);
       }
     }
   }
@@ -94,7 +93,7 @@ class ExportService implements IExportService {
             pw.Header(
               level: 0,
               child: pw.Text(title,
-                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
             ),
             pw.SizedBox(height: 16),
             pw.Paragraph(
@@ -106,7 +105,7 @@ class ExportService implements IExportService {
       ),
     );
 
-    return await pdf.save();
+    return pdf.save();
   }
 
   /// 去除 Markdown 标记

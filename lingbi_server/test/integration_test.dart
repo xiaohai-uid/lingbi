@@ -433,8 +433,8 @@ void main() {
       expect(templates.isNotEmpty, true);
     });
 
-    test('Codex Service - list codex entries', () async {
-      final request = await httpClient.getUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/codex/list?projectId=test-project-001&type=character'));
+    test('Canon Service - list canon entries', () async {
+      final request = await httpClient.getUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/canon/list?projectId=test-project-001&type=character'));
       final response = await request.close();
       expect(response.statusCode, 200);
       final body = await response.transform(utf8.decoder).join();
@@ -442,8 +442,8 @@ void main() {
       expect(entries, isList);
     });
 
-    test('Codex Service - create codex entry', () async {
-      final request = await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/codex/'));
+    test('Canon Service - create canon entry', () async {
+      final request = await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/canon/'));
       request.headers.contentType = ContentType.json;
       final body = jsonEncode({
         'id': 'test-character-001',
@@ -460,8 +460,8 @@ void main() {
       expect(entry['name'], 'Test Character');
     });
 
-    test('Codex Service - search codex entries', () async {
-      final request = await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/codex/search'));
+    test('Canon Service - search canon entries', () async {
+      final request = await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/canon/search'));
       request.headers.contentType = ContentType.json;
       final body = jsonEncode({
         'query': 'character',
@@ -524,8 +524,8 @@ void main() {
       await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/document/'))
         ..add(jsonEncode({'id': 'workflow-doc', 'projectId': 'workflow-project', 'title': 'Workflow Doc', 'content': '# Test', 'wordCount': 1}));
 
-      // 3. Create codex entry
-      await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/codex/'))
+      // 3. Create canon entry
+      await httpClient.postUrl(Uri.parse('http://$gatewayHost:$gatewayPort/api/v1/canon/'))
         ..add(jsonEncode({'id': 'workflow-char', 'type': 'character', 'name': 'Workflow Character', 'description': 'Test character', 'projectId': 'workflow-project'}));
 
       // 4. AI chat

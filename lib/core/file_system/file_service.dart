@@ -1,5 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
+
+import 'package:lingbi/core/models/document.dart';
 
 class FileService {
   FileService();
@@ -10,14 +11,14 @@ class FileService {
     if (!await file.exists()) {
       throw FileSystemException('文件不存在', filePath);
     }
-    return await file.readAsString(encoding: utf8);
+    return file.readAsString();
   }
 
   /// 写入 .md 文件内容
   Future<void> writeDocument(String filePath, String content) async {
     final file = File(filePath);
     await file.create(recursive: true);
-    await file.writeAsString(content, encoding: utf8);
+    await file.writeAsString(content);
   }
 
   /// 删除文件
@@ -58,12 +59,39 @@ class FileService {
 
   /// 检查目录是否存在
   Future<bool> directoryExists(String path) async {
-    return await Directory(path).exists();
+    return Directory(path).exists();
   }
 
   /// 获取文件统计信息
   Future<FileStat> getFileStat(String filePath) async {
-    return await File(filePath).stat();
+    return File(filePath).stat();
+  }
+
+  /// 扫描目录中所有 .md 文件（跳过 .lingbi/），返回 Document 列表。
+  ///
+  /// 统一实现，供 DocumentService 和 ProjectService 共同委托。
+  Future<List<Document>> scanMarkdownDocuments(
+    String directoryPath,
+    String projectId,
+  ) async {
+    final files = await listDocuments(directoryPath);
+    final documents = <Document>[];
+    for (final rawPath in files) {
+      final path = rawPath.replaceAll(r'\', '/');
+      if (path.contains('/.lingbi/')) continue;
+      final content = await readDocument(path);
+      final fileName = path.split('/').last;
+      final title = fileName.endsWith('.md')
+          ? fileName.substring(0, fileName.length - 3)
+          : fileName;
+      documents.add(Document(
+        projectId: projectId,
+        title: title,
+        filePath: path,
+        wordCount: countWords(content),
+      ));
+    }
+    return documents;
   }
 
   /// 计算文档字数（中英文混合）

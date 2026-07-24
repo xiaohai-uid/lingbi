@@ -3,12 +3,6 @@ import 'package:uuid/uuid.dart';
 const _uuid = Uuid();
 
 class Project {
-  final String id;
-  String name;
-  String description;
-  String directoryPath;
-  final DateTime createdAt;
-  DateTime updatedAt;
 
   Project({
     String? id,
@@ -21,15 +15,6 @@ class Project {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'directoryPath': directoryPath,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
-
   factory Project.fromJson(Map<String, dynamic> json) => Project(
         id: json['id'] as String,
         name: json['name'] as String,
@@ -38,4 +23,19 @@ class Project {
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
+  final String id;
+  String name;
+  String description;
+  String directoryPath;
+  final DateTime createdAt;
+  DateTime updatedAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'description': description,
+        'directoryPath': directoryPath,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 }

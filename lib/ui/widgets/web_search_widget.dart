@@ -134,8 +134,8 @@ class _WebSearchWidgetState extends State<WebSearchWidget> {
 }
 
 class SearchResult {
+  SearchResult({required this.title, required this.snippet, required this.url});
   final String title;
   final String snippet;
   final String url;
-  SearchResult({required this.title, required this.snippet, required this.url});
 }

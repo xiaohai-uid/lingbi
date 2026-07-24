@@ -2,9 +2,7 @@ import 'package:lingbi/core/ai/ai_provider.dart';
 
 /// Free Provider - 免费 AI 服务
 class FreeProvider extends AIProvider {
-  final String? _modelOverride;
-
-  FreeProvider({String? modelOverride}) : _modelOverride = modelOverride;
+  FreeProvider();
 
   @override
   String get name => 'free';

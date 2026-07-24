@@ -1,28 +1,101 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:lingbi/core/database/story_beats_repository.dart';
+import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/core/models/story_beat.dart';
 
 /// 故事画布 - 可视化情节编排
 class StoryCanvasPage extends StatefulWidget {
-  final String projectId;
-  final String projectName;
 
   const StoryCanvasPage({
     super.key,
     required this.projectId,
     required this.projectName,
   });
+  final String projectId;
+  final String projectName;
 
   @override
   State<StoryCanvasPage> createState() => _StoryCanvasPageState();
 }
 
 class _StoryCanvasPageState extends State<StoryCanvasPage> {
-  final List<StoryBeat> _beats = [
-    StoryBeat(title: '开场', description: '引入主要角色和世界观', colorIndex: 0),
-    StoryBeat(title: '冲突', description: '主要冲突浮现', colorIndex: 1),
-    StoryBeat(title: '发展', description: '情节推进，角色成长', colorIndex: 2),
-    StoryBeat(title: '高潮', description: '故事最高冲突点', colorIndex: 3),
-    StoryBeat(title: '结局', description: '冲突解决，收尾', colorIndex: 4),
-  ];
+  final List<StoryBeat> _beats = [];
+  StoryBeatsRepository? _repository;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _repository = ServiceLocator.instance.storyBeatsRepository;
+    } catch (_) {
+      _repository = null;
+    }
+    _loadBeats();
+  }
+
+  Future<void> _loadBeats() async {
+    List<StoryBeat> beats = [];
+    final repo = _repository;
+    if (repo != null) {
+      try {
+        beats = await repo.getBeats(widget.projectId);
+      } catch (_) {
+        beats = [];
+      }
+    }
+
+    if (beats.isEmpty) {
+      // 播种默认 5 个 beat
+      beats = [
+        StoryBeat(
+          projectId: widget.projectId,
+          title: '开场',
+          description: '引入主要角色和世界观',
+        ),
+        StoryBeat(
+          projectId: widget.projectId,
+          title: '冲突',
+          description: '主要冲突浮现',
+          colorIndex: 1,
+          sequence: 1,
+        ),
+        StoryBeat(
+          projectId: widget.projectId,
+          title: '发展',
+          description: '情节推进，角色成长',
+          colorIndex: 2,
+          sequence: 2,
+        ),
+        StoryBeat(
+          projectId: widget.projectId,
+          title: '高潮',
+          description: '故事最高冲突点',
+          colorIndex: 3,
+          sequence: 3,
+        ),
+        StoryBeat(
+          projectId: widget.projectId,
+          title: '结局',
+          description: '冲突解决，收尾',
+          colorIndex: 4,
+          sequence: 4,
+        ),
+      ];
+      if (repo != null) {
+        for (final beat in beats) {
+          try {
+            await repo.saveBeat(beat);
+          } catch (_) {}
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() => _beats.addAll(beats));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +113,13 @@ class _StoryCanvasPageState extends State<StoryCanvasPage> {
       body: ReorderableListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _beats.length,
+        // ignore: deprecated_member_use
         onReorder: (oldI, newI) {
           setState(() {
             final item = _beats.removeAt(oldI);
             _beats.insert(newI, item);
           });
+          _persistOrder();
         },
         itemBuilder: (ctx, i) {
           final beat = _beats[i];
@@ -82,17 +157,37 @@ class _StoryCanvasPageState extends State<StoryCanvasPage> {
   void _addBeat() {
     _showBeatDialog(null, (beat) {
       setState(() => _beats.add(beat));
+      final repo = _repository;
+      if (repo != null) {
+        unawaited(repo.saveBeat(beat));
+      }
     });
   }
 
   void _editBeat(int index) {
     _showBeatDialog(_beats[index], (beat) {
       setState(() => _beats[index] = beat);
+      final repo = _repository;
+      if (repo != null) {
+        unawaited(repo.saveBeat(beat));
+      }
     });
   }
 
   void _deleteBeat(int index) {
+    final beat = _beats[index];
     setState(() => _beats.removeAt(index));
+    final repo = _repository;
+    if (repo != null) {
+      unawaited(repo.deleteBeat(beat.id));
+    }
+  }
+
+  void _persistOrder() {
+    final repo = _repository;
+    if (repo == null) return;
+    final beatIds = _beats.map((b) => b.id).toList();
+    unawaited(repo.reorderBeats(widget.projectId, beatIds));
   }
 
   void _showBeatDialog(StoryBeat? existing, void Function(StoryBeat) onSave) {
@@ -146,9 +241,12 @@ class _StoryCanvasPageState extends State<StoryCanvasPage> {
               onPressed: () {
                 if (titleCtrl.text.trim().isNotEmpty) {
                   onSave(StoryBeat(
+                    id: existing?.id,
+                    projectId: widget.projectId,
                     title: titleCtrl.text.trim(),
                     description: descCtrl.text.trim(),
                     colorIndex: selectedColor,
+                    sequence: existing?.sequence ?? _beats.length,
                   ));
                   Navigator.pop(ctx);
                 }
@@ -160,20 +258,6 @@ class _StoryCanvasPageState extends State<StoryCanvasPage> {
       ),
     );
   }
-}
-
-class StoryBeat {
-  final String id;
-  final String title;
-  final String description;
-  final int colorIndex;
-
-  StoryBeat({
-    String? id,
-    required this.title,
-    this.description = '',
-    this.colorIndex = 0,
-  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
 }
 
 const _beatColors = [

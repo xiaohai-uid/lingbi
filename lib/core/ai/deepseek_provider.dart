@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
 
 class DeepSeekProvider implements AIProvider {
+
+  DeepSeekProvider({String? apiKey, String? modelOverride, http.Client? client})
+      : _apiKey = apiKey,
+        _modelOverride = modelOverride,
+        _client = client ?? http.Client();
   String? _apiKey;
   final String? _modelOverride;
+  final http.Client _client;
   static const String _baseUrl = 'https://api.deepseek.com/chat/completions';
-
-  DeepSeekProvider({String? apiKey, String? modelOverride})
-      : _apiKey = apiKey,
-        _modelOverride = modelOverride;
 
   set apiKey(String? key) => _apiKey = key;
 
@@ -23,6 +26,21 @@ class DeepSeekProvider implements AIProvider {
   bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
 
   String get _modelId => _modelOverride ?? 'deepseek-chat';
+
+  String _friendlyError(Object e, [int? statusCode]) {
+    if (e is TimeoutException) return '网络连接超时，请检查网络后重试';
+    if (statusCode != null) {
+      switch (statusCode) {
+        case 401:
+          return 'API Key 无效，请在设置中重新配置';
+        case 429:
+          return '请求过于频繁，请稍后再试';
+        default:
+          if (statusCode >= 500) return '服务暂时不可用，请稍后再试';
+      }
+    }
+    return 'DeepSeek 请求失败: $e';
+  }
 
   @override
   Stream<String> chat({
@@ -52,7 +70,14 @@ class DeepSeekProvider implements AIProvider {
       });
       request.body = body;
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await _client.send(request).timeout(
+            const Duration(seconds: 30),
+            onTimeout: () => throw TimeoutException('连接超时', const Duration(seconds: 30)),
+          );
+      if (streamedResponse.statusCode != 200) {
+        yield _friendlyError(Exception('HTTP ${streamedResponse.statusCode}'), streamedResponse.statusCode);
+        return;
+      }
       await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
         for (final line in chunk.split('\n')) {
           if (line.startsWith('data: ')) {
@@ -67,7 +92,7 @@ class DeepSeekProvider implements AIProvider {
         }
       }
     } catch (e) {
-      yield 'DeepSeek API 错误: $e';
+      yield _friendlyError(e);
     }
   }
 
@@ -78,37 +103,48 @@ class DeepSeekProvider implements AIProvider {
     int maxTokens = 2048,
   }) async {
     if (!isAvailable) return '请先在设置中配置 DeepSeek API Key';
-    
-    try {
-      final response = await http.post(
-        Uri.parse(_baseUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
-        body: jsonEncode({
-          'model': _modelId,
-          'messages': messages.map((m) => m.toJson()).toList(),
-          'temperature': temperature,
-          'max_tokens': maxTokens,
-          'stream': false,
-        }),
-      );
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        return json['choices']?[0]?['message']?['content'] ?? '';
+
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final response = await _client.post(
+          Uri.parse(_baseUrl),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_apiKey',
+          },
+          body: jsonEncode({
+            'model': _modelId,
+            'messages': messages.map((m) => m.toJson()).toList(),
+            'temperature': temperature,
+            'max_tokens': maxTokens,
+            'stream': false,
+          }),
+        ).timeout(const Duration(seconds: 120));
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          return json['choices']?[0]?['message']?['content'] ?? '';
+        }
+        return _friendlyError(Exception('HTTP ${response.statusCode}'), response.statusCode);
+      } on TimeoutException catch (e) {
+        if (attempt == 0) continue;
+        return _friendlyError(e);
+      } on http.ClientException catch (e) {
+        if (attempt == 0) continue;
+        return _friendlyError(e);
+      } catch (e) {
+        return _friendlyError(e);
       }
-      return 'API 错误: ${response.statusCode}';
-    } catch (e) {
-      return 'DeepSeek API 错误: $e';
     }
+    return '请求失败，请重试';
   }
 
   @override
   Future<List<double>> embed(String text) async {
-    return List.filled(768, 0.0);
+    return List.filled(768, 0);
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> dispose() async {
+    _client.close();
+  }
 }

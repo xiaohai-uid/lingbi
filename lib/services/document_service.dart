@@ -2,18 +2,16 @@ import 'package:lingbi/services/interfaces/i_document_service.dart';
 import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/database/zvec_service.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
-import 'package:lingbi/core/file_system/sync_service.dart';
 
 class DocumentService implements IDocumentService {
-  final ZVecService? _zvec;
-  final FileService _file;
 
   DocumentService({
     ZVecService? zvecService,
     required FileService fileService,
-    SyncService? syncService,
   })  : _zvec = zvecService,
         _file = fileService;
+  final ZVecService? _zvec;
+  final FileService _file;
 
   String _sanitizeFileName(String title) {
     return title.replaceAll(RegExp(r'[<>:"/\\|?*\.]'), '_');
@@ -27,7 +25,7 @@ class DocumentService implements IDocumentService {
     String content = '',
   }) async {
     final safeTitle = _sanitizeFileName(title);
-    final filePath = '$directoryPath/$safeTitle.md'.replaceAll('\\', '/');
+    final filePath = '$directoryPath/$safeTitle.md'.replaceAll(r'\', '/');
     await _file.writeDocument(
         filePath, content.isEmpty ? '# $title\n\n' : content);
     final wordCount =
@@ -46,29 +44,12 @@ class DocumentService implements IDocumentService {
     String directoryPath,
     String projectId,
   ) async {
-    final files = await _file.listDocuments(directoryPath);
-    final documents = <Document>[];
-    for (final rawPath in files) {
-      final path = rawPath.replaceAll('\\', '/');
-      if (path.contains('/.lingbi/')) continue;
-      final content = await _file.readDocument(path);
-      final fileName = path.split('/').last;
-      final title = fileName.endsWith('.md')
-          ? fileName.substring(0, fileName.length - 3)
-          : fileName;
-      documents.add(Document(
-        projectId: projectId,
-        title: title,
-        filePath: path,
-        wordCount: _file.countWords(content),
-      ));
-    }
-    return documents;
+    return _file.scanMarkdownDocuments(directoryPath, projectId);
   }
 
   @override
   Future<String> readContent(String filePath) async {
-    return await _file.readDocument(filePath);
+    return _file.readDocument(filePath);
   }
 
   @override
@@ -104,7 +85,7 @@ class DocumentService implements IDocumentService {
 
   @override
   Future<void> renameDocument(Document doc, String newTitle) async {
-    final normalPath = doc.filePath.replaceAll('\\', '/');
+    final normalPath = doc.filePath.replaceAll(r'\', '/');
     final lastSlash = normalPath.lastIndexOf('/');
     final dir = lastSlash >= 0 ? normalPath.substring(0, lastSlash) : '';
     final safeTitle = _sanitizeFileName(newTitle);

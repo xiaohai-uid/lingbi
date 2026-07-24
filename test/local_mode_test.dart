@@ -502,7 +502,6 @@ void main() {
       final docService = DocumentService(
         fileService: FileService(),
         zvecService: null,
-        syncService: null,
       );
 
       final projectDir = '${tempDir.path}/test_novel';
@@ -589,7 +588,6 @@ void main() {
       final docService = DocumentService(
         fileService: FileService(),
         zvecService: null,
-        syncService: null,
       );
 
       const unsafeTitle = '章:节/测\\试|名?称*';
@@ -610,7 +608,6 @@ void main() {
       final docService = DocumentService(
         fileService: FileService(),
         zvecService: null,
-        syncService: null,
       );
 
       final doc = await docService.createDocument(

@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'core/di/service_locator.dart';
+import 'utils/paths.dart';
 
 import 'ui/theme/app_theme.dart';
 import 'ui/pages/home_page.dart';
+import 'ui_v2/feature_flag.dart';
+import 'ui_v2/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,22 +21,14 @@ void main() async {
 ///
 /// Windows 默认返回 %USERPROFILE%\Documents\灵笔。
 /// [userProfile] 用于测试注入；为 null 时从环境变量读取。
-String resolveDefaultLocalDir({String? userProfile}) {
-  final up = userProfile ?? Platform.environment['USERPROFILE'];
-  if (up != null && up.isNotEmpty) {
-    return '$up\\Documents\\灵笔';
-  }
-  throw UnsupportedError(
-    '无法确定默认本地目录。请设置 USERPROFILE 环境变量，'
-    '或手动指定工作目录。',
-  );
-}
+String resolveDefaultLocalDir({String? userProfile}) =>
+    resolveDefaultProjectRoot(userProfile: userProfile);
 
 class LingBiApp extends StatefulWidget {
-  final ServiceLocator? locator;
-  final String? localWorkDir;
 
   const LingBiApp({super.key, this.locator, this.localWorkDir});
+  final ServiceLocator? locator;
+  final String? localWorkDir;
 
   @override
   State<LingBiApp> createState() => _LingBiAppState();
@@ -73,7 +68,9 @@ class _LingBiAppState extends State<LingBiApp> {
           ? _locator.settingsService.themeMode
           : ThemeMode.light,
       home: _locator.initSucceeded
-          ? const HomePage()
+          ? (UIFeatureFlag.useNewUI
+              ? LingBiAppV3(locator: _locator)
+              : const HomePage())
           : _LocalModeHome(workDir: widget.localWorkDir),
     );
   }
@@ -81,9 +78,9 @@ class _LingBiAppState extends State<LingBiApp> {
 
 /// 降级模式本地写作入口 — 不依赖 ServiceLocator，仅使用 dart:io 文件操作。
 class _LocalModeHome extends StatefulWidget {
-  final String? workDir;
 
   const _LocalModeHome({this.workDir});
+  final String? workDir;
 
   @override
   State<_LocalModeHome> createState() => _LocalModeHomeState();
@@ -115,13 +112,13 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
 
   void _initDir() {
     if (widget.workDir != null) {
-      _workDir = widget.workDir!.replaceAll('\\', '/');
+      _workDir = widget.workDir!.replaceAll(r'\', '/');
       Directory(_workDir).createSync(recursive: true);
       _refreshFilesSync();
       return;
     }
     try {
-      _workDir = resolveDefaultLocalDir().replaceAll('\\', '/');
+      _workDir = resolveDefaultLocalDir().replaceAll(r'\', '/');
       Directory(_workDir).createSync(recursive: true);
       _refreshFilesSync();
     } on UnsupportedError catch (e) {
@@ -134,7 +131,7 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
     if (path.isEmpty) return;
     setState(() {
       _initError = null;
-      _workDir = path.replaceAll('\\', '/');
+      _workDir = path.replaceAll(r'\', '/');
     });
     Directory(_workDir).createSync(recursive: true);
     _refreshFilesSync();
@@ -149,7 +146,7 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
           .listSync()
           .whereType<File>()
           .where((f) => f.path.endsWith('.md'))
-          .map((f) => f.path.replaceAll('\\', '/'))
+          .map((f) => f.path.replaceAll(r'\', '/'))
           .toList()
         ..sort();
     }
@@ -160,14 +157,14 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
     final name =
         _titleController.text.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
     final fileName = name.isEmpty ? '新章节' : name;
-    final path = '$_workDir/$fileName.md'.replaceAll('\\', '/');
+    final path = '$_workDir/$fileName.md'.replaceAll(r'\', '/');
     File(path).writeAsStringSync('# $fileName\n\n');
     _refreshFilesSync();
     _openFile(path);
   }
 
   void _openFile(String rawPath) {
-    final path = rawPath.replaceAll('\\', '/');
+    final path = rawPath.replaceAll(r'\', '/');
     final file = File(path);
     final content = file.existsSync() ? file.readAsStringSync() : '';
     setState(() {
@@ -180,7 +177,7 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
 
   void _save() {
     if (_currentFilePath.isEmpty) return;
-    File(_currentFilePath.replaceAll('\\', '/'))
+    File(_currentFilePath.replaceAll(r'\', '/'))
         .writeAsStringSync(_contentController.text);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已保存'), duration: Duration(seconds: 1)),

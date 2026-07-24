@@ -2,13 +2,29 @@
 ///
 /// 为每个 AI 平台定义可用的模型列表、基础 URL 和认证信息。
 /// 使用纯 Dart 代码实现，不依赖外部库。
-
-import 'dart:convert';
+library;
 
 /// 模型信息
 ///
 /// 描述单个 AI 模型的基本属性。
 class ModelInfo {
+
+  const ModelInfo({
+    required this.id,
+    required this.name,
+    this.category = '',
+    this.recommended = false,
+    this.deprecated = false,
+  });
+
+  /// JSON 反序列化
+  factory ModelInfo.fromJson(Map<String, dynamic> json) => ModelInfo(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        category: json['category'] as String? ?? '',
+        recommended: json['recommended'] as bool? ?? false,
+        deprecated: json['deprecated'] as bool? ?? false,
+      );
   /// 模型唯一标识（如 'gpt-4o'）
   final String id;
 
@@ -24,14 +40,6 @@ class ModelInfo {
   /// 是否已废弃
   final bool deprecated;
 
-  const ModelInfo({
-    required this.id,
-    required this.name,
-    this.category = '',
-    this.recommended = false,
-    this.deprecated = false,
-  });
-
   /// JSON 序列化
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -40,21 +48,33 @@ class ModelInfo {
         'recommended': recommended,
         'deprecated': deprecated,
       };
-
-  /// JSON 反序列化
-  factory ModelInfo.fromJson(Map<String, dynamic> json) => ModelInfo(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        category: json['category'] as String? ?? '',
-        recommended: json['recommended'] as bool? ?? false,
-        deprecated: json['deprecated'] as bool? ?? false,
-      );
 }
 
 /// 平台模型配置
 ///
 /// 描述一个 AI 平台的完整配置信息，包含模型列表、API 端点和认证方式。
 class PlatformModelConfig {
+
+  const PlatformModelConfig({
+    required this.id,
+    required this.name,
+    required this.models,
+    required this.baseUrl,
+    this.authHeader = 'authorization',
+  });
+
+  /// JSON 反序列化
+  factory PlatformModelConfig.fromJson(Map<String, dynamic> json) {
+    return PlatformModelConfig(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      baseUrl: json['baseUrl'] as String,
+      authHeader: json['authHeader'] as String? ?? 'authorization',
+      models: (json['models'] as List<dynamic>)
+          .map((m) => ModelInfo.fromJson(m as Map<String, dynamic>))
+          .toList(),
+    );
+  }
   /// 平台唯一标识（如 'openai'）
   final String id;
 
@@ -69,14 +89,6 @@ class PlatformModelConfig {
 
   /// 认证请求头名称（默认为 'authorization'）
   final String authHeader;
-
-  const PlatformModelConfig({
-    required this.id,
-    required this.name,
-    required this.models,
-    required this.baseUrl,
-    this.authHeader = 'authorization',
-  });
 
   /// 推荐模型（推荐度最高的模型，通常为第一个 recommended 模型）
   ModelInfo? get recommendedModel {
@@ -99,19 +111,6 @@ class PlatformModelConfig {
         'baseUrl': baseUrl,
         'authHeader': authHeader,
       };
-
-  /// JSON 反序列化
-  factory PlatformModelConfig.fromJson(Map<String, dynamic> json) {
-    return PlatformModelConfig(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      baseUrl: json['baseUrl'] as String,
-      authHeader: json['authHeader'] as String? ?? 'authorization',
-      models: (json['models'] as List<dynamic>)
-          .map((m) => ModelInfo.fromJson(m as Map<String, dynamic>))
-          .toList(),
-    );
-  }
 }
 
 /// 模型注册表
@@ -124,7 +123,6 @@ class ModelRegistry {
       id: 'openai',
       name: 'OpenAI',
       baseUrl: 'https://api.openai.com/v1',
-      authHeader: 'authorization',
       models: [
         ModelInfo(
           id: 'gpt-4o',
@@ -189,7 +187,6 @@ class ModelRegistry {
       id: 'deepseek',
       name: 'DeepSeek',
       baseUrl: 'https://api.deepseek.com/v1',
-      authHeader: 'authorization',
       models: [
         ModelInfo(
           id: 'deepseek-chat',
@@ -214,7 +211,6 @@ class ModelRegistry {
       id: 'sensenova',
       name: 'SenseNova (商汤)',
       baseUrl: 'https://token.sensenova.cn/v1',
-      authHeader: 'authorization',
       models: [
         ModelInfo(
           id: 'sensenova-6.7-flash-lite',

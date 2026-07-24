@@ -3,13 +3,6 @@ import 'package:uuid/uuid.dart';
 const _uuid = Uuid();
 
 class Document {
-  final String id;
-  String projectId;
-  String title;
-  String filePath;
-  int wordCount;
-  final DateTime createdAt;
-  DateTime updatedAt;
 
   Document({
     String? id,
@@ -23,16 +16,6 @@ class Document {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'projectId': projectId,
-        'title': title,
-        'filePath': filePath,
-        'wordCount': wordCount,
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
-
   factory Document.fromJson(Map<String, dynamic> json) => Document(
         id: json['id'] as String,
         projectId: json['projectId'] as String,
@@ -42,4 +25,21 @@ class Document {
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
+  final String id;
+  String projectId;
+  String title;
+  String filePath;
+  int wordCount;
+  final DateTime createdAt;
+  DateTime updatedAt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'projectId': projectId,
+        'title': title,
+        'filePath': filePath,
+        'wordCount': wordCount,
+        'createdAt': createdAt.toIso8601String(),
+        'updatedAt': updatedAt.toIso8601String(),
+      };
 }

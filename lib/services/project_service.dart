@@ -7,12 +7,12 @@ import 'package:lingbi/core/database/zvec_service.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
 
 class ProjectService implements IProjectService {
-  final ZVecService? _zvec;
-  final FileService _fileService;
 
   ProjectService({ZVecService? zvecService, FileService? fileService})
       : _zvec = zvecService,
         _fileService = fileService ?? FileService();
+  final ZVecService? _zvec;
+  final FileService _fileService;
 
   /// 创建便携项目 — 先在磁盘建立目录和 .lingbi/project.json，
   /// 再写入 ZVec（若可用）。
@@ -31,7 +31,6 @@ class ProjectService implements IProjectService {
     await lingbiDir.create();
     await File('$directoryPath/.lingbi/project.json').writeAsString(
       jsonEncode(project.toJson()),
-      encoding: utf8,
     );
     await _zvec?.upsert('projects', project.id, project.toJson());
     return project;
@@ -48,14 +47,14 @@ class ProjectService implements IProjectService {
     }
 
     final sep = Platform.pathSeparator;
-    final metaFile = File('$directoryPath${sep}.lingbi${sep}project.json');
+    final metaFile = File('$directoryPath$sep.lingbi${sep}project.json');
     Project project;
     if (metaFile.existsSync()) {
       final json =
           jsonDecode(await metaFile.readAsString()) as Map<String, dynamic>;
       project = Project.fromJson(json);
     } else {
-      final normalPath = directoryPath.replaceAll('\\', '/');
+      final normalPath = directoryPath.replaceAll(r'\', '/');
       final segments = normalPath.split('/');
       project = Project(
         name: segments.lastWhere((s) => s.isNotEmpty),
@@ -72,24 +71,7 @@ class ProjectService implements IProjectService {
     String directoryPath,
     String projectId,
   ) async {
-    final files = await _fileService.listDocuments(directoryPath);
-    final documents = <Document>[];
-    for (final rawPath in files) {
-      final path = rawPath.replaceAll('\\', '/');
-      if (path.contains('/.lingbi/')) continue;
-      final content = await _fileService.readDocument(path);
-      final fileName = path.split('/').last;
-      final title = fileName.endsWith('.md')
-          ? fileName.substring(0, fileName.length - 3)
-          : fileName;
-      documents.add(Document(
-        projectId: projectId,
-        title: title,
-        filePath: path,
-        wordCount: _fileService.countWords(content),
-      ));
-    }
-    return documents;
+    return _fileService.scanMarkdownDocuments(directoryPath, projectId);
   }
 
   @override

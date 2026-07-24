@@ -1,9 +1,9 @@
 class QuotaService {
+
+  QuotaService();
   int _dailyUsage = 0;
   final int _dailyLimit = 100;
   DateTime _lastReset = DateTime.now();
-
-  QuotaService();
 
   int get dailyUsage => _dailyUsage;
   int get dailyLimit => _dailyLimit;

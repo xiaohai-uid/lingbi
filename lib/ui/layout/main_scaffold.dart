@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 
 /// 灵笔主布局 — 毛玻璃三栏式
 class MainScaffold extends StatefulWidget {
-  final Widget sidebar;
-  final Widget editor;
-  final Widget aiPanel;
-  final double sidebarWidth;
 
   const MainScaffold({
     super.key,
@@ -15,6 +11,10 @@ class MainScaffold extends StatefulWidget {
     required this.aiPanel,
     this.sidebarWidth = 260,
   });
+  final Widget sidebar;
+  final Widget editor;
+  final Widget aiPanel;
+  final double sidebarWidth;
 
   @override
   State<MainScaffold> createState() => _MainScaffoldState();
@@ -101,9 +101,9 @@ class _MainScaffoldState extends State<MainScaffold> {
 
 /// 毛玻璃 AI 浮动按钮
 class _AIFab extends StatelessWidget {
+  const _AIFab({required this.isActive, required this.onPressed});
   final bool isActive;
   final VoidCallback onPressed;
-  const _AIFab({required this.isActive, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {

@@ -1,23 +1,59 @@
 /// IdentityDetector — 角色身份自动识别主类
 ///
-/// 组装规则引擎 + LLM 兜底 + 缓存
+/// 组装规则引擎 + LLM 兜底 + 缓存。
+/// 当前为 stub 实现，待依赖模块（规则引擎、LLM 工厂、世界数据库）完成后替换。
 library identity_detector;
 
-import 'identity_rules.dart';
-import 'rule_matcher.dart';
-import 'detector_cache.dart';
-import '../../core/ai/llm_factory.dart';
-import '../../core/ai/llm_models.dart';
-import '../../core/ai/retry_handler.dart';
-import '../prompt_service.dart';
-import '../../data/database/world_database.dart' show Character;
-import 'package:drift/drift.dart';
+
+/// 角色信息（stub — 待 world_database.dart 实现后替换）
+class Character {
+
+  const Character({required this.id, required this.name});
+  final String id;
+  final String name;
+}
+
+/// 身份候选
+class IdentityCandidate {
+
+  const IdentityCandidate({
+    required this.characterId,
+    required this.identityName,
+    this.confidence = 0.5,
+    this.source = 'rule',
+    this.suggestedWeight = 50,
+  });
+  final String characterId;
+  final String identityName;
+  final double confidence;
+  final String source; // 'rule' | 'llm'
+  final int suggestedWeight;
+}
+
+/// 规则匹配器（stub）
+class RuleMatcher {
+  List<IdentityCandidate> match({
+    required String text,
+    required List<String> sceneCharacterIds,
+    required Map<String, String> characterNameMap,
+  }) {
+    // TODO: 实现基于 identity_rules.dart 的规则匹配
+    return [];
+  }
+}
+
+/// 检测结果缓存（stub）
+class DetectorCache {
+  final Map<String, DetectionResult> _store = {};
+
+  DetectionResult? get(String sceneId) => _store[sceneId];
+  void set(String sceneId, DetectionResult result) => _store[sceneId] = result;
+  void invalidate(String sceneId) => _store.remove(sceneId);
+  void clear() => _store.clear();
+}
 
 /// 身份检测器
 class IdentityDetector {
-  final RuleMatcher _ruleMatcher;
-  final DetectorCache _cache;
-  final bool enableLlmFallback;
 
   IdentityDetector({
     RuleMatcher? ruleMatcher,
@@ -25,6 +61,9 @@ class IdentityDetector {
     this.enableLlmFallback = false,
   })  : _ruleMatcher = ruleMatcher ?? RuleMatcher(),
         _cache = cache ?? DetectorCache();
+  final RuleMatcher _ruleMatcher;
+  final DetectorCache _cache;
+  final bool enableLlmFallback;
 
   /// 分析场景中的角色身份
   Future<DetectionResult> detect({
@@ -48,80 +87,23 @@ class IdentityDetector {
     );
 
     // 3. LLM 兜底（可选，默认关闭）
-    List<IdentityCandidate> llmResults = [];
-    if (enableLlmFallback && ruleResults.isEmpty) {
-      llmResults = await _llmDetect(sceneText, sceneCharacters);
-    }
+    // TODO: 待 llm_factory.dart 和 retry_handler.dart 实现后启用
+    final List<IdentityCandidate> llmResults = [];
 
     // 4. 合并结果
     final allCandidates = [...ruleResults, ...llmResults];
     final result = DetectionResult(
       sceneId: sceneId,
       candidates: allCandidates,
-      source: ruleResults.isNotEmpty ? 'rule' : (llmResults.isNotEmpty ? 'llm' : 'none'),
+      source: ruleResults.isNotEmpty
+          ? 'rule'
+          : (llmResults.isNotEmpty ? 'llm' : 'none'),
     );
 
     // 5. 写入缓存
     _cache.set(sceneId, result);
 
     return result;
-  }
-
-  /// LLM 兜底检测
-  Future<List<IdentityCandidate>> _llmDetect(
-    String text,
-    List<Character> sceneCharacters,
-  ) async {
-    final promptService = PromptService();
-    final retryHandler = RetryHandler();
-
-    final characterList = sceneCharacters.map((c) => '- ${c.name}').join('\n');
-
-    final prompt = promptService.renderPrompt('identity_detect', {
-      'text': text,
-      'characters': characterList,
-    });
-
-    final request = LLMRequest(
-      messages: [LLMMessage(role: 'system', content: prompt)],
-      temperature: 0.3,
-      maxTokens: 1024,
-    );
-
-    try {
-      final result = await retryHandler.execute(() =>
-          LLMFactory.create('deepseek')
-              .generateStructured<Map<String, dynamic>>(
-                request,
-                (json) => json,
-              ));
-
-      final candidates = <IdentityCandidate>[];
-      final identities = result['identities'] as List? ?? [];
-
-      for (final item in identities) {
-        final characterName = item['characterName'] as String? ?? '';
-        final identityName = item['identityName'] as String? ?? '';
-        final confidence = (item['confidence'] as num?)?.toDouble() ?? 0.5;
-
-        final character = sceneCharacters.firstWhere(
-          (c) => c.name == characterName,
-          orElse: () => sceneCharacters.first,
-        );
-
-        candidates.add(IdentityCandidate(
-          characterId: character.id,
-          identityName: identityName,
-          confidence: confidence,
-          source: 'llm',
-          suggestedWeight: (confidence * 100).round(),
-        ));
-      }
-
-      return candidates;
-    } catch (e) {
-      return [];
-    }
   }
 
   /// 清除场景缓存（用户编辑后调用）
@@ -131,16 +113,16 @@ class IdentityDetector {
 }
 
 /// 检测结果
-class DetectionResult {
-  final String sceneId;
-  final List<IdentityCandidate> candidates;
-  final String source; // 'rule' | 'llm' | 'none'
+class DetectionResult { // 'rule' | 'llm' | 'none'
 
   const DetectionResult({
     required this.sceneId,
     this.candidates = const [],
     this.source = 'none',
   });
+  final String sceneId;
+  final List<IdentityCandidate> candidates;
+  final String source;
 
   bool get hasResults => candidates.isNotEmpty;
 

@@ -1,6 +1,6 @@
 import '../../services/ai_service.dart';
-import '../../services/codex_service.dart';
-import '../../services/codex_linking_service.dart';
+import '../../services/canon_service.dart';
+import '../../services/canon_linking_service.dart';
 import '../../services/document_service.dart';
 import '../../services/export_service.dart';
 import '../../services/project_service.dart';
@@ -8,6 +8,7 @@ import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/storage_service.dart';
+import '../database/story_beats_repository.dart';
 import '../../services/version_history_service.dart';
 import '../database/zvec_service.dart';
 import '../file_system/file_service.dart';
@@ -20,13 +21,16 @@ import '../file_system/sync_service.dart';
 /// 2. ZVecService ← StorageService
 /// 3. SyncService ← FileService, ZVecService
 /// 4. DocumentService ← ZVecService, FileService, SyncService
-/// 5. CodexService ← ZVecService
+/// 5. CanonService ← ZVecService
 /// 6. ProjectService ← ZVecService
 /// 7. AIService ← QuotaService
-/// 8. CodexLinkingService ← CodexService
+/// 8. CanonLinkingService ← CanonService
 /// 9. SettingsService ← AIService
 /// 10. ExportService, VersionHistoryService, ProjectTabController (无依赖)
 class ServiceLocator {
+
+  ServiceLocator._();
+  // ignore: use_late_for_private_fields_and_variables
   static ServiceLocator? _instance;
   static ServiceLocator get instance => _instance!;
 
@@ -47,22 +51,23 @@ class ServiceLocator {
   late final FileService fileService;
   late final QuotaService quotaService;
 
+  /// ——— 仓储 ———
+  late final StoryBeatsRepository storyBeatsRepository;
+
   /// ——— 中间层服务 ———
   late final ZVecService zvecService;
   late final SyncService syncService;
 
   /// ——— 特性服务 ———
   late final DocumentService documentService;
-  late final CodexService codexService;
+  late final CanonService canonService;
   late final ProjectService projectService;
   late final AIService aiService;
-  late final CodexLinkingService codexLinkingService;
+  late final CanonLinkingService canonLinkingService;
   late final SettingsService settingsService;
   late final ExportService exportService;
   late final VersionHistoryService versionHistoryService;
   late final ProjectTabController projectTabController;
-
-  ServiceLocator._();
 
   /// 初始化所有服务（按依赖拓扑升序）
   ///
@@ -89,15 +94,14 @@ class ServiceLocator {
       locator.documentService = DocumentService(
         zvecService: locator.zvecService,
         fileService: locator.fileService,
-        syncService: locator.syncService,
       );
-      locator.codexService = CodexService(zvecService: locator.zvecService);
+      locator.canonService = CanonService(zvecService: locator.zvecService);
       locator.projectService = ProjectService(zvecService: locator.zvecService);
       locator.aiService = AIService(quotaService: locator.quotaService);
 
       // 层级 4: 依赖特性服务
-      locator.codexLinkingService =
-          CodexLinkingService(codexService: locator.codexService);
+      locator.canonLinkingService =
+          CanonLinkingService(canonService: locator.canonService);
       locator.settingsService = SettingsService(aiService: locator.aiService);
 
       // 层级 5: 无依赖工具服务
@@ -107,6 +111,8 @@ class ServiceLocator {
 
       // 初始化需要异步初始化的服务
       await locator.storageService.initialize();
+      locator.storyBeatsRepository =
+          StoryBeatsRepository(storageService: locator.storageService);
       await locator.zvecService.initialize();
       await locator.settingsService.initialize();
     } catch (e) {

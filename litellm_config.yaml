@@ -1,0 +1,57 @@
+# =============================================================================
+# LiteLLM 模型路由配置
+#
+# 由 docker-compose 的 litellm 服务挂载到容器 /app/config.yaml（只读）。
+# AI Provider 微服务通过 http://litellm:4000 访问统一模型路由。
+#
+# API Key 通过环境变量注入（os.environ/<VAR>），对应 .env.example 中的：
+#   SENSENOVA_API_KEY / DEEPSEEK_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY
+# =============================================================================
+
+model_list:
+  # ---- SenseNova（商汤）----
+  - model_name: sensenova
+    litellm_params:
+      model: sensenova/SenseNova-DeepSeek
+      api_base: https://api.sensenova.cn/compatible-mode/v1
+      api_key: os.environ/SENSENOVA_API_KEY
+
+  # ---- DeepSeek ----
+  - model_name: deepseek
+    litellm_params:
+      model: deepseek/deepseek-chat
+      api_base: https://api.deepseek.com
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+  # ---- OpenAI ----
+  - model_name: openai
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+
+  # ---- Claude（Anthropic）----
+  - model_name: claude
+    litellm_params:
+      model: claude-3-5-sonnet-20241022
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+litellm_settings:
+  # 丢弃 provider 不支持的参数，避免请求失败
+  drop_params: true
+  # 关闭遥测上报
+  telemetry: false
+  # 请求超时（秒）
+  request_timeout: 60
+  # 重试策略
+  num_retries: 2
+  retry_after: 5
+  # 并发与回退
+  max_budget: 0
+  budget_duration: daily
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  # 数据库（容器内 SQLite，挂载在 lingbi_data 卷）
+  database_url: sqlite:///app/data/litellm.db
+  # 禁用遥测
+  disable_telemetry: true

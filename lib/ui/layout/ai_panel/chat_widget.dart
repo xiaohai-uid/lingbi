@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 class ChatEntry {
-  final String role;
-  final String content;
-  final bool isStreaming;
 
   ChatEntry({
     required this.role,
     required this.content,
     this.isStreaming = false,
   });
+  final String role;
+  final String content;
+  final bool isStreaming;
 }
 
 class ChatWidget extends StatelessWidget {
-  final ChatEntry entry;
 
   const ChatWidget({super.key, required this.entry});
+  final ChatEntry entry;
 
   @override
   Widget build(BuildContext context) {

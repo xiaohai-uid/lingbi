@@ -13,7 +13,7 @@ const microservices = <ProxyConfig>[
   ProxyConfig('/api/v1/ai', 8081),
   ProxyConfig('/api/v1/project', 8082),
   ProxyConfig('/api/v1/document', 8083),
-  ProxyConfig('/api/v1/codex', 8084),
+  ProxyConfig('/api/v1/canon', 8084),
   ProxyConfig('/api/v1/export', 8085),
   ProxyConfig('/api/v1/version', 8086),
   ProxyConfig('/api/v1/settings', 8087),

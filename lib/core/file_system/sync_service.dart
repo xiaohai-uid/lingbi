@@ -4,14 +4,14 @@ import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
 
 class SyncService {
-  final FileService _fileService;
-  final ZVecService _zvecService;
 
   SyncService({
     required FileService fileService,
     required ZVecService zvecService,
   })  : _fileService = fileService,
         _zvecService = zvecService;
+  final FileService _fileService;
+  final ZVecService _zvecService;
 
   /// 将项目元数据同步到 ZVec
   Future<void> syncProjectToDb(Project project) async {
@@ -34,7 +34,7 @@ class SyncService {
     final documents = <Document>[];
 
     for (final filePath in files) {
-      final fileName = filePath.split('\\').last.split('/').last;
+      final fileName = filePath.split(r'\').last.split('/').last;
       final title = fileName.endsWith('.md') ? fileName.substring(0, fileName.length - 3) : fileName;
       final content = await _fileService.readDocument(filePath);
       final wordCount = _fileService.countWords(content);
@@ -77,7 +77,7 @@ class SyncService {
     final addedDocs = <Document>[];
     for (final path in toAdd) {
       final content = await _fileService.readDocument(path);
-      final fileName = path.split('\\').last.split('/').last;
+      final fileName = path.split(r'\').last.split('/').last;
       final title = fileName.endsWith('.md') ? fileName.substring(0, fileName.length - 3) : fileName;
       final doc = Document(
         projectId: project.id,

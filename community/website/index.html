@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵笔 Lingbi — AI 写作助手</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; color: #1a1a2e; }
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white; padding: 80px 20px; text-align: center;
+    }
+    .hero h1 { font-size: 3rem; margin-bottom: 16px; }
+    .hero p { font-size: 1.2rem; opacity: 0.9; max-width: 600px; margin: 0 auto; }
+    .hero .btn {
+      display: inline-block; margin-top: 24px; padding: 12px 32px;
+      background: white; color: #667eea; border-radius: 8px;
+      text-decoration: none; font-weight: 600;
+    }
+    nav { background: #1a1a2e; padding: 12px 20px; }
+    nav a { color: white; text-decoration: none; margin-right: 20px; font-size: 0.9rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+    .feature { padding: 24px; border-radius: 12px; background: #f8f9fa; }
+    .feature h3 { margin-bottom: 8px; }
+    .feature p { color: #555; font-size: 0.95rem; }
+    footer { background: #1a1a2e; color: #aaa; padding: 24px; text-align: center; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">首页</a>
+    <a href="skills/">Skills</a>
+    <a href="docs/">文档</a>
+    <a href="blog/">博客</a>
+    <a href="https://github.com/xiaohai-uid/lingbi">GitHub</a>
+  </nav>
+  <section class="hero">
+    <h1>灵笔 Lingbi</h1>
+    <p>基于 11 个微服务的 AI 写作助手，支持长篇小说创作、风格蒸馏、知识管理和智能续写</p>
+    <a class="btn" href="https://github.com/xiaohai-uid/lingbi/releases">下载最新版本</a>
+  </section>
+  <section class="container">
+    <h2 style="margin-bottom: 24px;">核心功能</h2>
+    <div class="features">
+      <div class="feature">
+        <h3>长篇小说创作</h3>
+        <p>树形项目管理、多文档编辑、实时字数统计和大纲生成</p>
+      </div>
+      <div class="feature">
+        <h3>AI 助手</h3>
+        <p>集成 LiteLLM 支持多种 LLM，流式对话、智能续写和风格蒸馏</p>
+      </div>
+      <div class="feature">
+        <h3>正典 (Canon)</h3>
+        <p>角色、地点、传说和情节的结构化管理，语义搜索和自动关联</p>
+      </div>
+      <div class="feature">
+        <h3>一键启动器</h3>
+        <p>桌面 GUI 管理所有微服务，环境检测、日志查看和 Docker 模式</p>
+      </div>
+      <div class="feature">
+        <h3>版本历史</h3>
+        <p>自动快照、差异对比和历史版本恢复</p>
+      </div>
+      <div class="feature">
+        <h3>多格式导出</h3>
+        <p>支持 Markdown、PDF 和纯文本导出</p>
+      </div>
+    </div>
+  </section>
+  <footer>
+    &copy; 2024 灵笔 Lingbi · MIT License · 
+    <a href="https://github.com/xiaohai-uid/lingbi" style="color:#aaa;">GitHub</a>
+  </footer>
+</body>
+</html>

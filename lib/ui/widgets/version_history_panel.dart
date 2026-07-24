@@ -5,10 +5,6 @@ import 'package:lingbi/core/models/document.dart';
 
 /// 版本历史面板
 class VersionHistoryPanel extends StatefulWidget {
-  final Document document;
-  final String projectDir;
-  final Future<void> Function(String content) onRestore;
-  final VoidCallback onRefresh;
 
   const VersionHistoryPanel({
     super.key,
@@ -17,6 +13,10 @@ class VersionHistoryPanel extends StatefulWidget {
     required this.onRestore,
     required this.onRefresh,
   });
+  final Document document;
+  final String projectDir;
+  final Future<void> Function(String content) onRestore;
+  final VoidCallback onRefresh;
 
   @override
   State<VersionHistoryPanel> createState() => _VersionHistoryPanelState();

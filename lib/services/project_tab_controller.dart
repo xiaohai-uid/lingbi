@@ -3,10 +3,10 @@ import 'package:lingbi/core/models/project.dart';
 
 /// 项目 Tab 模型
 class ProjectTab {
-  final Project project;
-  final String id;
 
   ProjectTab({required this.project}) : id = project.id;
+  final Project project;
+  final String id;
 }
 
 /// 多项目 Tab 控制器

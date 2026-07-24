@@ -1,15 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
 
 class ClaudeProvider implements AIProvider {
+
+  ClaudeProvider({String? apiKey, String? modelOverride, http.Client? client})
+      : _apiKey = apiKey,
+        _modelOverride = modelOverride,
+        _client = client ?? http.Client();
   String? _apiKey;
   final String? _modelOverride;
+  final http.Client _client;
   static const String _baseUrl = 'https://api.anthropic.com/v1/messages';
-
-  ClaudeProvider({String? apiKey, String? modelOverride})
-      : _apiKey = apiKey,
-        _modelOverride = modelOverride;
 
   set apiKey(String? key) => _apiKey = key;
 
@@ -23,6 +26,21 @@ class ClaudeProvider implements AIProvider {
   bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
 
   String get _modelId => _modelOverride ?? 'claude-sonnet-4-20250514';
+
+  String _friendlyError(Object e, [int? statusCode]) {
+    if (e is TimeoutException) return '网络连接超时，请检查网络后重试';
+    if (statusCode != null) {
+      switch (statusCode) {
+        case 401:
+          return 'API Key 无效，请在设置中重新配置';
+        case 429:
+          return '请求过于频繁，请稍后再试';
+        default:
+          if (statusCode >= 500) return '服务暂时不可用，请稍后再试';
+      }
+    }
+    return 'Claude 请求失败: $e';
+  }
 
   List<Map<String, dynamic>> _convertMessages(List<ChatMessage> messages) {
     return messages.map((m) => {
@@ -46,7 +64,7 @@ class ClaudeProvider implements AIProvider {
     final userMsgs = messages.where((m) => m.role != 'system').toList();
 
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse(_baseUrl),
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +78,7 @@ class ClaudeProvider implements AIProvider {
           'messages': _convertMessages(userMsgs),
           'temperature': temperature,
         }),
-      );
+      ).timeout(const Duration(seconds: 120));
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
@@ -73,10 +91,10 @@ class ClaudeProvider implements AIProvider {
           }
         }
       } else {
-        yield 'Claude API 错误: ${response.statusCode} ${response.body}';
+        yield _friendlyError(Exception('HTTP ${response.statusCode}'), response.statusCode);
       }
     } catch (e) {
-      yield 'Claude API 错误: $e';
+      yield _friendlyError(e);
     }
   }
 
@@ -87,21 +105,21 @@ class ClaudeProvider implements AIProvider {
     int maxTokens = 2048,
   }) async {
     final buffer = StringBuffer();
-    await for (final chunk in chat(
+    await chat(
       messages: messages,
       temperature: temperature,
       maxTokens: maxTokens,
-    )) {
-      buffer.write(chunk);
-    }
+    ).forEach(buffer.write);
     return buffer.toString();
   }
 
   @override
   Future<List<double>> embed(String text) async {
-    return List.filled(768, 0.0);
+    return List.filled(768, 0);
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> dispose() async {
+    _client.close();
+  }
 }

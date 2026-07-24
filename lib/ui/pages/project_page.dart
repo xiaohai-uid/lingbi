@@ -13,14 +13,14 @@ import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/ui/layout/sidebar/project_tree.dart';
 import 'package:lingbi/ui/layout/ai_panel/ai_panel.dart';
 import 'package:lingbi/ui/pages/settings_page.dart';
-import 'package:lingbi/ui/pages/codex_page.dart';
+import 'package:lingbi/ui/pages/canon_page.dart';
 import 'package:lingbi/ui/pages/story_canvas_page.dart';
 import 'package:lingbi/ui/widgets/version_history_panel.dart';
 
 class ProjectPage extends StatefulWidget {
-  final Project project;
 
   const ProjectPage({super.key, required this.project});
+  final Project project;
 
   @override
   State<ProjectPage> createState() => _ProjectPageState();
@@ -51,7 +51,7 @@ class _ProjectPageState extends State<ProjectPage> {
     }
   }
 
-  void _onDocumentSelected(Document doc) async {
+  Future<void> _onDocumentSelected(Document doc) async {
     try {
       final content = await _documentService.readContent(doc.filePath);
       setState(() {
@@ -65,7 +65,7 @@ class _ProjectPageState extends State<ProjectPage> {
     }
   }
 
-  void _newDocument() async {
+  Future<void> _newDocument() async {
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
@@ -142,9 +142,9 @@ class _ProjectPageState extends State<ProjectPage> {
     }
   }
 
-  void _openCodex() {
+  void _openCanon() {
     Navigator.push(context, MaterialPageRoute(
-      builder: (_) => CodexPage(projectId: widget.project.id, projectName: widget.project.name),
+      builder: (_) => CanonPage(projectId: widget.project.id, projectName: widget.project.name),
     ));
   }
 
@@ -294,7 +294,7 @@ class _ProjectPageState extends State<ProjectPage> {
       appBar: AppBar(
         title: Text(widget.project.name),
         actions: [
-          IconButton(icon: const Icon(Icons.auto_stories), tooltip: '知识库 (Codex)', onPressed: _openCodex),
+          IconButton(icon: const Icon(Icons.auto_stories), tooltip: '正典 (Canon)', onPressed: _openCanon),
           IconButton(icon: const Icon(Icons.account_tree), tooltip: '故事画布', onPressed: _openStoryCanvas),
           PopupMenuButton<String>(
             icon: const Icon(Icons.add),
@@ -325,7 +325,7 @@ class _ProjectPageState extends State<ProjectPage> {
           documentTitle: _currentDocument?.title,
           onSave: _currentDocument != null ? _saveDocument : null,
         ),
-        aiPanel: const AIPanel(),
+        aiPanel: AIPanel(projectId: widget.project.id, projectName: widget.project.name),
       ),
     );
 
