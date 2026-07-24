@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'theme/app_theme.dart';
-import 'components/app_scaffold.dart';
+import 'components/onboarding_gate.dart';
 
 class LingBiAppV3 extends StatefulWidget {
 
@@ -52,7 +52,7 @@ class _LingBiAppV3State extends State<LingBiAppV3> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: widget.locator.settingsService.themeMode,
-      home: AppScaffold(
+      home: OnboardingGate(
         isDarkMode: isDark,
         onToggleTheme: _onToggleTheme,
       ),
