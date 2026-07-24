@@ -17,3 +17,5 @@ export 'write_lock_service.dart';
 export 'candidate_service.dart';
 export 'book_state.dart';
 export 'creative_compass.dart';
+export 'project_data_source.dart';
+export 'novel_application_service.dart';
