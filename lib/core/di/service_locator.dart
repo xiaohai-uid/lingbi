@@ -2,6 +2,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../services/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
+import '../../services/foreshadowing_service.dart';
 import '../../services/canon_service.dart';
 import '../../services/canon_linking_service.dart';
 import '../../services/document_service.dart';
@@ -100,6 +101,7 @@ class ServiceLocator {
   late final GuidedFlowEngine guidedFlowEngine;
   late final GuidedFlowSkillLoader guidedFlowSkillLoader;
   late final AntiHallucinationService antiHallucinationService;
+  late final ForeshadowingService foreshadowingService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -193,6 +195,9 @@ class ServiceLocator {
       locator.antiHallucinationService = AntiHallucinationService(
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
+      );
+      locator.foreshadowingService = ForeshadowingService(
+        metaRepository: locator.projectMetaRepository,
       );
 
       // 层级 5: 技能服务（无依赖）
