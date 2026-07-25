@@ -64,12 +64,19 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   final ClarityCheckService _clarityCheck = ClarityCheckService();
   bool _isLoading = false;
 
+  // ─── 引导模式状态 ───
+  bool _guidedMode = false;
+  double _guidedProgress = 0;
+  String _guidedStepName = '';
+  bool _guidedFlowComplete = false;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     if (widget.projectId != null) {
       _setupProjectContext();
+      _checkGuidedFlowState();
     }
   }
 
@@ -84,6 +91,145 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   void _setupProjectContext() {
     final name = widget.projectName ?? '';
     _aiService.setProjectContext('项目名称：$name\n项目 ID：${widget.projectId}');
+  }
+
+  /// 检查当前项目是否有未完成的引导流程
+  Future<void> _checkGuidedFlowState() async {
+    final pid = widget.projectId;
+    if (pid == null) return;
+    final engine = ServiceLocator.instance.guidedFlowEngine;
+    final state = await engine.getState(pid);
+    if (state != null && state.isActive && !state.isCompleted) {
+      setState(() {
+        _guidedMode = true;
+        _guidedProgress = engine.getProgress(pid);
+        _guidedStepName = engine.getCurrentStep(pid)?.name ?? '';
+        _guidedFlowComplete = false;
+      });
+      // 加载历史对话
+      if (state.conversationHistory.isNotEmpty) {
+        setState(() {
+          for (final turn in state.conversationHistory) {
+            _messages.add(_ChatMessage(
+              content: turn.content,
+              isUser: turn.role == 'user',
+            ));
+          }
+        });
+        _scrollToBottom();
+      }
+    }
+  }
+
+  /// 切换引导/自由模式
+  void _toggleGuidedMode() {
+    setState(() => _guidedMode = !_guidedMode);
+  }
+
+  /// 引导模式下发送消息
+  Future<void> _sendGuidedMessage(String text) async {
+    final pid = widget.projectId;
+    if (pid == null) return;
+    final engine = ServiceLocator.instance.guidedFlowEngine;
+
+    setState(() {
+      _messages.add(_ChatMessage(content: text, isUser: true));
+      _messages.add(_ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        isThinking: true,
+      ));
+      _isLoading = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await engine.processUserInput(
+        projectId: pid,
+        userInput: text,
+      );
+      if (!mounted) return;
+
+      final entryIndex = _messages.length - 1;
+      setState(() {
+        _messages[entryIndex] = _ChatMessage(
+          content: response.aiMessage,
+          isUser: false,
+        );
+        _guidedProgress = response.progress;
+        _guidedStepName = response.currentStepName;
+        _isLoading = false;
+      });
+      _scrollToBottom();
+
+      // 步骤完成提示
+      if (response.isStepComplete && !response.isFlowComplete) {
+        setState(() {
+          _messages.add(_ChatMessage(
+            content: '✓ 「${response.currentStepName}」已完成，进入下一步...',
+            isUser: false,
+          ));
+        });
+        // 生成新步骤开场白
+        await _generateGuidedOpening();
+      }
+
+      if (response.isFlowComplete) {
+        setState(() {
+          _guidedFlowComplete = true;
+          _guidedProgress = 1;
+          _messages.add(_ChatMessage(
+            content: '🎉 所有引导步骤已完成！设定已保存到项目。',
+            isUser: false,
+          ));
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final entryIndex = _messages.length - 1;
+      setState(() {
+        _messages[entryIndex] = _ChatMessage(
+          content: '引导处理失败: $e',
+          isUser: false,
+        );
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// 生成引导步骤开场白
+  Future<void> _generateGuidedOpening() async {
+    final pid = widget.projectId;
+    if (pid == null) return;
+    final engine = ServiceLocator.instance.guidedFlowEngine;
+
+    setState(() {
+      _messages.add(_ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        isThinking: true,
+      ));
+      _isLoading = true;
+    });
+
+    try {
+      final opening = await engine.generateStepOpening(pid);
+      if (!mounted) return;
+      final entryIndex = _messages.length - 1;
+      setState(() {
+        _messages[entryIndex] = _ChatMessage(
+          content: opening,
+          isUser: false,
+        );
+        _guidedStepName = engine.getCurrentStep(pid)?.name ?? '';
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -111,6 +257,12 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     if (text.isEmpty || _isLoading) return;
 
     if (overrideText == null) _inputController.clear();
+
+    // 引导模式下走 GuidedFlowEngine
+    if (_guidedMode && !_guidedFlowComplete) {
+      await _sendGuidedMessage(text);
+      return;
+    }
 
     // T4: 清晰度检查
     final clarityResult = _clarityCheck.assess(text);
@@ -238,6 +390,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
       child: Column(
         children: [
           _buildHeader(c),
+          if (_guidedMode) _buildGuidedProgressBar(c),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
             child: ModelStatusBar(compact: true),
@@ -279,7 +432,77 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
             ),
           ),
           const Spacer(),
+          // 引导/自由模式切换
+          if (_guidedStepName.isNotEmpty || _guidedMode)
+            Tooltip(
+              message: _guidedMode ? '切换到自由对话' : '切换到引导模式',
+              child: InkWell(
+                onTap: _toggleGuidedMode,
+                borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: LingBiTokens.space2,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _guidedMode
+                        ? c.accent.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                  ),
+                  child: Text(
+                    _guidedMode ? '引导中' : '自由',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _guidedMode ? c.accent : c.muted,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: LingBiTokens.space2),
           Icon(LingBiIcons.more, size: 16, color: c.muted),
+        ],
+      ),
+    );
+  }
+
+  /// 引导进度条（显示在 header 下方）
+  Widget _buildGuidedProgressBar(LingBiColors c) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: LingBiTokens.space4,
+        vertical: LingBiTokens.space1,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (_guidedStepName.isNotEmpty)
+                Text(
+                  _guidedFlowComplete ? '引导完成' : '当前: $_guidedStepName',
+                  style: TextStyle(fontSize: 11, color: c.fgSecondary),
+                ),
+              const Spacer(),
+              Text(
+                '${(_guidedProgress * 100).toInt()}%',
+                style: TextStyle(fontSize: 11, color: c.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: _guidedProgress,
+              minHeight: 3,
+              backgroundColor: c.borderOpaque,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                _guidedFlowComplete ? LingBiTokens.success : c.accent,
+              ),
+            ),
+          ),
         ],
       ),
     );
