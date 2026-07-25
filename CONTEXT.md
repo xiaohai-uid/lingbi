@@ -9,6 +9,7 @@
 | **CanonEntry (正典条目)** | 世界观元素：角色/地点/传说/情节节点 |
 | **StoryBeat (故事节拍)** | 故事画布中的一个情节单元 |
 | **AI Provider (AI 提供商)** | 提供 AI 能力的模型服务接口 |
+| **EndpointConfig (端点配置)** | 供应商统一抽象：{ id, name, baseUrl, apiKey, protocol(openai/anthropic), modelId }，官方预置与用户自定义走相同路径 |
 | **Skill (技能)** | 可复用的 AI 创作能力单元，分轻量（prompt）和重量（代码插件）两层 |
 | **Skill Runtime (技能运行时)** | 客户端内加载、校验、执行 Skill 的引擎 |
 | **Skill Manifest (技能清单)** | 重量 Skill 的元数据文件，声明权限、参数、触发条件 |
@@ -18,6 +19,7 @@
 | **Flywheel (飞轮)** | 两层正循环：Skill 生态飞轮 + 知识积累飞轮 |
 | **Skill Store (技能商店)** | 客户端内浏览、搜索、安装、卸载 Skill 的界面 |
 | **Slash Command (斜杠命令)** | 编辑器中输入 "/" 触发 Skill 的交互入口 |
+| **GuidedFlow (引导流程)** | 数据驱动的轻量状态机，编排创作引导步骤的推进与完成判定；内容来自题材 Skill，执行复用 AIService |
 
 ## 服务边界 (Service Boundaries)
 
@@ -41,3 +43,4 @@
 | **SkillMarketplace** | Skill 浏览/安装/卸载/更新 | Skill 生态 |
 | **IntentConfirmationService** | Skill 参数充分性评估 + 确认卡 | Skill 生态 |
 | **ModelRegistry** | 模型元数据管理（能力/价格/上下文窗口） | AI 基础设施 |
+| **GuidedFlowEngine** | 引导流程编排（步骤推进/完成判定/分支处理） | 创作引导 |
