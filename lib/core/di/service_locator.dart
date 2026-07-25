@@ -9,6 +9,12 @@ import '../../services/guided_flow_engine.dart';
 import '../../services/guided_flow_defaults.dart';
 import '../../services/skill/guided_flow_skill_loader.dart';
 import '../../services/skills/xuanhuan_flow_skill.dart';
+import '../../services/skills/xianxia_flow_skill.dart';
+import '../../services/skills/dushi_flow_skill.dart';
+import '../../services/skills/xuanyi_flow_skill.dart';
+import '../../services/skills/yanqing_flow_skill.dart';
+import '../../services/skills/kehuan_flow_skill.dart';
+import '../../services/skills/lishi_flow_skill.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../services/project_meta_repository.dart';
 import '../../services/project_service.dart';
@@ -161,6 +167,24 @@ class ServiceLocator {
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         xuanhuanShortFlowDefinition, '玄幻',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        xianxiaLongFlowDefinition, '仙侠',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        dushiLongFlowDefinition, '都市',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        xuanyiLongFlowDefinition, '悬疑',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        yanqingLongFlowDefinition, '言情',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        kehuanLongFlowDefinition, '科幻',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        lishiLongFlowDefinition, '历史',
       );
 
       // 层级 5: 技能服务（无依赖）
