@@ -1,5 +1,6 @@
 import 'package:path_provider/path_provider.dart';
 
+import '../../services/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/canon_service.dart';
 import '../../services/canon_linking_service.dart';
@@ -98,6 +99,7 @@ class ServiceLocator {
   late final ProjectMetaRepository projectMetaRepository;
   late final GuidedFlowEngine guidedFlowEngine;
   late final GuidedFlowSkillLoader guidedFlowSkillLoader;
+  late final AntiHallucinationService antiHallucinationService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -185,6 +187,12 @@ class ServiceLocator {
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         lishiLongFlowDefinition, '历史',
+      );
+
+      // 反幻觉三定律 + 监督智能体
+      locator.antiHallucinationService = AntiHallucinationService(
+        metaRepository: locator.projectMetaRepository,
+        aiProvider: locator.aiService.currentProvider,
       );
 
       // 层级 5: 技能服务（无依赖）
