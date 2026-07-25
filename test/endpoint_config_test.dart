@@ -4,6 +4,7 @@ import 'package:lingbi/core/ai/models/endpoint_config.dart';
 import 'package:lingbi/core/ai/provider_factory.dart';
 import 'package:lingbi/core/ai/providers/openai_compatible_provider.dart';
 import 'package:lingbi/core/ai/providers/anthropic_provider.dart';
+import 'package:lingbi/core/ai/ai_provider.dart';
 
 void main() {
   group('Protocol', () {
@@ -230,4 +231,45 @@ void main() {
       expect(provider.displayName, 'Test Claude');
     });
   });
+  group('ProviderFactory edge cases', () {
+    test('discoverModels returns empty list for anthropic protocol', () async {
+      final config = EndpointConfig(
+        id: 'test-claude',
+        name: 'Test Claude',
+        baseUrl: 'https://api.anthropic.com',
+        protocol: Protocol.anthropic,
+        modelId: 'claude-sonnet-4',
+      );
+      final models = await ProviderFactory.discoverModels(config);
+      expect(models, isEmpty);
+    });
+
+    test('discoverModels returns empty list for openai with no apiKey', () async {
+      final config = EndpointConfig(
+        id: 'test-no-key',
+        name: 'Test No Key',
+        baseUrl: 'https://api.test.com',
+        protocol: Protocol.openai,
+        modelId: 'gpt-4o',
+      );
+      final models = await ProviderFactory.discoverModels(config);
+      // Without apiKey, discovery should return empty (not crash)
+      expect(models, isEmpty);
+    });
+
+    test('testConnection handles provider with no apiKey gracefully', () async {
+      final config = EndpointConfig(
+        id: 'test-no-key',
+        name: 'Test No Key',
+        baseUrl: 'https://api.test.com',
+        protocol: Protocol.openai,
+        modelId: 'gpt-4o',
+      );
+      final result = await ProviderFactory.testConnection(config);
+      // Without apiKey, chatSync returns error string, not throw
+      // ProviderFactory.testConnection returns a result
+      expect(result, isNotNull);
+    });
+  });
+
 }

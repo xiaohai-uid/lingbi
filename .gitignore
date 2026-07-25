@@ -40,4 +40,4 @@ docs/superpowers/
 fix_*.js
 tmp_*.dart
 *.png
-*.bmp
+*.bmp.scratch/

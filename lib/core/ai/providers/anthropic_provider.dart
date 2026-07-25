@@ -43,7 +43,7 @@ class AnthropicProvider extends AIProvider {
   /// 转换消息格式（Anthropic 不支持 system 角色，需单独提取）
   List<Map<String, dynamic>> _convertMessages(List<ChatMessage> messages) {
     return messages.map((m) => {
-      'role': m.role == 'system' ? 'user' : m.role,
+      'role': m.role,
       'content': m.content,
     }).toList();
   }
@@ -133,6 +133,7 @@ class AnthropicProvider extends AIProvider {
 
   @override
   Future<List<String>> listModels() async {
+    if (!isAvailable) return [];
     // Anthropic 标准 API 不提供 /v1/models 端点
     return [];
   }

@@ -42,6 +42,7 @@ class OpenAICompatibleProvider extends AIProvider {
 
   /// 获取认证头
   Map<String, String> get _authHeaders {
+    if (_config.apiKey == null) return {};
     final strategy = _config.authStrategy ?? 'bearer';
     return switch (strategy.toLowerCase()) {
       'x-api-key' => {'x-api-key': _config.apiKey!},
@@ -174,11 +175,13 @@ class OpenAICompatibleProvider extends AIProvider {
 
   @override
   Future<List<double>> embed(String text) async {
+    if (!isAvailable) return List.filled(768, 0);
     return List.filled(768, 0);
   }
 
   @override
   Future<List<String>> listModels() async {
+    if (!isAvailable) return [];
     try {
       final response = await _client
           .get(

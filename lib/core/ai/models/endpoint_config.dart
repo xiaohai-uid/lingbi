@@ -29,7 +29,7 @@ class EndpointConfig {
   /// 从 JSON 反序列化
   factory EndpointConfig.fromJson(Map<String, dynamic> json) {
     return EndpointConfig(
-      id: json['id'] as String? ?? '',
+      id: json['id'] as String? ?? (json['name'] as String? ?? ''),
       name: json['name'] as String? ?? '',
       baseUrl: json['baseUrl'] as String? ?? '',
       apiKey: json['apiKey'] as String?,
@@ -77,6 +77,7 @@ class EndpointConfig {
 
   /// 获取模型列表 URL
   String get modelsEndpoint {
+    if (protocol == Protocol.anthropic) return '';
     return '${baseUrl.replaceAll('/v1', '')}/v1/models';
   }
 
