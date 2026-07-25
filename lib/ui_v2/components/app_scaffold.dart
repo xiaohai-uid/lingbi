@@ -18,6 +18,7 @@ import '../pages/version_history_page.dart';
 import '../pages/import_export_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/skill_market_page.dart';
+import '../pages/guided_flow_page.dart';
 
 class AppScaffold extends StatefulWidget {
 
@@ -38,6 +39,9 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _aiPanelVisible = true;
   bool _hasProject = false;
   bool _showingSkillMarket = false;
+  bool _showingGuidedFlow = false;
+  String _guidedFlowProjectId = '';
+  String _guidedFlowProjectName = '';
   int _sidebarIndex = 0;
   ProjectTab _currentTab = ProjectTab.editor;
   Project? _currentProject;
@@ -226,13 +230,11 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = project;
+          // 创建项目后自动进入全屏引导
+          _showingGuidedFlow = true;
+          _guidedFlowProjectId = project.id;
+          _guidedFlowProjectName = project.name;
         });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('项目「${result['name']!}」创建成功')),
-          );
-        }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -293,6 +295,20 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
+
+    // 全屏引导模式（创建项目后）
+    if (_showingGuidedFlow) {
+      return Material(
+        color: c.bg,
+        child: GuidedFlowPage(
+          projectId: _guidedFlowProjectId,
+          projectName: _guidedFlowProjectName,
+          flowId: 'default-long',
+          onComplete: () => setState(() => _showingGuidedFlow = false),
+          onSkip: () => setState(() => _showingGuidedFlow = false),
+        ),
+      );
+    }
 
     if (!_hasProject && !_showingSkillMarket) {
       return Material(

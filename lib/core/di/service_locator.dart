@@ -6,6 +6,7 @@ import '../../services/canon_linking_service.dart';
 import '../../services/document_service.dart';
 import '../../services/export_service.dart';
 import '../../services/guided_flow_engine.dart';
+import '../../services/guided_flow_defaults.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../services/project_meta_repository.dart';
 import '../../services/project_service.dart';
@@ -146,6 +147,9 @@ class ServiceLocator {
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
       );
+      // 注册默认引导流程（通用长篇/短篇）
+      locator.guidedFlowEngine.registerDefinition(defaultLongFlowDefinition);
+      locator.guidedFlowEngine.registerDefinition(defaultShortFlowDefinition);
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()
