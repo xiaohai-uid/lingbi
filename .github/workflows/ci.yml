@@ -45,6 +45,8 @@ jobs:
 
       - name: Build Windows
         run: flutter build windows --release
+        env:
+          CMAKE_GENERATOR: Visual Studio 17 2022
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
