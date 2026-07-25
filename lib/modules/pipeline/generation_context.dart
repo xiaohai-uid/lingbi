@@ -311,6 +311,7 @@ class GenerationContext {
     this.spoilerBlacklist = const [],
     this.tokenBudget = 8000,
     this.marketContext = '',
+    this.strandConstraints = '',
   });
 
   // ─── 基础信息 ───
@@ -384,6 +385,9 @@ class GenerationContext {
 
   /// 市场情报上下文（平台趋势/读者画像/热门标签）
   final String marketContext;
+
+  /// 多线叙事配比约束（StrandWeave）
+  final String strandConstraints;
 
   /// 粗略估算总 token 数（中文约 1.5 字/token）
   int estimateTokens() {
@@ -487,6 +491,9 @@ class GenerationContext {
     if (marketContext.isNotEmpty) {
       sections['市场情报'] = marketContext;
     }
+    if (strandConstraints.isNotEmpty) {
+      sections['叙事线配比'] = strandConstraints;
+    }
 
     return sections;
   }
@@ -526,5 +533,6 @@ class GenerationContext {
         'spoiler_blacklist': spoilerBlacklist,
         'token_budget': tokenBudget,
         'market_context': marketContext,
+        'strand_constraints': strandConstraints,
       };
 }

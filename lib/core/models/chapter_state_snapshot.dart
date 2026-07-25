@@ -4,6 +4,8 @@
 /// 供后续章节生成和监督 Agent 使用。
 library;
 
+import 'strand_weave_config.dart';
+
 /// 章节状态快照
 class ChapterStateSnapshot {
   const ChapterStateSnapshot({
@@ -16,6 +18,7 @@ class ChapterStateSnapshot {
     this.newInventions = const [],
     this.keyEvents = const [],
     this.locationChanges = const [],
+    this.strandDistribution,
     this.timestamp,
   });
 
@@ -41,6 +44,10 @@ class ChapterStateSnapshot {
       locationChanges: (json['locationChanges'] as List<dynamic>?)
               ?.cast<String>() ??
           const [],
+      strandDistribution: json['strandDistribution'] != null
+          ? StrandDistribution.fromJson(
+              json['strandDistribution'] as Map<String, dynamic>)
+          : null,
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'] as String)
           : null,
@@ -74,6 +81,9 @@ class ChapterStateSnapshot {
   /// 场景/地点变化
   final List<String> locationChanges;
 
+  /// 叙事线分布（StrandWeave）
+  final StrandDistribution? strandDistribution;
+
   /// 快照时间
   final DateTime? timestamp;
 
@@ -87,6 +97,7 @@ class ChapterStateSnapshot {
         'newInventions': newInventions.map((i) => i.toJson()).toList(),
         'keyEvents': keyEvents,
         'locationChanges': locationChanges,
+        'strandDistribution': strandDistribution?.toJson(),
         'timestamp': timestamp?.toIso8601String(),
       };
 }

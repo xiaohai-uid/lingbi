@@ -76,6 +76,9 @@ abstract class ContextDataSource {
 
   /// 获取角色关系
   String getRelationships(String novelId);
+
+  /// 获取叙事线配比约束（StrandWeave）
+  String getStrandConstraints(String novelId) => '';
 }
 
 /// 章节摘要条目
@@ -141,6 +144,7 @@ class ContextAssembler {
     String emotionArc = '',
     List<String> spoilerBlacklist = const [],
     String marketContext = '',
+    String strandConstraints = '',
   }) {
     // 1. 创作罗盘（永不截断）
     final compass = _compassStore.loadOrCreate();
@@ -179,6 +183,11 @@ class ContextAssembler {
     final ledger = _dataSource.getLedger(novelId);
     final relationships = _dataSource.getRelationships(novelId);
 
+    // StrandWeave 叙事线配比约束
+    final effectiveStrandConstraints = strandConstraints.isNotEmpty
+        ? strandConstraints
+        : _dataSource.getStrandConstraints(novelId);
+
     // 3. 组装
     var context = GenerationContext(
       novelId: novelId,
@@ -203,6 +212,7 @@ class ContextAssembler {
       spoilerBlacklist: spoilerBlacklist,
       tokenBudget: _config.tokenBudget,
       marketContext: marketContext,
+      strandConstraints: effectiveStrandConstraints,
     );
 
     // 4. Token 预算裁剪
@@ -274,6 +284,7 @@ class ContextAssembler {
         userInstruction: result.userInstruction,
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
+        strandConstraints: result.strandConstraints,
       );
     }
 
@@ -301,6 +312,7 @@ class ContextAssembler {
         userInstruction: result.userInstruction,
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
+        strandConstraints: result.strandConstraints,
       );
     }
 
@@ -333,6 +345,7 @@ class ContextAssembler {
         userInstruction: result.userInstruction,
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
+        strandConstraints: result.strandConstraints,
       );
     }
 
@@ -362,6 +375,7 @@ class ContextAssembler {
         userInstruction: result.userInstruction,
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
+        strandConstraints: result.strandConstraints,
       );
     }
 
@@ -406,4 +420,7 @@ class EmptyDataSource implements ContextDataSource {
 
   @override
   String getRelationships(String novelId) => '';
+
+  @override
+  String getStrandConstraints(String novelId) => '';
 }

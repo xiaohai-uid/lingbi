@@ -291,4 +291,7 @@ class ProjectDataSource implements ContextDataSource {
     }
     return rels;
   }
+
+  @override
+  String getStrandConstraints(String novelId) => '';
 }
