@@ -135,7 +135,6 @@ class EndpointConfig {
         id,
         name,
         baseUrl,
-        apiKey,
         protocol,
         modelId,
         authStrategy,
