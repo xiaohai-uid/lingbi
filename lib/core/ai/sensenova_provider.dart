@@ -88,24 +88,40 @@ class SenseNovaProvider extends AIProvider {
 
       final stream = response.stream.transform(utf8.decoder);
 
+      bool isReasoning = false;
       await for (final chunk in stream) {
         final lines = chunk.split('\n');
         for (final line in lines) {
           if (line.startsWith('data: ')) {
             final data = line.substring(6).trim();
-            if (data == '[DONE]') return;
+            if (data == '[DONE]') {
+              if (isReasoning) yield '</think>';
+              return;
+            }
             try {
               final json = jsonDecode(data);
               final delta = json['choices']?[0]?['delta'];
-              // 推理模型可能将输出放在 reasoning 字段
-              final content = delta?['content'] ?? delta?['reasoning'];
-              if (content != null && content.isNotEmpty) {
+              final reasoning = delta?['reasoning'] ?? '';
+              final content = delta?['content'] ?? '';
+
+              if (reasoning != null && reasoning.isNotEmpty) {
+                if (!isReasoning) {
+                  isReasoning = true;
+                  yield '<think>';
+                }
+                yield reasoning;
+              } else if (content != null && content.isNotEmpty) {
+                if (isReasoning) {
+                  isReasoning = false;
+                  yield '</think>';
+                }
                 yield content;
               }
             } catch (_) {}
           }
         }
       }
+      if (isReasoning) yield '</think>';
     } catch (e) {
       yield _friendlyError(e);
     }
@@ -143,9 +159,12 @@ class SenseNovaProvider extends AIProvider {
         if (response.statusCode == 200) {
           final json = jsonDecode(response.body);
           final message = json['choices']?[0]?['message'];
-          // 推理模型可能将输出放在 reasoning 字段
-          final content = message?['content'] ?? message?['reasoning'] ?? '';
-          return content;
+          final reasoning = message?['reasoning'] ?? '';
+          final content = message?['content'] ?? '';
+          if (reasoning != null && reasoning.isNotEmpty) {
+            return '<think>$reasoning</think>${content ?? ''}';
+          }
+          return content ?? '';
         } else {
           return _friendlyError(
             Exception('HTTP ${response.statusCode}'),
@@ -163,6 +182,29 @@ class SenseNovaProvider extends AIProvider {
       }
     }
     return '请求失败，请重试';
+  }
+
+  @override
+  Future<List<String>> listModels() async {
+    if (!isAvailable) return [];
+    try {
+      final modelsUrl = _baseUrl.replaceAll('/chat/completions', '/models');
+      final response = await _client.get(
+        Uri.parse(modelsUrl),
+        headers: {'Authorization': 'Bearer $_apiKey'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final json = jsonDecode(response.body);
+      final data = json['data'] as List<dynamic>?;
+      if (data == null) return [];
+      return data
+          .map((item) => item['id'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   @override

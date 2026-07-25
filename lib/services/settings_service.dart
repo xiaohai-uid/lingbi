@@ -1,4 +1,7 @@
 import 'package:lingbi/services/interfaces/i_settings_service.dart';
+import 'package:lingbi/services/sync/webdav_service.dart';
+import 'package:lingbi/services/sync/sync_manager.dart';
+import 'package:lingbi/services/subscription_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
@@ -205,8 +208,34 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   /// 首次启动引导状态
   OnboardingState _onboardingState = const OnboardingState.initial();
 
+  /// WebDAV 同步配置
+  WebDavConfig _webDavConfig = const WebDavConfig(
+    serverUrl: '',
+    username: '',
+    password: '',
+    enabled: false,
+  );
+
+  /// 匿名数据贡献配置
+  AnalyticsConsent _analyticsConsent = AnalyticsConsent();
+
+  /// 订阅状态（从 LicenseService 恢复，或从 settings.json 快速读取）
+  SubscriptionState _subscriptionState = const SubscriptionState();
+
   /// 获取当前引导状态
   OnboardingState get onboardingState => _onboardingState;
+
+  /// 获取 WebDAV 配置
+  WebDavConfig get webDavConfig => _webDavConfig;
+
+  /// 获取匿名数据贡献配置
+  AnalyticsConsent get analyticsConsent => _analyticsConsent;
+
+  /// 获取订阅状态
+  SubscriptionState get subscriptionState => _subscriptionState;
+
+  /// 是否为 Pro 用户（活跃）
+  bool get isPro => _subscriptionState.isPro && _subscriptionState.isActive;
 
   /// 当前是否使用会话临时 Key（安全存储不可用）
   bool get isUsingSessionOnlyKeys => _sessionOnlyKeys.isNotEmpty;
@@ -359,6 +388,30 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     _save();
   }
 
+  /// 设置 WebDAV 配置
+  void setWebDavConfig(WebDavConfig config) {
+    _webDavConfig = config;
+    notifyListeners();
+    _save();
+  }
+
+  /// 设置匿名数据贡献开关
+  void setAnalyticsConsent(bool enabled) {
+    _analyticsConsent = AnalyticsConsent(
+      enabled: enabled,
+      anonymousId: _analyticsConsent.anonymousId,
+    );
+    notifyListeners();
+    _save();
+  }
+
+  /// 更新订阅状态（由 ServiceLocator 在激活/取消时调用）
+  void updateSubscriptionState(SubscriptionState state) {
+    _subscriptionState = state;
+    notifyListeners();
+    _save();
+  }
+
   /// 更新引导步骤（中途退出恢复）
   void updateOnboardingStep(int step) {
     _onboardingState = _onboardingState.copyWith(lastStep: step);
@@ -463,6 +516,21 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
             _onboardingState = OnboardingState.fromJson(
                 json['onboarding'] as Map<String, dynamic>);
           }
+          // 加载 WebDAV 配置
+          if (json['webdav'] is Map<String, dynamic>) {
+            _webDavConfig = WebDavConfig.fromJson(
+                json['webdav'] as Map<String, dynamic>);
+          }
+          // 加载匿名数据贡献配置
+          if (json['analyticsConsent'] is Map<String, dynamic>) {
+            _analyticsConsent = AnalyticsConsent.fromJson(
+                json['analyticsConsent'] as Map<String, dynamic>);
+          }
+          // 加载订阅状态
+          if (json['subscription'] is Map<String, dynamic>) {
+            _subscriptionState = SubscriptionState.fromJson(
+                json['subscription'] as Map<String, dynamic>);
+          }
         } catch (_) {}
       }
     }
@@ -538,6 +606,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         'selectedProvider': _selectedProvider,
         'selectedModelIds': _selectedModelIds,
         'onboarding': _onboardingState.toJson(),
+        'webdav': _webDavConfig.toJson(),
+        'analyticsConsent': _analyticsConsent.toJson(),
+        'subscription': _subscriptionState.toJson(),
         'customEndpoints': _customEndpoints
             .map((e) => CustomEndpointConfig(
                   id: e.id,

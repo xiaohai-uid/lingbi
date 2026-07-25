@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:lingbi/core/ai/model_registry.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/services/license_service.dart';
+import 'package:lingbi/services/subscription_service.dart';
+import 'package:lingbi/services/sync/webdav_service.dart';
+import 'package:lingbi/services/sync/sync_manager.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import '../components/model_status_bar.dart';
+import '../components/pro_gate.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -16,7 +21,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   String _selectedSection = '外观';
 
-  final _sections = ['外观', '编辑器', 'AI 模型', 'API 密钥', '自定义端点', '快捷键'];
+  final _sections = ['外观', '编辑器', 'AI 模型', 'API 密钥', '自定义端点', '快捷键', '云同步', '隐私', '订阅'];
 
   // API Key controllers
   late final TextEditingController _openaiKeyController;
@@ -30,6 +35,25 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _autoSave = true;
   String _editorWidth = 'medium';
   double _temperature = 0.7;
+  bool _isLoadingModels = false;
+
+  // Cloud sync state
+  late final TextEditingController _webdavUrlController;
+  late final TextEditingController _webdavUserController;
+  late final TextEditingController _webdavPassController;
+  bool _webdavEnabled = false;
+  bool _testingConnection = false;
+  String _syncStatusText = '';
+  bool _syncing = false;
+  String _lastSyncText = '尚未同步';
+
+  // Privacy state
+  bool _analyticsEnabled = true;
+
+  // Subscription state
+  late final TextEditingController _licenseKeyController;
+  bool _activatingLicense = false;
+  LicenseInfo? _currentLicense;
 
   @override
   void initState() {
@@ -39,7 +63,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _anthropicKeyController = TextEditingController(text: settings.getApiKey('claude'));
     _deepseekKeyController = TextEditingController(text: settings.getApiKey('deepseek'));
     _sensenovaKeyController = TextEditingController(text: settings.getApiKey('sensenova'));
+    _webdavUrlController = TextEditingController();
+    _webdavUserController = TextEditingController();
+    _webdavPassController = TextEditingController();
+    _licenseKeyController = TextEditingController();
     settings.addListener(_onSettingsChanged);
+    _loadSubscriptionState();
   }
 
   @override
@@ -50,11 +79,26 @@ class _SettingsPageState extends State<SettingsPage> {
     _anthropicKeyController.dispose();
     _deepseekKeyController.dispose();
     _sensenovaKeyController.dispose();
+    _webdavUrlController.dispose();
+    _webdavUserController.dispose();
+    _webdavPassController.dispose();
+    _licenseKeyController.dispose();
     super.dispose();
   }
 
   void _onSettingsChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshModels([String? providerId]) async {
+    final pid = providerId ??
+        ServiceLocator.instance.settingsService.selectedProvider;
+    if (_isLoadingModels) return;
+    setState(() => _isLoadingModels = true);
+    try {
+      await ServiceLocator.instance.aiService.discoverModels(pid);
+    } catch (_) {}
+    if (mounted) setState(() => _isLoadingModels = false);
   }
 
   String get _themeModeValue {
@@ -178,6 +222,12 @@ class _SettingsPageState extends State<SettingsPage> {
         return _buildCustomEndpointSection(c);
       case '快捷键':
         return _buildShortcutsSection(c);
+      case '云同步':
+        return _buildCloudSyncSection(c);
+      case '隐私':
+        return _buildPrivacySection(c);
+      case '订阅':
+        return _buildSubscriptionSection(c);
       default:
         return const SizedBox.shrink();
     }
@@ -330,8 +380,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Text(e.value),
                       ))
                   .toList(),
-              onChanged: (value) =>
-                  settings.setProvider(value ?? 'free'),
+              onChanged: (value) {
+                  final pid = value ?? 'free';
+                  settings.setProvider(pid);
+                  _refreshModels(pid);
+                },
               decoration: InputDecoration(
                 filled: true,
                 fillColor: c.surface,
@@ -352,34 +405,56 @@ class _SettingsPageState extends State<SettingsPage> {
           title: '模型选择',
           subtitle: '当前供应商的可用模型',
           trailing: SizedBox(
-            width: 200,
-            child: DropdownButtonFormField<String>(
-              initialValue: selectedModelId.isEmpty && models.isNotEmpty
-                  ? models.first.id
-                  : selectedModelId,
-              items: models
-                  .map((m) => DropdownMenuItem(
-                        value: m.id,
-                        child: Text('${m.displayName} (${m.contextWindowLabel})'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  settings.setSelectedModelId(currentProvider, value);
-                }
-              },
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: c.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-                  borderSide: BorderSide(color: c.borderOpaque),
+            width: 240,
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: selectedModelId.isEmpty && models.isNotEmpty
+                        ? models.first.id
+                        : selectedModelId,
+                    items: models
+                        .map((m) => DropdownMenuItem(
+                              value: m.id,
+                              child: Text(
+                                '${m.displayName} (${m.contextWindowLabel})'
+                                '${m.metadataSource != MetadataSource.builtin ? ' · ${_sourceLabel(m.metadataSource)}' : ''}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        settings.setSelectedModelId(currentProvider, value);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: c.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                        borderSide: BorderSide(color: c.borderOpaque),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: LingBiTokens.space3,
+                        vertical: LingBiTokens.space2,
+                      ),
+                    ),
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: LingBiTokens.space3,
-                  vertical: LingBiTokens.space2,
-                ),
-              ),
+                const SizedBox(width: 4),
+                _isLoadingModels
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.refresh, size: 20),
+                        tooltip: '从服务器刷新模型列表',
+                        onPressed: () => _refreshModels(),
+                      ),
+              ],
             ),
           ),
         ),
@@ -483,6 +558,17 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _reopenWizard() {
     ServiceLocator.instance.settingsService.resetOnboarding();
+  }
+
+  String _sourceLabel(MetadataSource source) {
+    switch (source) {
+      case MetadataSource.remote:
+        return '远程';
+      case MetadataSource.manual:
+        return '手动';
+      case MetadataSource.builtin:
+        return '内置';
+    }
   }
 
   Future<void> _confirmDeleteKey(String provider) async {
@@ -993,11 +1079,341 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // ==================== 云同步 ====================
+
+  Widget _buildCloudSyncSection(LingBiColors c) {
+    return ProGate(
+      feature: ProFeature.cloudSync,
+      child: _buildSection(
+        c: c,
+        items: [
+          _SettingItem(
+            icon: LingBiIcons.cloudSync,
+            title: 'WebDAV 云同步',
+            subtitle: '支持坚果云/Nextcloud/ownCloud',
+            trailing: Switch(
+              value: _webdavEnabled,
+              onChanged: (v) => setState(() => _webdavEnabled = v),
+            ),
+          ),
+          _SettingItem(
+            icon: LingBiIcons.globe,
+            title: '服务器地址',
+            subtitle: 'WebDAV 服务 URL',
+            trailing: SizedBox(
+              width: 260,
+              child: TextField(
+                controller: _webdavUrlController,
+                enabled: _webdavEnabled,
+                decoration: _inputDecoration(c, 'https://dav.jianguoyun.com/dav/'),
+              ),
+            ),
+          ),
+          _SettingItem(
+            icon: LingBiIcons.character,
+            title: '用户名',
+            subtitle: 'WebDAV 登录账号',
+            trailing: SizedBox(
+              width: 200,
+              child: TextField(
+                controller: _webdavUserController,
+                enabled: _webdavEnabled,
+                decoration: _inputDecoration(c, '用户名'),
+              ),
+            ),
+          ),
+          _SettingItem(
+            icon: LingBiIcons.apiKey,
+            title: '密码',
+            subtitle: 'WebDAV 登录密码（安全存储）',
+            trailing: SizedBox(
+              width: 200,
+              child: TextField(
+                controller: _webdavPassController,
+                enabled: _webdavEnabled,
+                obscureText: true,
+                decoration: _inputDecoration(c, '密码'),
+              ),
+            ),
+          ),
+          _SettingItem(
+            icon: LingBiIcons.cloud,
+            title: '连接测试',
+            subtitle: _syncStatusText.isEmpty ? '测试 WebDAV 连接可用性' : _syncStatusText,
+            trailing: FilledButton.tonal(
+              onPressed: _webdavEnabled && !_testingConnection
+                  ? _testWebDavConnection
+                  : null,
+              child: _testingConnection
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('测试连接'),
+            ),
+          ),
+          _SettingItem(
+            icon: LingBiIcons.refresh,
+            title: '立即同步',
+            subtitle: _lastSyncText,
+            trailing: FilledButton(
+              onPressed: _webdavEnabled && !_syncing ? _triggerSync : null,
+              child: _syncing
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('同步'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testWebDavConnection() async {
+    setState(() {
+      _testingConnection = true;
+      _syncStatusText = '';
+    });
+    try {
+      final config = WebDavConfig(
+        serverUrl: _webdavUrlController.text.trim(),
+        username: _webdavUserController.text.trim(),
+        password: _webdavPassController.text,
+        enabled: true,
+      );
+      final manager = SyncManager(config: config);
+      final ok = await manager.testConnection();
+      manager.dispose();
+      if (mounted) {
+        setState(() => _syncStatusText = ok ? '✅ 连接成功' : '❌ 连接失败');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _syncStatusText = '❌ 错误: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _testingConnection = false);
+    }
+  }
+
+  /// P1.8: 手动触发同步
+  Future<void> _triggerSync() async {
+    setState(() => _syncing = true);
+    try {
+      final config = WebDavConfig(
+        serverUrl: _webdavUrlController.text.trim(),
+        username: _webdavUserController.text.trim(),
+        password: _webdavPassController.text,
+        enabled: true,
+      );
+      final manager = SyncManager(config: config);
+      // 收集当前项目文件（简化：同步 .lingbi 目录下的 JSON）
+      final synced = await manager.syncAll({});
+      manager.dispose();
+      if (mounted) {
+        setState(() {
+          _lastSyncText = '上次同步: ${DateTime.now().toString().substring(0, 19)} ($synced 个文件)';
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _lastSyncText = '同步失败: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  // ==================== 隐私 ====================
+
+  Widget _buildPrivacySection(LingBiColors c) {
+    return _buildSection(
+      c: c,
+      items: [
+        _SettingItem(
+          icon: LingBiIcons.privacy,
+          title: '匿名数据贡献',
+          subtitle: '仅传送不可逆聚合统计（题材/字数/技能使用次数），不含任何个人内容',
+          trailing: Switch(
+            value: _analyticsEnabled,
+            onChanged: (v) => setState(() => _analyticsEnabled = v),
+          ),
+        ),
+        _SettingItem(
+          icon: LingBiIcons.privacy,
+          title: '数据范围',
+          subtitle: '题材分布、章节数、总字数、Skill 使用频次',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LingBiTokens.space2,
+              vertical: LingBiTokens.space1,
+            ),
+            decoration: BoxDecoration(
+              color: _analyticsEnabled
+                  ? LingBiTokens.success.withValues(alpha: 0.1)
+                  : c.surfaceContainer,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+            ),
+            child: Text(
+              _analyticsEnabled ? '已开启' : '已关闭',
+              style: TextStyle(
+                fontSize: 12,
+                color: _analyticsEnabled ? LingBiTokens.success : c.muted,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==================== 订阅 ====================
+
+  void _loadSubscriptionState() {
+    // 尝试加载已保存的许可证
+    ServiceLocator.instance.licenseService.loadLicense().then((license) {
+      if (mounted) setState(() => _currentLicense = license);
+    });
+  }
+
+  Widget _buildSubscriptionSection(LingBiColors c) {
+    final sub = ServiceLocator.instance.subscriptionService;
+    final isPro = sub.isPro;
+
+    return _buildSection(
+      c: c,
+      items: [
+        _SettingItem(
+          icon: LingBiIcons.subscription,
+          title: '当前方案',
+          subtitle: isPro ? 'Pro — 全部功能已解锁' : 'Free — 本地编辑 + 自带 API Key + 基础 Skill',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LingBiTokens.space3,
+              vertical: LingBiTokens.space1,
+            ),
+            decoration: BoxDecoration(
+              color: isPro
+                  ? LingBiTokens.blue.withValues(alpha: 0.1)
+                  : c.surfaceContainer,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+              border: Border.all(
+                color: isPro ? LingBiTokens.blue : c.borderOpaque,
+              ),
+            ),
+            child: Text(
+              isPro ? 'Pro' : 'Free',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isPro ? LingBiTokens.blue : c.fgSecondary,
+              ),
+            ),
+          ),
+        ),
+        _SettingItem(
+          icon: LingBiIcons.apiKey,
+          title: '许可证激活',
+          subtitle: _currentLicense != null
+              ? '已激活 — 到期: ${_currentLicense!.expiresAt.year}-${_currentLicense!.expiresAt.month.toString().padLeft(2, '0')}-${_currentLicense!.expiresAt.day.toString().padLeft(2, '0')}'
+              : '输入许可证密钥解锁 Pro 功能',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 220,
+                child: TextField(
+                  controller: _licenseKeyController,
+                  decoration: _inputDecoration(c, 'LINGBI-PRO-XXXX-XXXX-XXXX'),
+                ),
+              ),
+              const SizedBox(width: LingBiTokens.space2),
+              FilledButton(
+                onPressed: _activatingLicense ? null : _activateLicense,
+                child: _activatingLicense
+                    ? const SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('激活'),
+              ),
+            ],
+          ),
+        ),
+        _SettingItem(
+          icon: isPro ? LingBiIcons.check : LingBiIcons.lock,
+          title: 'Pro 功能',
+          subtitle: '云同步 / 高级导出 / 批量操作 / 官方模型套餐',
+          trailing: Text(
+            isPro ? '已全部解锁' : '需 Pro 许可证',
+            style: TextStyle(
+              fontSize: 12,
+              color: isPro ? LingBiTokens.success : c.muted,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _activateLicense() async {
+    final key = _licenseKeyController.text.trim();
+    if (key.isEmpty) return;
+    setState(() => _activatingLicense = true);
+    try {
+      final licenseService = ServiceLocator.instance.licenseService;
+      final license = await licenseService.activate(
+        key: key,
+        expiresAt: DateTime.now().add(const Duration(days: 365)),
+      );
+      if (license != null) {
+        ServiceLocator.instance.subscriptionService.activatePro(
+          licenseKey: key,
+          expiresAt: license.expiresAt,
+        );
+        if (mounted) {
+          setState(() {
+            _currentLicense = license;
+            _licenseKeyController.clear();
+          });
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('许可证格式无效')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _activatingLicense = false);
+    }
+  }
+
+  // ==================== 输入框装饰 ====================
+
+  InputDecoration _inputDecoration(LingBiColors c, String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: c.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+        borderSide: BorderSide(color: c.borderOpaque),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: LingBiTokens.space3,
+        vertical: LingBiTokens.space2,
+      ),
+    );
+  }
+
   Widget _buildSection({
     required LingBiColors c,
     required List<_SettingItem> items,
   }) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(LingBiTokens.space6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

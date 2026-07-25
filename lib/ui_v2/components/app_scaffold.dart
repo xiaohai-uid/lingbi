@@ -108,46 +108,99 @@ class _AppScaffoldState extends State<AppScaffold> {
   Future<void> _createProject() async {
     final nameController = TextEditingController();
     final descController = TextEditingController();
+    String selectedPlatform = '';
+    String selectedGenre = '';
+    final audienceController = TextEditingController();
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('新建项目'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: '项目名称',
-                hintText: '例如：我的小说',
-              ),
-              autofocus: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('新建项目'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '项目名称',
+                    hintText: '例如：我的小说',
+                  ),
+                  autofocus: true,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: descController,
+                  decoration: const InputDecoration(labelText: '项目描述（可选）'),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedPlatform.isEmpty ? null : selectedPlatform,
+                        decoration: const InputDecoration(labelText: '目标平台'),
+                        items: const [
+                          DropdownMenuItem(value: '起点', child: Text('起点')),
+                          DropdownMenuItem(value: '番茄', child: Text('番茄')),
+                          DropdownMenuItem(value: '七猫', child: Text('七猫')),
+                          DropdownMenuItem(value: '其他', child: Text('其他')),
+                        ],
+                        onChanged: (v) => setDialogState(() => selectedPlatform = v ?? ''),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedGenre.isEmpty ? null : selectedGenre,
+                        decoration: const InputDecoration(labelText: '题材'),
+                        items: const [
+                          DropdownMenuItem(value: '玄幻', child: Text('玄幻')),
+                          DropdownMenuItem(value: '都市', child: Text('都市')),
+                          DropdownMenuItem(value: '悬疑', child: Text('悬疑')),
+                          DropdownMenuItem(value: '言情', child: Text('言情')),
+                          DropdownMenuItem(value: '科幻', child: Text('科幻')),
+                          DropdownMenuItem(value: '历史', child: Text('历史')),
+                        ],
+                        onChanged: (v) => setDialogState(() => selectedGenre = v ?? ''),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: audienceController,
+                  decoration: const InputDecoration(
+                    labelText: '读者画像（可选）',
+                    hintText: '例如：18-25岁男性、喜欢爽文',
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: descController,
-              decoration: const InputDecoration(labelText: '项目描述（可选）'),
-              maxLines: 2,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  Navigator.pop(ctx, {
+                    'name': nameController.text,
+                    'description': descController.text,
+                    'targetPlatform': selectedPlatform,
+                    'genre': selectedGenre,
+                    'audience': audienceController.text,
+                  });
+                }
+              },
+              child: const Text('创建'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                Navigator.pop(ctx, {
-                  'name': nameController.text,
-                  'description': descController.text,
-                });
-              }
-            },
-            child: const Text('创建'),
-          ),
-        ],
       ),
     );
 
@@ -162,6 +215,11 @@ class _AppScaffoldState extends State<AppScaffold> {
           description: result['description'] ?? '',
           directoryPath: projectDir,
         );
+
+        // 设置市场定位字段
+        project.targetPlatform = result['targetPlatform'] ?? '';
+        project.genre = result['genre'] ?? '';
+        project.audience = result['audience'] ?? '';
 
         ServiceLocator.instance.projectTabController.openProject(project);
 

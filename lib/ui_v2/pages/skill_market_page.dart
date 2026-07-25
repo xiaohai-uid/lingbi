@@ -1,30 +1,35 @@
 ﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/services/skill/distillation_service.dart';
 import 'package:lingbi/services/skill_marketplace.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 
 class SkillMarketPage extends StatefulWidget {
-  const SkillMarketPage({super.key, required this.onBack});
+  const SkillMarketPage({super.key, required this.onBack, this.projectId});
 
   final VoidCallback onBack;
+  final String? projectId;
 
   @override
   State<SkillMarketPage> createState() => _SkillMarketPageState();
 }
 
 class _SkillMarketPageState extends State<SkillMarketPage> {
-  String _selectedCategory = '\u5168\u90e8';
+  String _selectedCategory = '全部';
   String _searchQuery = '';
   Timer? _debounce;
   bool _loading = true;
   String? _error;
 
-  final _skillMarketplace = SkillMarketplace();
+  /// 使用 ServiceLocator 中的共享实例（而非自实例化）
+  late final SkillMarketplace _skillMarketplace;
   List<SkillEntry> _allSkills = [];
   List<SkillEntry> _displayedSkills = [];
   final _installingIds = <String>{};
+  bool _distilling = false;
 
   static const _categoryDisplayNames = <String, String>{
     '\u5168\u90e8': '\u5168\u90e8',
@@ -55,6 +60,10 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
   @override
   void initState() {
     super.initState();
+    // 从 ServiceLocator 获取共享实例（降级模式时回退为本地实例）
+    _skillMarketplace = ServiceLocator.instance.initSucceeded
+        ? ServiceLocator.instance.skillMarketplace
+        : SkillMarketplace();
     _init();
   }
 
@@ -66,7 +75,10 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _skillMarketplace.dispose();
+    // 只有自实例化时才 dispose（ServiceLocator 实例由其自身管理）
+    if (!ServiceLocator.instance.initSucceeded) {
+      _skillMarketplace.dispose();
+    }
     super.dispose();
   }
 
@@ -186,6 +198,117 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
     );
   }
 
+  // ==================== 蒸馏功能 ====================
+
+  Widget _buildDistillButton(LingBiColors c) {
+    return InkWell(
+      onTap: _distilling ? null : _showDistillDialog,
+      borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LingBiTokens.space3,
+          vertical: LingBiTokens.space1,
+        ),
+        decoration: BoxDecoration(
+          color: _distilling ? c.muted : c.accent,
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_distilling)
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            else
+              const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              _distilling ? '蒸馏中...' : '从我的作品蒸馏',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDistillDialog() {
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('从我的作品蒸馏 Skill'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '蒸馏将从你的正典（Canon）和写作风格中自动生成一个专属 Skill。',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Skill 名称（可选）',
+                hintText: '默认使用项目名+风格',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _startDistillation(nameCtrl.text.trim());
+            },
+            child: const Text('开始蒸馏'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _startDistillation(String customName) async {
+    if (!ServiceLocator.instance.initSucceeded) {
+      _showSnack('降级模式下无法使用蒸馏功能');
+      return;
+    }
+    setState(() => _distilling = true);
+    try {
+      final distillation = ServiceLocator.instance.distillationService;
+      final result = await distillation.distill(DistillationConfig(
+        projectId: widget.projectId!,
+        projectName: customName.isNotEmpty ? customName : '我的',
+        skillName: customName,
+      ));
+      if (!mounted) return;
+      setState(() => _distilling = false);
+      if (result.success) {
+        _showSnack('蒸馏成功！「${result.skillName}」已添加到技能列表');
+        _applyFilters();
+      } else {
+        _showSnack(result.error ?? '蒸馏失败');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _distilling = false);
+      _showSnack('蒸馏失败: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
@@ -266,8 +389,12 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
             ),
           ),
           const Spacer(),
+          // 蒸馏入口：从我的作品生成 Skill
+          if (widget.projectId != null)
+            _buildDistillButton(c),
+          const SizedBox(width: LingBiTokens.space3),
           Text(
-            '\u5df2\u5b89\u88c5 ${_countInstalled()} \u4e2a',
+            '已安装 ${_countInstalled()} 个',
             style: TextStyle(fontSize: 13, color: c.muted),
           ),
         ],

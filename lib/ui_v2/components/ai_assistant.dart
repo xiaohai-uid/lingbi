@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lingbi/core/ai/ai_response_normalizer.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/services/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import 'model_status_bar.dart';
@@ -12,10 +14,26 @@ class _ChatMessage {
     required this.content,
     required this.isUser,
     this.isStreaming = false,
+    this.processContent = '',
+    this.isThinking = false,
+    this.isClarification = false,
+    this.clarifyQuestion = '',
+    this.quickOptions = const [],
+    this.originalMessage = '',
   });
   final String content;
   final bool isUser;
   final bool isStreaming;
+  final String processContent;
+  final bool isThinking;
+  /// 是否为确认卡消息（T4）
+  final bool isClarification;
+  /// 确认卡问题
+  final String clarifyQuestion;
+  /// 快速选项
+  final List<String> quickOptions;
+  /// 触发确认卡的原始消息（选择选项后拼接发送）
+  final String originalMessage;
 }
 
 class AiAssistantPanel extends StatefulWidget {
@@ -29,7 +47,7 @@ class AiAssistantPanel extends StatefulWidget {
   final String? projectId;
   final String? projectName;
 
-  /// “转为候选”回调 — 将 AI 回复转入 CandidateService，不直接修改编辑器
+  /// "转为候选"回调 — 将 AI 回复转入 CandidateService，不直接修改编辑器
   final ValueChanged<String>? onConvertToCandidate;
 
   @override
@@ -43,6 +61,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<_ChatMessage> _messages = [];
+  final ClarityCheckService _clarityCheck = ClarityCheckService();
   bool _isLoading = false;
 
   @override
@@ -87,30 +106,79 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     });
   }
 
-  Future<void> _sendMessage() async {
-    final text = _inputController.text.trim();
+  Future<void> _sendMessage([String? overrideText]) async {
+    final text = overrideText ?? _inputController.text.trim();
     if (text.isEmpty || _isLoading) return;
 
-    _inputController.clear();
+    if (overrideText == null) _inputController.clear();
+
+    // T4: 清晰度检查
+    final clarityResult = _clarityCheck.assess(text);
+    if (clarityResult.needsClarification) {
+      setState(() {
+        _messages.add(_ChatMessage(content: text, isUser: true));
+        _messages.add(_ChatMessage(
+          content: '',
+          isUser: false,
+          isClarification: true,
+          clarifyQuestion: clarityResult.question,
+          quickOptions: clarityResult.quickOptions,
+          originalMessage: text,
+        ));
+      });
+      _scrollToBottom();
+      return;
+    }
+
     setState(() {
-      _messages.add(_ChatMessage(content: text, isUser: true));
-      _messages.add(_ChatMessage(content: '', isUser: false, isStreaming: true));
+      if (overrideText == null) {
+        _messages.add(_ChatMessage(content: text, isUser: true));
+      }
+      _messages.add(_ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        isThinking: true,
+      ));
       _isLoading = true;
     });
     _scrollToBottom();
 
     final entryIndex = _messages.length - 1;
+    String processBuffer = '';
+    String answerBuffer = '';
     try {
-      await for (final chunk in _aiService.chat(message: text)) {
+      await for (final event in _aiService.normalizedChat(message: text)) {
         if (!mounted) break;
-        setState(() {
-          _messages[entryIndex] = _ChatMessage(
-            content: _messages[entryIndex].content + chunk,
-            isUser: false,
-            isStreaming: true,
-          );
-        });
-        _scrollToBottom();
+        switch (event) {
+          case NormalizerChunk(:final block):
+            if (block.type == NormalizedBlockType.process) {
+              processBuffer += block.text;
+            } else {
+              // answer 或 candidate 块 → 写入 content
+              answerBuffer += block.text;
+            }
+            setState(() {
+              _messages[entryIndex] = _ChatMessage(
+                content: answerBuffer,
+                isUser: false,
+                isStreaming: true,
+                processContent: processBuffer,
+                isThinking: block.type == NormalizedBlockType.process,
+              );
+            });
+            _scrollToBottom();
+          case NormalizerDone():
+            break;
+          case NormalizerError(:final message):
+            setState(() {
+              _messages[entryIndex] = _ChatMessage(
+                content: '错误: $message',
+                isUser: false,
+                processContent: processBuffer,
+              );
+            });
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -118,6 +186,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         _messages[entryIndex] = _ChatMessage(
           content: '错误: $e',
           isUser: false,
+          processContent: processBuffer,
         );
       });
     }
@@ -127,10 +196,32 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         _messages[entryIndex] = _ChatMessage(
           content: _messages[entryIndex].content,
           isUser: false,
+          processContent: _messages[entryIndex].processContent,
         );
         _isLoading = false;
       });
     }
+  }
+
+  /// 用户选择快速选项后将选项拼接到原始消息发送
+  void _onOptionSelected(String originalMessage, String option) {
+    // 移除确认卡
+    setState(() {
+      _messages.removeWhere((m) =>
+          m.isClarification && m.originalMessage == originalMessage);
+    });
+    // 将选项拼接到原始消息
+    final enrichedMessage = '$originalMessage（$option）';
+    _sendMessage(enrichedMessage);
+  }
+
+  /// 用户选择"直接生成"跳过确认
+  void _onSkipClarification(String originalMessage) {
+    setState(() {
+      _messages.removeWhere((m) =>
+          m.isClarification && m.originalMessage == originalMessage);
+    });
+    _sendMessage(originalMessage);
   }
 
   @override
@@ -254,17 +345,25 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                   itemCount: _messages.length,
                   itemBuilder: (context, index) {
                     final msg = _messages[index];
+                    Widget child;
+                    if (msg.isUser) {
+                      child = _buildUserMessage(c, msg.content);
+                    } else if (msg.isClarification) {
+                      child = _buildClarificationCard(c, msg);
+                    } else {
+                      child = _buildAiMessage(
+                        c,
+                        msg.content,
+                        processContent: msg.processContent,
+                        isStreaming: msg.isStreaming,
+                        isThinking: msg.isThinking,
+                      );
+                    }
                     return Padding(
                       padding: index > 0
                           ? const EdgeInsets.only(top: LingBiTokens.space3)
                           : EdgeInsets.zero,
-                      child: msg.isUser
-                          ? _buildUserMessage(c, msg.content)
-                          : _buildAiMessage(
-                              c,
-                              msg.content,
-                              isStreaming: msg.isStreaming,
-                            ),
+                      child: child,
                     );
                   },
                 ),
@@ -369,7 +468,13 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     );
   }
 
-  Widget _buildAiMessage(LingBiColors c, String text, {bool isStreaming = false}) {
+  Widget _buildAiMessage(
+    LingBiColors c,
+    String text, {
+    String processContent = '',
+    bool isStreaming = false,
+    bool isThinking = false,
+  }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -398,53 +503,62 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                text.isEmpty && isStreaming
-                    ? SizedBox(
-                        height: 20,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: c.accent.withValues(alpha: 0.6),
-                              ),
-                            ),
-                            const SizedBox(width: LingBiTokens.space2),
-                            Text(
-                              '思考中…',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: c.muted,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: c.fg,
-                            height: 1.6,
+                // 思考折叠面板
+                if (processContent.isNotEmpty)
+                  _buildProcessTile(
+                    c,
+                    processContent,
+                    isThinkingNow: isThinking && isStreaming,
+                  ),
+                // 回答内容
+                if (text.isEmpty && isStreaming)
+                  SizedBox(
+                    height: 20,
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: c.accent.withValues(alpha: 0.6),
                           ),
-                          children: [
-                            TextSpan(text: text),
-                            if (isStreaming)
-                              TextSpan(
-                                text: ' ▍',
-                                style: TextStyle(
-                                  color: c.accent.withValues(alpha: 0.7),
-                                  fontWeight: FontWeight.w300,
-                                ),
-                              ),
-                          ],
                         ),
+                        const SizedBox(width: LingBiTokens.space2),
+                        Text(
+                          isThinking ? '思考中…' : '生成中…',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: c.muted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (text.isNotEmpty)
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: c.fg,
+                        height: 1.6,
                       ),
-                // “转为候选”按钮（仅在非流式且有内容时显示）
+                      children: [
+                        TextSpan(text: text),
+                        if (isStreaming)
+                          TextSpan(
+                            text: ' ▍',
+                            style: TextStyle(
+                              color: c.accent.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w300,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                // "转为候选"按钮（仅在非流式且有内容时显示）
                 if (!isStreaming && text.isNotEmpty && widget.onConvertToCandidate != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -470,6 +584,176 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                       ),
                     ),
                   ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 思考过程折叠面板
+  Widget _buildProcessTile(
+    LingBiColors c,
+    String processContent, {
+    bool isThinkingNow = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: isThinkingNow,
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 4),
+          dense: true,
+          leading: Icon(
+            Icons.psychology_outlined,
+            size: 14,
+            color: c.muted,
+          ),
+          title: Text(
+            isThinkingNow ? '思考中…' : '💭 思考过程',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: c.muted,
+            ),
+          ),
+          trailing: Icon(
+            isThinkingNow ? Icons.expand_more : Icons.chevron_right,
+            size: 16,
+            color: c.muted,
+          ),
+          children: [
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxHeight: 120),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: c.surfaceContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: SingleChildScrollView(
+                child: Text(
+                  processContent,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: c.fgSecondary.withValues(alpha: 0.8),
+                    height: 1.5,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// T4: 确认卡（模糊请求追问）
+  Widget _buildClarificationCard(LingBiColors c, _ChatMessage msg) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: c.accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+          ),
+          child: Center(
+            child: Icon(Icons.help_outline, size: 16, color: c.accent),
+          ),
+        ),
+        const SizedBox(width: LingBiTokens.space2),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(LingBiTokens.space3),
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+              border: Border.all(
+                color: c.accent.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  msg.clarifyQuestion,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: c.fg,
+                    height: 1.4,
+                  ),
+                ),
+                if (msg.quickOptions.isNotEmpty) ...[
+                  const SizedBox(height: LingBiTokens.space2),
+                  Wrap(
+                    spacing: LingBiTokens.space2,
+                    runSpacing: LingBiTokens.space1,
+                    children: [
+                      for (final option in msg.quickOptions)
+                        InkWell(
+                          onTap: () => _onOptionSelected(
+                              msg.originalMessage, option),
+                          borderRadius: BorderRadius.circular(
+                              LingBiTokens.radiusPill),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: option == '直接生成'
+                                  ? c.accent.withValues(alpha: 0.1)
+                                  : c.surfaceContainer,
+                              borderRadius: BorderRadius.circular(
+                                  LingBiTokens.radiusPill),
+                              border: Border.all(
+                                color: option == '直接生成'
+                                    ? c.accent.withValues(alpha: 0.4)
+                                    : c.borderOpaque.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              option,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: option == '直接生成'
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: option == '直接生成'
+                                    ? c.accent
+                                    : c.fgSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: LingBiTokens.space2),
+                InkWell(
+                  onTap: () => _onSkipClarification(msg.originalMessage),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 4, vertical: 2),
+                    child: Text(
+                      '跳过，直接生成 →',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.accent,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

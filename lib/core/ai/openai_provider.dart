@@ -137,6 +137,29 @@ class OpenAIProvider extends AIProvider {
   }
 
   @override
+  Future<List<String>> listModels() async {
+    if (!isAvailable) return [];
+    try {
+      final modelsUrl = _baseUrl.replaceAll('/chat/completions', '/models');
+      final response = await _client.get(
+        Uri.parse(modelsUrl),
+        headers: {'Authorization': 'Bearer $_apiKey'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final json = jsonDecode(response.body);
+      final data = json['data'] as List<dynamic>?;
+      if (data == null) return [];
+      return data
+          .map((item) => item['id'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
   Future<List<double>> embed(String text) async {
     if (!isAvailable) {
       return List.filled(768, 0);

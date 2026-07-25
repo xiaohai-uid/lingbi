@@ -9,6 +9,15 @@
 | **CanonEntry (正典条目)** | 世界观元素：角色/地点/传说/情节节点 |
 | **StoryBeat (故事节拍)** | 故事画布中的一个情节单元 |
 | **AI Provider (AI 提供商)** | 提供 AI 能力的模型服务接口 |
+| **Skill (技能)** | 可复用的 AI 创作能力单元，分轻量（prompt）和重量（代码插件）两层 |
+| **Skill Runtime (技能运行时)** | 客户端内加载、校验、执行 Skill 的引擎 |
+| **Skill Manifest (技能清单)** | 重量 Skill 的元数据文件，声明权限、参数、触发条件 |
+| **Declarative Permission (声明式权限)** | Skill 通过 requires 字段声明对领域对象的访问范围，运行时沙箱执行 |
+| **Distillation (蒸馏)** | 从用户 Canon/写作风格自动生成轻量 Skill 的过程 |
+| **Market Intelligence (市场情报)** | 灵笔"懂市场"维度的能力：题材热度、读者偏好、竞品分析 |
+| **Flywheel (飞轮)** | 两层正循环：Skill 生态飞轮 + 知识积累飞轮 |
+| **Skill Store (技能商店)** | 客户端内浏览、搜索、安装、卸载 Skill 的界面 |
+| **Slash Command (斜杠命令)** | 编辑器中输入 "/" 触发 Skill 的交互入口 |
 
 ## 服务边界 (Service Boundaries)
 
@@ -28,3 +37,7 @@
 | **QuotaService** | AI 调用配额管理 | AI 基础设施 |
 | **VersionHistoryService** | 文档版本快照 | 文档管理 |
 | **ProjectTabController** | 多项目 Tab 管理 | UI 状态 |
+| **SkillActionService** | Skill 注册/搜索/执行 | Skill 生态 |
+| **SkillMarketplace** | Skill 浏览/安装/卸载/更新 | Skill 生态 |
+| **IntentConfirmationService** | Skill 参数充分性评估 + 确认卡 | Skill 生态 |
+| **ModelRegistry** | 模型元数据管理（能力/价格/上下文窗口） | AI 基础设施 |

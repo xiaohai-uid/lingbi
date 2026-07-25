@@ -78,19 +78,39 @@ class DeepSeekProvider extends AIProvider {
         yield _friendlyError(Exception('HTTP ${streamedResponse.statusCode}'), streamedResponse.statusCode);
         return;
       }
+      bool isReasoning = false;
       await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
         for (final line in chunk.split('\n')) {
           if (line.startsWith('data: ')) {
             final data = line.substring(6);
-            if (data == '[DONE]') return;
+            if (data == '[DONE]') {
+              if (isReasoning) yield '</think>';
+              return;
+            }
             try {
               final json = jsonDecode(data);
-              final content = json['choices']?[0]?['delta']?['content'] ?? '';
-              if (content.isNotEmpty) yield content;
+              final delta = json['choices']?[0]?['delta'];
+              final reasoning = delta?['reasoning_content'] ?? '';
+              final content = delta?['content'] ?? '';
+
+              if (reasoning.isNotEmpty) {
+                if (!isReasoning) {
+                  isReasoning = true;
+                  yield '<think>';
+                }
+                yield reasoning;
+              } else if (content.isNotEmpty) {
+                if (isReasoning) {
+                  isReasoning = false;
+                  yield '</think>';
+                }
+                yield content;
+              }
             } catch (_) {}
           }
         }
       }
+      if (isReasoning) yield '</think>';
     } catch (e) {
       yield _friendlyError(e);
     }
@@ -122,7 +142,13 @@ class DeepSeekProvider extends AIProvider {
         ).timeout(const Duration(seconds: 120));
         if (response.statusCode == 200) {
           final json = jsonDecode(response.body);
-          return json['choices']?[0]?['message']?['content'] ?? '';
+          final message = json['choices']?[0]?['message'];
+          final reasoning = message?['reasoning_content'] ?? '';
+          final content = message?['content'] ?? '';
+          if (reasoning.isNotEmpty) {
+            return '<think>$reasoning</think>$content';
+          }
+          return content;
         }
         return _friendlyError(Exception('HTTP ${response.statusCode}'), response.statusCode);
       } on TimeoutException catch (e) {
@@ -136,6 +162,29 @@ class DeepSeekProvider extends AIProvider {
       }
     }
     return '请求失败，请重试';
+  }
+
+  @override
+  Future<List<String>> listModels() async {
+    if (!isAvailable) return [];
+    try {
+      final modelsUrl = _baseUrl.replaceAll('/chat/completions', '/models');
+      final response = await _client.get(
+        Uri.parse(modelsUrl),
+        headers: {'Authorization': 'Bearer $_apiKey'},
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return [];
+      final json = jsonDecode(response.body);
+      final data = json['data'] as List<dynamic>?;
+      if (data == null) return [];
+      return data
+          .map((item) => item['id'] as String?)
+          .where((id) => id != null && id.isNotEmpty)
+          .cast<String>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   @override

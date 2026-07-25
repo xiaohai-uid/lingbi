@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/core/ai/ai_response_normalizer.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/errors/ai_error.dart';
 import 'package:lingbi/core/models/document.dart' as app;
@@ -16,6 +16,7 @@ import '../components/slash_command_menu.dart';
 import '../components/candidate_panel.dart';
 import '../components/model_status_bar.dart';
 import '../components/error_banner.dart';
+import '../../services/clarity_check_service.dart';
 
 class EditorPage extends StatefulWidget {
 
@@ -45,6 +46,8 @@ class _EditorPageState extends State<EditorPage> {
   final _titleController = TextEditingController();
   StreamSubscription? _changesSubscription;
   bool _contentLoaded = false;
+  bool _isRemovingSlash = false;
+  int _lastSlashIndex = -1;
 
   // AI 写作状态
   bool _showAiPanel = false;
@@ -57,6 +60,11 @@ class _EditorPageState extends State<EditorPage> {
   CandidateEntry? _currentCandidate;
   bool _showCandidatePanel = false;
 
+  // T4: 清晰度检查状态
+  final ClarityCheckService _clarityCheck = ClarityCheckService();
+  ClarityCheckResult? _pendingClarification;
+  String _streamingProcess = '';
+
   @override
   void initState() {
     super.initState();
@@ -68,8 +76,14 @@ class _EditorPageState extends State<EditorPage> {
 
   void _subscribeChanges() {
     _changesSubscription?.cancel();
-    _changesSubscription = _quillController.document.changes.listen((_) {
+    _changesSubscription = _quillController.document.changes.listen((change) {
       if (!_contentLoaded) return;
+
+      // 检测 "/" 输入以触发斜杠命令菜单（仅响应用户本地输入）
+      if (!_isRemovingSlash && change.source == ChangeSource.local) {
+        _detectSlashInsert(change);
+      }
+
       final text = _extractPlainText();
       if (text != _content) {
         setState(() {
@@ -80,6 +94,37 @@ class _EditorPageState extends State<EditorPage> {
         _autoSaveTimer = Timer(const Duration(seconds: 30), _save);
       }
     });
+  }
+
+  /// 检查变更 delta 中是否包含满足触发条件的 "/" 插入操作。
+  void _detectSlashInsert(DocChange change) {
+    int position = 0;
+    for (final op in change.change.toList()) {
+      if (op.isRetain) {
+        position += op.length ?? 0;
+      } else if (op.isInsert && op.data is String) {
+        final text = op.data as String;
+        final slashIdx = text.indexOf('/');
+        if (slashIdx >= 0) {
+          final absIndex = position + slashIdx;
+          final fullText = _extractPlainText();
+          final validTrigger = absIndex == 0 ||
+              (absIndex > 0 &&
+                  (fullText[absIndex - 1] == '\n' ||
+                      fullText[absIndex - 1] == ' '));
+          if (validTrigger) {
+            _lastSlashIndex = absIndex;
+            _onSlashDetected();
+            return;
+          }
+        }
+        position += text.length;
+      } else if (op.isInsert) {
+        // 嵌入式对象插入（非文本），占 1 个位置
+        position += 1;
+      }
+      // 删除操作不影响文档位置偏移
+    }
   }
 
   String _extractPlainText() {
@@ -280,6 +325,13 @@ class _EditorPageState extends State<EditorPage> {
       return;
     }
 
+    // T4: 清晰度检查
+    final clarityResult = _clarityCheck.assess(instruction);
+    if (clarityResult.needsClarification) {
+      setState(() => _pendingClarification = clarityResult);
+      return;
+    }
+
     // 先保存文档
     if (_isDirty) {
       await _save();
@@ -294,26 +346,41 @@ class _EditorPageState extends State<EditorPage> {
       _isGenerating = true;
       _aiError = null;
       _streamingText = '';
+      _streamingProcess = '';
     });
 
-    // 本阶段使用 AIService 直接生成（待 Task 5 接入完整管线）
     try {
       final aiService = ServiceLocator.instance.aiService;
       final buffer = StringBuffer();
+      final processBuffer = StringBuffer();
       final skillId = _selectedSkill?.id ?? 'smart-continuation';
-      final systemPrompt = '你是一个专业的小说写作助手。技能: $skillId。'
-          '请根据用户要求续写或改写内容，直接输出正文，不要加解释。';
+      final enrichedMessage = '技能: $skillId。\n$instruction';
 
-      await for (final chunk in aiService.currentProvider.chat(
-        messages: [
-          ChatMessage(role: 'system', content: systemPrompt),
-          ChatMessage(role: 'user', content: instruction),
-        ],
+      await for (final event in aiService.normalizedChat(
+        message: enrichedMessage,
         maxTokens: 4096,
+        treatAllAsCandidate: true,
       )) {
         if (!mounted) return;
-        buffer.write(chunk);
-        setState(() => _streamingText = buffer.toString());
+        switch (event) {
+          case NormalizerChunk(:final block):
+            if (block.type == NormalizedBlockType.process) {
+              processBuffer.write(block.text);
+              setState(() => _streamingProcess = processBuffer.toString());
+            } else {
+              // candidate / answer 块 → 正文预览
+              buffer.write(block.text);
+              setState(() => _streamingText = buffer.toString());
+            }
+          case NormalizerDone():
+            break;
+          case NormalizerError(:final message):
+            setState(() {
+              _isGenerating = false;
+              _aiError = 'AI 生成失败: $message';
+            });
+            return;
+        }
       }
 
       if (mounted) {
@@ -341,10 +408,25 @@ class _EditorPageState extends State<EditorPage> {
     }
   }
 
+  /// T4: 用户选择快速选项后继续生成
+  void _onClarificationOption(String option) {
+    final original = _instructionController.text.trim();
+    _instructionController.text = '$original（$option）';
+    setState(() => _pendingClarification = null);
+    _startGeneration();
+  }
+
+  /// T4: 用户跳过确认直接生成
+  void _onSkipClarification() {
+    setState(() => _pendingClarification = null);
+    _startGeneration();
+  }
+
   void _cancelGeneration() {
     setState(() {
       _isGenerating = false;
       _streamingText = '';
+      _streamingProcess = '';
     });
   }
 
@@ -356,6 +438,13 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   void _onSkillSelected(SkillAction skill) {
+    // 删除触发菜单的 "/" 字符
+    if (_lastSlashIndex >= 0) {
+      _isRemovingSlash = true;
+      _quillController.replaceText(_lastSlashIndex, 1, '', null);
+      _isRemovingSlash = false;
+      _lastSlashIndex = -1;
+    }
     setState(() {
       _selectedSkill = skill;
       _showSlashMenu = false;
@@ -666,8 +755,13 @@ class _EditorPageState extends State<EditorPage> {
               onDismiss: () => setState(() => _aiError = null),
             ),
           ],
+          // T4: 确认卡（模糊请求追问）
+          if (_pendingClarification != null) ...[
+            const SizedBox(height: 6),
+            _buildClarificationCard(c, _pendingClarification!),
+          ],
           // 流式输出预览
-          if (_streamingText.isNotEmpty) ...[
+          if (_streamingText.isNotEmpty || _streamingProcess.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
@@ -680,9 +774,24 @@ class _EditorPageState extends State<EditorPage> {
                     color: c.borderOpaque.withValues(alpha: 0.2)),
               ),
               child: SingleChildScrollView(
-                child: Text(
-                  _streamingText,
-                  style: TextStyle(fontSize: 13, color: c.fg, height: 1.5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_streamingProcess.isNotEmpty) ...[
+                      Text(
+                        '💭 ${_streamingProcess.length > 80 ? '${_streamingProcess.substring(0, 80)}...' : _streamingProcess}',
+                        style: TextStyle(fontSize: 11, color: c.muted, fontStyle: FontStyle.italic),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                    if (_streamingText.isNotEmpty)
+                      Text(
+                        _streamingText,
+                        style: TextStyle(fontSize: 13, color: c.fg, height: 1.5),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -737,6 +846,96 @@ class _EditorPageState extends State<EditorPage> {
             LingBiIcons.check,
             size: 12,
             color: _isDirty ? c.muted.withValues(alpha: 0.5) : LingBiTokens.success,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// T4: 编辑器 AI 写作确认卡
+  Widget _buildClarificationCard(LingBiColors c, ClarityCheckResult result) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: c.accent.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: c.accent.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.help_outline, size: 14, color: c.accent),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  result.question,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: c.fg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (result.quickOptions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final option in result.quickOptions)
+                  InkWell(
+                    onTap: () => _onClarificationOption(option),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: option == '直接生成'
+                            ? c.accent.withValues(alpha: 0.1)
+                            : c.surfaceContainer,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: option == '直接生成'
+                              ? c.accent.withValues(alpha: 0.4)
+                              : c.borderOpaque.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        option,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: option == '直接生成'
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: option == '直接生成'
+                              ? c.accent
+                              : c.fgSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: _onSkipClarification,
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+              child: Text(
+                '跳过，直接生成 →',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: c.accent,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ),
         ],
       ),

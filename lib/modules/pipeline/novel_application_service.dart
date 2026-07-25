@@ -8,9 +8,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
+import 'package:lingbi/services/market_intel_service.dart';
 
 import 'book_state.dart';
 import 'candidate_service.dart';
@@ -226,10 +228,15 @@ class NovelApplicationService {
         projectDir: _projectDir,
         dataSource: dataSource,
       );
+
+      // 加载市场情报上下文（P1.7：自动注入 marketContext）
+      final marketContext = await _loadMarketContext();
+
       final context = assembler.assemble(
         novelId: _projectId,
         chapterId: chapterId,
         userInstruction: userInstruction,
+        marketContext: marketContext,
       );
 
       // 记录源版本（文件修改时间 + 大小作为版本标识）
@@ -257,6 +264,34 @@ class NovelApplicationService {
         PipelineError.invalidState,
         '准备失败: $e',
       ));
+    }
+  }
+
+  /// 加载市场情报上下文（从本地缓存）
+  ///
+  /// 尝试读取项目的 targetPlatform/genre 对应的市场快照，
+  /// 生成摘要文本注入 AI prompt。失败时静默返回空字符串。
+  Future<String> _loadMarketContext() async {
+    try {
+      final marketService = ServiceLocator.instance.marketIntelService;
+      // 从项目配置读取平台和题材（存储在项目目录 .lingbi/project.json）
+      final projectFile = File('$_projectDir/.lingbi/project.json');
+      String platform = '';
+      String genre = '';
+      if (await projectFile.exists()) {
+        final data = jsonDecode(await projectFile.readAsString())
+            as Map<String, dynamic>;
+        platform = data['targetPlatform'] as String? ?? '';
+        genre = data['genre'] as String? ?? '';
+      }
+      if (platform.isEmpty && genre.isEmpty) return '';
+      final snapshot = await marketService.loadCache(
+        platform.isEmpty ? '起点' : platform,
+        genre.isEmpty ? '玄幻' : genre,
+      );
+      return MarketIntelService.buildContextSummary(snapshot);
+    } catch (_) {
+      return '';
     }
   }
 

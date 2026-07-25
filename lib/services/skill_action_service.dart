@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:lingbi/core/models/canon_entry.dart';
 
 /// 参数类型
 enum SkillParameterType {
@@ -132,6 +133,7 @@ class SkillResult {
     this.candidateText,
     this.error,
     this.promptForAI = '',
+    this.canonEntries = const [],
   });
 
   final bool success;
@@ -141,6 +143,9 @@ class SkillResult {
 
   /// 构建好的 AI prompt（由 AIService 执行）
   final String promptForAI;
+
+  /// 重量 Skill 通过声明式 API 返回的正典条目列表
+  final List<CanonEntry> canonEntries;
 }
 
 /// 技能动作抽象基类
@@ -245,6 +250,13 @@ class SkillActionService extends ChangeNotifier {
   void registerSkill(SkillAction skill) {
     _registeredSkills[skill.id] = skill;
     notifyListeners();
+  }
+
+  /// 注销技能（卸载时使用）
+  void unregisterSkill(String skillId) {
+    if (_registeredSkills.remove(skillId) != null) {
+      notifyListeners();
+    }
   }
 
   /// 根据 ID 获取技能

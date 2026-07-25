@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -58,6 +59,17 @@ class SkillEntry {
       };
 }
 
+/// Skill 市场事件类型
+enum SkillMarketEventType { installed, uninstalled }
+
+/// Skill 市场事件 — 安装/卸载后通知 Runtime 刷新
+class SkillMarketEvent {
+  const SkillMarketEvent({required this.type, required this.skillId});
+
+  final SkillMarketEventType type;
+  final String skillId;
+}
+
 /// Skill 市场服务 — 浏览、搜索、安装、卸载 Skill
 class SkillMarketplace {
   SkillMarketplace({
@@ -71,6 +83,13 @@ class SkillMarketplace {
   List<SkillEntry> _cache = [];
   Set<String> _installedIds = {};
   String? _installDir;
+
+  /// 安装/卸载事件流 — SkillLoader 监听此流实现实时刷新
+  final StreamController<SkillMarketEvent> _eventController =
+      StreamController<SkillMarketEvent>.broadcast();
+
+  /// 事件流（供 SkillLoader 订阅）
+  Stream<SkillMarketEvent> get events => _eventController.stream;
 
   /// 获取技能安装目录
   Future<String> getInstallDir() async {
@@ -178,6 +197,14 @@ class SkillMarketplace {
   /// 检查是否已安装
   bool isInstalled(String skillId) => _installedIds.contains(skillId);
 
+  /// 通知外部安装（蒸馏服务写入磁盘后调用，触发事件流）
+  void notifyInstalled(String skillId) {
+    _installedIds.add(skillId);
+    _eventController.add(
+      SkillMarketEvent(type: SkillMarketEventType.installed, skillId: skillId),
+    );
+  }
+
   /// 安装 Skill (下载 SKILL.md 并保存到本地)
   Future<bool> install(SkillEntry skill) async {
     try {
@@ -200,6 +227,9 @@ class SkillMarketplace {
 
       await _writeSkillFile(dir, skill.id, content);
       _installedIds.add(skill.id);
+      _eventController.add(
+        SkillMarketEvent(type: SkillMarketEventType.installed, skillId: skill.id),
+      );
       return true;
     } catch (_) {
       return false;
@@ -233,6 +263,9 @@ class SkillMarketplace {
         await skillDir.delete(recursive: true);
       }
       _installedIds.remove(skillId);
+      _eventController.add(
+        SkillMarketEvent(type: SkillMarketEventType.uninstalled, skillId: skillId),
+      );
       return true;
     } catch (_) {
       return false;
@@ -279,6 +312,7 @@ class SkillMarketplace {
   }
 
   void dispose() {
+    _eventController.close();
     _client.close();
   }
 }

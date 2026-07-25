@@ -310,6 +310,7 @@ class GenerationContext {
     this.userInstruction = '',
     this.spoilerBlacklist = const [],
     this.tokenBudget = 8000,
+    this.marketContext = '',
   });
 
   // ─── 基础信息 ───
@@ -380,6 +381,9 @@ class GenerationContext {
 
   /// Token 预算
   final int tokenBudget;
+
+  /// 市场情报上下文（平台趋势/读者画像/热门标签）
+  final String marketContext;
 
   /// 粗略估算总 token 数（中文约 1.5 字/token）
   int estimateTokens() {
@@ -480,6 +484,9 @@ class GenerationContext {
     if (spoilerBlacklist.isNotEmpty) {
       sections['禁止泄露'] = spoilerBlacklist.join('、');
     }
+    if (marketContext.isNotEmpty) {
+      sections['市场情报'] = marketContext;
+    }
 
     return sections;
   }
@@ -518,5 +525,6 @@ class GenerationContext {
         'user_instruction': userInstruction,
         'spoiler_blacklist': spoilerBlacklist,
         'token_budget': tokenBudget,
+        'market_context': marketContext,
       };
 }

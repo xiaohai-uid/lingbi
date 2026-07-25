@@ -140,6 +140,7 @@ class ContextAssembler {
     int targetWords = 6000,
     String emotionArc = '',
     List<String> spoilerBlacklist = const [],
+    String marketContext = '',
   }) {
     // 1. 创作罗盘（永不截断）
     final compass = _compassStore.loadOrCreate();
@@ -201,6 +202,7 @@ class ContextAssembler {
       userInstruction: userInstruction,
       spoilerBlacklist: spoilerBlacklist,
       tokenBudget: _config.tokenBudget,
+      marketContext: marketContext,
     );
 
     // 4. Token 预算裁剪

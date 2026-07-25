@@ -20,6 +20,7 @@ dependencies:
   web_socket_channel: ^3.0.0
   # 工具
   uuid: ^4.3.0
+  crypto: ^3.0.7
   # 导出
   pdf: ^3.11.0
   # 安全存储

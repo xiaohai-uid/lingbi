@@ -61,6 +61,9 @@ class ProjectDataSource implements ContextDataSource {
   final String _projectId;
   final String? currentDocumentId;
 
+  /// 市场情报上下文（由外部注入，如 MarketIntelService 生成的摘要）
+  String marketContext = '';
+
   /// 收集到的来源追踪信息
   final List<ContextFragment> fragments = [];
 
@@ -261,6 +264,17 @@ class ProjectDataSource implements ContextDataSource {
           .toList();
     } catch (_) {
       _chapterSummariesCache = [];
+    }
+
+    // 6. 市场情报片段（低优先级，可被裁剪）
+    if (marketContext.isNotEmpty) {
+      fragments.add(ContextFragment(
+        type: 'market_intel',
+        sourceId: 'market_intel_service',
+        content: marketContext,
+        priority: 9,
+        charBudget: 500,
+      ));
     }
   }
 

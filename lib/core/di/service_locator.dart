@@ -1,3 +1,5 @@
+import 'package:path_provider/path_provider.dart';
+
 import '../../services/ai_service.dart';
 import '../../services/canon_service.dart';
 import '../../services/canon_linking_service.dart';
@@ -9,6 +11,13 @@ import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/skill_action_service.dart';
+import '../../services/skill/skill_loader.dart';
+import '../../services/skill/distillation_service.dart';
+import '../../services/skill_marketplace.dart';
+import '../../services/market_intel_service.dart';
+import '../../services/sync/sync_manager.dart';
+import '../../services/subscription_service.dart';
+import '../../services/license_service.dart';
 import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../services/version_history_service.dart';
@@ -74,6 +83,19 @@ class ServiceLocator {
   late final VersionHistoryService versionHistoryService;
   late final ProjectTabController projectTabController;
 
+  /// ——— Skill 生态服务 ———
+  late final SkillMarketplace skillMarketplace;
+  late final SkillLoader skillLoader;
+  late final DistillationService distillationService;
+
+  /// ——— 市场情报 + 云同步 ———
+  late final MarketIntelService marketIntelService;
+  late final SyncManager syncManager;
+
+  /// ——— 收费系统 ———
+  late final SubscriptionService subscriptionService;
+  late final LicenseService licenseService;
+
   /// 初始化所有服务（按依赖拓扑升序）
   ///
   /// 如果初始化失败，[initSucceeded] 变为 false 并记录 [initError]，
@@ -114,10 +136,53 @@ class ServiceLocator {
         ..initializeBuiltinSkills();
       locator.intentConfirmationService = IntentConfirmationService();
 
+      // 层级 5.5: Skill 生态（Marketplace + Loader + Distillation）
+      locator.skillMarketplace = SkillMarketplace();
+      locator.skillLoader = SkillLoader(locator.skillActionService);
+      locator.distillationService = DistillationService(
+        canonService: locator.canonService,
+        aiService: locator.aiService,
+        documentService: locator.documentService,
+        marketplace: locator.skillMarketplace,
+      );
+      try {
+        final installDir = await _getSkillsInstallDir();
+        await locator.skillMarketplace.initialize();
+        await locator.skillLoader.loadAll(installDir);
+        // 监听安装/卸载事件，实时刷新 Runtime
+        locator.skillLoader.listenToMarketplace(locator.skillMarketplace);
+      } catch (_) {
+        // Skill 生态加载失败不影响其他服务
+      }
+
       // 层级 6: 无依赖工具服务
       locator.exportService = ExportService();
       locator.versionHistoryService = VersionHistoryService();
       locator.projectTabController = ProjectTabController();
+
+      // 层级 7: 市场情报 + 云同步
+      final cacheDir = '${(await getApplicationDocumentsDirectory()).path}/lingbi_data/market_cache';
+      locator.marketIntelService = MarketIntelService(cacheDir: cacheDir);
+      locator.syncManager = SyncManager(
+        config: locator.settingsService.webDavConfig,
+      );
+
+      // 层级 8: 收费系统（订阅 + 许可证）
+      locator.subscriptionService = SubscriptionService();
+      final licenseDir = '${(await getApplicationDocumentsDirectory()).path}/lingbi_data';
+      locator.licenseService = LicenseService(storageDir: licenseDir);
+      // 启动时恢复订阅状态
+      try {
+        final license = await locator.licenseService.loadLicense();
+        if (license != null && license.isValid) {
+          locator.subscriptionService.activatePro(
+            licenseKey: license.key,
+            expiresAt: license.expiresAt,
+          );
+        }
+      } catch (_) {
+        // 许可证加载失败不影响其他服务
+      }
 
       // 初始化需要异步初始化的服务
       await locator.storageService.initialize();
@@ -137,7 +202,17 @@ class ServiceLocator {
   Future<void> dispose() async {
     if (initSucceeded) {
       settingsService.removeListener(() {});
+      skillLoader.dispose();
+      skillMarketplace.dispose();
+      marketIntelService.dispose();
+      syncManager.dispose();
       await zvecService.close();
     }
+  }
+
+  /// 获取 Skill 安装目录（复用 SkillMarketplace 的约定路径）
+  static Future<String> _getSkillsInstallDir() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    return '${appDir.path}/lingbi_skills';
   }
 }

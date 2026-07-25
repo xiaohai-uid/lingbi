@@ -50,4 +50,11 @@ class LingBiIcons {
   static const IconData palette = Icons.palette_outlined;
   static const IconData save = Icons.save_outlined;
   static const IconData tune = Icons.tune_outlined;
+  static const IconData cloud = Icons.cloud_outlined;
+  static const IconData cloudSync = Icons.cloud_sync_outlined;
+  static const IconData privacy = Icons.shield_outlined;
+  static const IconData subscription = Icons.workspace_premium_outlined;
+  static const IconData lock = Icons.lock_outlined;
+  static const IconData market = Icons.insights_outlined;
+  static const IconData refresh = Icons.refresh_outlined;
 }
