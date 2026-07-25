@@ -1,0 +1,48 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/core/models/canon_entry.dart';
+
+void main() {
+  group('WorldConstitution', () {
+    test('creates with default values', () {
+      final wc = WorldConstitution();
+      expect(wc.hardInvariants, isEmpty);
+      expect(wc.softGuidance, isEmpty);
+    });
+
+    test('creates with values', () {
+      final wc = WorldConstitution(
+        hardInvariants: ['主角不能死'],
+        softGuidance: ['多使用对话推进剧情'],
+      );
+      expect(wc.hardInvariants, ['主角不能死']);
+      expect(wc.softGuidance, ['多使用对话推进剧情']);
+    });
+
+    test('serializes to JSON', () {
+      final wc = WorldConstitution(
+        hardInvariants: ['主角不能死', '力量体系不崩'],
+        softGuidance: ['每章至少一个冲突'],
+      );
+      final json = wc.toJson();
+      expect(json['hardInvariants'], ['主角不能死', '力量体系不崩']);
+      expect(json['softGuidance'], ['每章至少一个冲突']);
+    });
+
+    test('deserializes from JSON', () {
+      final json = {
+        'hardInvariants': ['主角不能死'],
+        'softGuidance': ['多使用对话'],
+      };
+      final wc = WorldConstitution.fromJson(json);
+      expect(wc.hardInvariants, ['主角不能死']);
+      expect(wc.softGuidance, ['多使用对话']);
+    });
+
+    test('deserializes from empty JSON', () {
+      final wc = WorldConstitution.fromJson({});
+      expect(wc.hardInvariants, isEmpty);
+      expect(wc.softGuidance, isEmpty);
+    });
+  });
+}
