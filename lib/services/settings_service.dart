@@ -515,6 +515,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       }
     }
 
+    // 7. 将自定义端点注册到 AI 服务
+    _endpoints.forEach(_aiService.addEndpoint);
     // 6. 将 API keys 应用到 AI 服务
     for (final entry in _apiKeys.entries) {
       _aiService.configureApiKey(entry.key, entry.value);
