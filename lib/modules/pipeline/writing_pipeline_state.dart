@@ -51,6 +51,25 @@ class ChapterWorkflow {
     this.updatedAt,
   });
 
+  factory ChapterWorkflow.fromJson(Map<String, dynamic> json) =>
+      ChapterWorkflow(
+        chapterId: json['chapter_id'] as String? ?? '',
+        currentStage: PipelineStage.values.firstWhere(
+          (s) => s.name == json['current_stage'],
+          orElse: () => PipelineStage.idle,
+        ),
+        stages: (json['stages'] as List? ?? [])
+            .map((s) => StageRecord.fromJson(s as Map<String, dynamic>))
+            .toList(),
+        error: json['error'] as String?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+      );
+
   final String chapterId;
   PipelineStage currentStage;
   List<StageRecord> stages;
@@ -88,25 +107,6 @@ class ChapterWorkflow {
         if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
         if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       };
-
-  factory ChapterWorkflow.fromJson(Map<String, dynamic> json) =>
-      ChapterWorkflow(
-        chapterId: json['chapter_id'] as String? ?? '',
-        currentStage: PipelineStage.values.firstWhere(
-          (s) => s.name == json['current_stage'],
-          orElse: () => PipelineStage.idle,
-        ),
-        stages: (json['stages'] as List? ?? [])
-            .map((s) => StageRecord.fromJson(s as Map<String, dynamic>))
-            .toList(),
-        error: json['error'] as String?,
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : null,
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
-      );
 }
 
 /// 阶段执行记录
@@ -118,20 +118,6 @@ class StageRecord {
     this.data = const {},
     required this.timestamp,
   });
-
-  final PipelineStage stage;
-  final StageStatus status;
-  final String message;
-  final Map<String, dynamic> data;
-  final DateTime timestamp;
-
-  Map<String, dynamic> toJson() => {
-        'stage': stage.name,
-        'status': status.name,
-        'message': message,
-        'data': data,
-        'timestamp': timestamp.toIso8601String(),
-      };
 
   factory StageRecord.fromJson(Map<String, dynamic> json) => StageRecord(
         stage: PipelineStage.values.firstWhere(
@@ -146,6 +132,20 @@ class StageRecord {
         data: (json['data'] as Map<String, dynamic>?) ?? {},
         timestamp: DateTime.parse(json['timestamp'] as String? ?? ''),
       );
+
+  final PipelineStage stage;
+  final StageStatus status;
+  final String message;
+  final Map<String, dynamic> data;
+  final DateTime timestamp;
+
+  Map<String, dynamic> toJson() => {
+        'stage': stage.name,
+        'status': status.name,
+        'message': message,
+        'data': data,
+        'timestamp': timestamp.toIso8601String(),
+      };
 }
 
 /// 阶段状态

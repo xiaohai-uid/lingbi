@@ -493,11 +493,11 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         // 模型状态栏预览
-        _SettingItem(
+        const _SettingItem(
           icon: Icons.info_outline,
           title: '模型信息',
           subtitle: '当前模型的详细元数据',
-          trailing: const ModelStatusBar(compact: true),
+          trailing: ModelStatusBar(compact: true),
         ),
         _SettingItem(
           icon: Icons.replay,
@@ -533,9 +533,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     try {
       final buffer = StringBuffer();
-      await for (final chunk in ServiceLocator.instance.aiService.testGeneration()) {
-        buffer.write(chunk);
-      }
+      await ServiceLocator.instance.aiService.testGeneration().forEach(buffer.write);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1181,7 +1179,6 @@ class _SettingsPageState extends State<SettingsPage> {
         serverUrl: _webdavUrlController.text.trim(),
         username: _webdavUserController.text.trim(),
         password: _webdavPassController.text,
-        enabled: true,
       );
       final manager = SyncManager(config: config);
       final ok = await manager.testConnection();
@@ -1206,7 +1203,6 @@ class _SettingsPageState extends State<SettingsPage> {
         serverUrl: _webdavUrlController.text.trim(),
         username: _webdavUserController.text.trim(),
         password: _webdavPassController.text,
-        enabled: true,
       );
       final manager = SyncManager(config: config);
       // 收集当前项目文件（简化：同步 .lingbi 目录下的 JSON）

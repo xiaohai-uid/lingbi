@@ -10,13 +10,13 @@ import 'package:lingbi/services/skill_action_service.dart';
 
 /// 动态 Prompt 技能 — 桥接 SkillManifest → SkillAction
 class DynamicPromptSkill extends SkillAction {
+  DynamicPromptSkill({required this.manifest, this.permissions});
+
   /// 技能清单数据
   final SkillManifest manifest;
 
   /// 权限集（可选）
   final PermissionSet? permissions;
-
-  DynamicPromptSkill({required this.manifest, this.permissions});
 
   // ==================== SkillAction getter 映射 ====================
 

@@ -391,7 +391,6 @@ class _EditorPageState extends State<EditorPage> {
             id: 'local-${DateTime.now().millisecondsSinceEpoch}',
             chapterId: widget.documentId ?? '',
             content: buffer.toString(),
-            status: CandidateStatus.pending,
             model: aiService.currentProviderName,
             createdAt: DateTime.now(),
           );
@@ -527,7 +526,6 @@ class _EditorPageState extends State<EditorPage> {
                 child: CandidatePanel(
                   candidate: _currentCandidate!,
                   processBlocks: const [],
-                  isStreaming: false,
                   onAdopt: _handleAdopt,
                   onDiscard: _handleDiscard,
                   onRegenerate: _handleRegenerate,

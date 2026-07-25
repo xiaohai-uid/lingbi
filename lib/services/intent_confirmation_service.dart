@@ -80,9 +80,7 @@ class IntentConfirmationService {
   final Map<String, Map<String, String>> _sessionMemory = {};
 
   /// 用户是否全局跳过确认
-  bool _skipAll = false;
-  bool get skipAll => _skipAll;
-  set skipAll(bool value) => _skipAll = value;
+  bool skipAll = false;
 
   /// 评估技能的参数充分性
   ///
@@ -92,7 +90,7 @@ class IntentConfirmationService {
     Map<String, String> userParams = const {},
   }) {
     // 全局跳过
-    if (_skipAll) {
+    if (skipAll) {
       return const IntentAssessment(isSufficient: true);
     }
 
@@ -134,9 +132,6 @@ class IntentConfirmationService {
       question: question,
       parameters: assessment.missingParameters,
       quickOptions: assessment.quickOptions,
-      allowFreeInput: true,
-      showDirectGenerate: true,
-      showRememberOption: true,
     );
   }
 

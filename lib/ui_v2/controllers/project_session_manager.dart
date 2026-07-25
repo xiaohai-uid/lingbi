@@ -8,7 +8,6 @@ library;
 import 'package:flutter/foundation.dart';
 
 import '../../modules/pipeline/novel_application_service.dart';
-import '../../modules/pipeline/project_scope_api.dart';
 import '../../modules/pipeline/project_session_scope.dart';
 import '../../services/ai_service.dart';
 import '../../services/canon_service.dart';

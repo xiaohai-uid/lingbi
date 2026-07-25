@@ -26,6 +26,15 @@ class LockInfo {
     required this.createdAt,
   });
 
+  factory LockInfo.fromJson(Map<String, dynamic> json) => LockInfo(
+        token: json['token'] as String? ?? '',
+        pid: json['pid'] as int? ?? 0,
+        operation: json['operation'] as String? ?? '',
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+      );
+
   final String token;
   final int pid;
   final String operation;
@@ -37,15 +46,6 @@ class LockInfo {
         'operation': operation,
         'created_at': createdAt.toIso8601String(),
       };
-
-  factory LockInfo.fromJson(Map<String, dynamic> json) => LockInfo(
-        token: json['token'] as String? ?? '',
-        pid: json['pid'] as int? ?? 0,
-        operation: json['operation'] as String? ?? '',
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : DateTime.now(),
-      );
 }
 
 /// 跨进程写作锁

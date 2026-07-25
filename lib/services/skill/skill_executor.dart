@@ -13,9 +13,9 @@ import 'package:lingbi/services/skill_action_service.dart';
 
 /// 权限违反异常
 class PermissionViolation implements Exception {
-  final String message;
-
   PermissionViolation(this.message);
+
+  final String message;
 
   @override
   String toString() => 'PermissionViolation: $message';
@@ -39,19 +39,19 @@ abstract class SkillApi {
 
 /// 受权限约束的 API 实现
 ///
-/// 每次调用前先校验 [permissions] 是否包含所需权限，
-/// 无权限则抛出 [PermissionViolation]，有权限则委托给 [delegate]。
+/// 每次调用前先校验 permissions 是否包含所需权限，
+/// 无权限则抛出 [PermissionViolation]，有权限则委托给 delegate。
 class SandboxedSkillApi implements SkillApi {
+  SandboxedSkillApi({
+    required this.permissions,
+    required SkillApi delegate,
+  }) : _delegate = delegate;
+
   /// 当前 Skill 声明的权限集
   final PermissionSet permissions;
 
   /// 真实服务代理（生产环境注入 CanonService/DocumentService 适配器）
   final SkillApi _delegate;
-
-  SandboxedSkillApi({
-    required this.permissions,
-    required SkillApi delegate,
-  }) : _delegate = delegate;
 
   void _checkPermission(SkillPermission required) {
     if (!permissions.can(required)) {

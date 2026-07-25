@@ -48,8 +48,6 @@ enum SkillPermission {
 
 /// 权限集合
 class PermissionSet {
-  final Set<SkillPermission> _permissions;
-
   PermissionSet._(this._permissions);
 
   /// 轻量 Skill 默认权限：所有 read 权限
@@ -67,6 +65,8 @@ class PermissionSet {
       values.map(SkillPermission.fromString).toSet(),
     );
   }
+
+  final Set<SkillPermission> _permissions;
 
   /// 检查是否拥有指定权限
   bool can(SkillPermission permission) => _permissions.contains(permission);

@@ -102,40 +102,33 @@ class SubscriptionService {
   /// Free 层每日 AI 调用限额
   static const int freeDailyLimit = 100;
 
-  SubscriptionState _state = const SubscriptionState();
-
   /// 当前订阅状态
-  SubscriptionState get state => _state;
+  SubscriptionState state = const SubscriptionState();
 
   /// 是否为 Pro 用户（且活跃）
-  bool get isPro => _state.isPro && _state.isActive;
+  bool get isPro => state.isPro && state.isActive;
 
   /// 每日限额（Pro 无限制返回 -1）
   int get dailyLimit => isPro ? -1 : freeDailyLimit;
 
   /// 功能门禁检查
-  bool canAccess(ProFeature feature) => _state.canAccess(feature);
+  bool canAccess(ProFeature feature) => state.canAccess(feature);
 
   /// 激活 Pro
   void activatePro({
     required String licenseKey,
     required DateTime expiresAt,
   }) {
-    _state = SubscriptionState(
+    state = SubscriptionState(
       tier: SubscriptionTier.pro,
       licenseKey: licenseKey,
       expiresAt: expiresAt,
     );
   }
 
-  /// 从持久化状态恢复
-  void restore(SubscriptionState state) {
-    _state = state;
-  }
-
   /// 降级回 Free（取消订阅/过期）
   void deactivate() {
-    _state = const SubscriptionState();
+    state = const SubscriptionState();
   }
 }
 

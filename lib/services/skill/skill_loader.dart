@@ -16,11 +16,11 @@ import 'package:lingbi/services/skill_marketplace.dart';
 /// 构建 [DynamicPromptSkill] 并注册到 [SkillActionService]。
 /// 支持监听 [SkillMarketplace.events] 实现安装/卸载后实时刷新。
 class SkillLoader {
+  SkillLoader(this._actionService);
+
   final SkillActionService _actionService;
   StreamSubscription<SkillMarketEvent>? _marketSubscription;
   String? _installDir;
-
-  SkillLoader(this._actionService);
 
   /// 开始监听 SkillMarketplace 事件（安装/卸载后自动刷新）
   void listenToMarketplace(SkillMarketplace marketplace) {

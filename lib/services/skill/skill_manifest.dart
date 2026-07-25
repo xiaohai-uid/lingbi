@@ -9,6 +9,16 @@ enum SkillType {
 
 /// Skill 清单数据类，描述一个 Skill 的元数据
 class SkillManifest {
+  const SkillManifest({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.promptTemplate,
+    this.type = SkillType.lightweight,
+    this.category,
+    this.version,
+  });
+
   /// 唯一标识符
   final String id;
 
@@ -29,16 +39,6 @@ class SkillManifest {
 
   /// 版本号（可选）
   final String? version;
-
-  const SkillManifest({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.promptTemplate,
-    this.type = SkillType.lightweight,
-    this.category,
-    this.version,
-  });
 }
 
 /// SKILL.md 内容解析器，支持 Anthropic frontmatter 和纯 Markdown 两种格式

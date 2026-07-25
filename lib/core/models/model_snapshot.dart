@@ -19,6 +19,40 @@ class ModelSnapshot {
     required this.capturedAt,
   });
 
+  /// 从 ModelInfo 创建快照
+  factory ModelSnapshot.fromModelInfo(ModelInfo info) {
+    return ModelSnapshot(
+      providerId: info.providerId,
+      modelId: info.id,
+      displayName: info.displayName,
+      contextWindow: info.contextWindow,
+      maxOutputTokens: info.maxOutputTokens,
+      pricing: info.pricing,
+      metadataSource: info.metadataSource,
+      capturedAt: DateTime.now(),
+    );
+  }
+
+  factory ModelSnapshot.fromJson(Map<String, dynamic> json) => ModelSnapshot(
+        providerId: json['provider_id'] as String? ?? '',
+        modelId: json['model_id'] as String? ?? '',
+        displayName: json['display_name'] as String? ?? '',
+        contextWindow: json['context_window'] as int?,
+        maxOutputTokens: json['max_output_tokens'] as int?,
+        pricing: ModelPricing(
+          inputPerMillion: (json['input_per_million'] as num?)?.toDouble() ?? 0,
+          outputPerMillion:
+              (json['output_per_million'] as num?)?.toDouble() ?? 0,
+        ),
+        metadataSource: MetadataSource.values.firstWhere(
+          (s) => s.name == json['metadata_source'],
+          orElse: () => MetadataSource.manual,
+        ),
+        capturedAt: json['captured_at'] != null
+            ? DateTime.parse(json['captured_at'] as String)
+            : DateTime.now(),
+      );
+
   /// 供应商 ID
   final String providerId;
 
@@ -42,20 +76,6 @@ class ModelSnapshot {
 
   /// 快照捕获时间
   final DateTime capturedAt;
-
-  /// 从 ModelInfo 创建快照
-  factory ModelSnapshot.fromModelInfo(ModelInfo info) {
-    return ModelSnapshot(
-      providerId: info.providerId,
-      modelId: info.id,
-      displayName: info.displayName,
-      contextWindow: info.contextWindow,
-      maxOutputTokens: info.maxOutputTokens,
-      pricing: info.pricing,
-      metadataSource: info.metadataSource,
-      capturedAt: DateTime.now(),
-    );
-  }
 
   /// 上下文窗口显示标签
   String get contextWindowLabel {
@@ -95,26 +115,6 @@ class ModelSnapshot {
         'metadata_source': metadataSource.name,
         'captured_at': capturedAt.toIso8601String(),
       };
-
-  factory ModelSnapshot.fromJson(Map<String, dynamic> json) => ModelSnapshot(
-        providerId: json['provider_id'] as String? ?? '',
-        modelId: json['model_id'] as String? ?? '',
-        displayName: json['display_name'] as String? ?? '',
-        contextWindow: json['context_window'] as int?,
-        maxOutputTokens: json['max_output_tokens'] as int?,
-        pricing: ModelPricing(
-          inputPerMillion: (json['input_per_million'] as num?)?.toDouble() ?? 0,
-          outputPerMillion:
-              (json['output_per_million'] as num?)?.toDouble() ?? 0,
-        ),
-        metadataSource: MetadataSource.values.firstWhere(
-          (s) => s.name == json['metadata_source'],
-          orElse: () => MetadataSource.manual,
-        ),
-        capturedAt: json['captured_at'] != null
-            ? DateTime.parse(json['captured_at'] as String)
-            : DateTime.now(),
-      );
 
   @override
   String toString() => 'ModelSnapshot($providerId/$modelId @ $capturedAt)';

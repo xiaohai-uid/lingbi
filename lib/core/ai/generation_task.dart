@@ -46,6 +46,30 @@ class GenerationTask {
     this.updatedAt,
   });
 
+  factory GenerationTask.fromJson(Map<String, dynamic> json) =>
+      GenerationTask(
+        taskId: json['task_id'] as String? ?? '',
+        projectId: json['project_id'] as String? ?? '',
+        chapterId: json['chapter_id'] as String? ?? '',
+        sourcePath: json['source_path'] as String? ?? '',
+        sourceHash: json['source_hash'] as String? ?? '',
+        skillId: json['skill_id'] as String? ?? '',
+        userInstruction: json['user_instruction'] as String? ?? '',
+        status: GenerationTaskStatus.values.firstWhere(
+          (s) => s.name == json['status'],
+          orElse: () => GenerationTaskStatus.pending,
+        ),
+        candidateId: json['candidate_id'] as String?,
+        partialContent: json['partial_content'] as String? ?? '',
+        errorMessage: json['error_message'] as String?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+      );
+
   /// 唯一任务 ID
   final String taskId;
 
@@ -153,30 +177,6 @@ class GenerationTask {
         if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       };
 
-  factory GenerationTask.fromJson(Map<String, dynamic> json) =>
-      GenerationTask(
-        taskId: json['task_id'] as String? ?? '',
-        projectId: json['project_id'] as String? ?? '',
-        chapterId: json['chapter_id'] as String? ?? '',
-        sourcePath: json['source_path'] as String? ?? '',
-        sourceHash: json['source_hash'] as String? ?? '',
-        skillId: json['skill_id'] as String? ?? '',
-        userInstruction: json['user_instruction'] as String? ?? '',
-        status: GenerationTaskStatus.values.firstWhere(
-          (s) => s.name == json['status'],
-          orElse: () => GenerationTaskStatus.pending,
-        ),
-        candidateId: json['candidate_id'] as String?,
-        partialContent: json['partial_content'] as String? ?? '',
-        errorMessage: json['error_message'] as String?,
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : null,
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
-      );
-
   /// 创建新任务（工厂方法）
   static GenerationTask create({
     required String projectId,
@@ -209,6 +209,7 @@ class GenerationTask {
     final firstChar = content.codeUnitAt(0);
     final lastChar = content.codeUnitAt(len - 1);
     final midChar = len > 10 ? content.codeUnitAt(len ~/ 2) : 0;
+    // ignore: unnecessary_brace_in_string_interps
     return '${len}_${firstChar}_${midChar}_${lastChar}';
   }
 

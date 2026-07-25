@@ -87,6 +87,20 @@ class ModelInfo {
     this.deprecated = false,
   });
 
+  factory ModelInfo.fromJson(Map<String, dynamic> json) => ModelInfo(
+        id: json['id'] as String? ?? '',
+        displayName: json['display_name'] as String? ?? json['id'] as String? ?? '',
+        providerId: json['provider_id'] as String? ?? '',
+        contextWindow: json['context_window'] as int?,
+        maxOutputTokens: json['max_output_tokens'] as int?,
+        metadataSource: MetadataSource.values.firstWhere(
+          (s) => s.name == json['metadata_source'],
+          orElse: () => MetadataSource.manual,
+        ),
+        category: json['category'] as String? ?? '',
+        recommended: json['recommended'] as bool? ?? false,
+      );
+
   /// 模型 ID（API 调用时使用）
   final String id;
 
@@ -192,20 +206,6 @@ class ModelInfo {
         'category': category,
         'recommended': recommended,
       };
-
-  factory ModelInfo.fromJson(Map<String, dynamic> json) => ModelInfo(
-        id: json['id'] as String? ?? '',
-        displayName: json['display_name'] as String? ?? json['id'] as String? ?? '',
-        providerId: json['provider_id'] as String? ?? '',
-        contextWindow: json['context_window'] as int?,
-        maxOutputTokens: json['max_output_tokens'] as int?,
-        metadataSource: MetadataSource.values.firstWhere(
-          (s) => s.name == json['metadata_source'],
-          orElse: () => MetadataSource.manual,
-        ),
-        category: json['category'] as String? ?? '',
-        recommended: json['recommended'] as bool? ?? false,
-      );
 }
 
 /// 平台模型配置（供应商级别）
@@ -255,7 +255,7 @@ class ModelRegistry {
           maxOutputTokens: 16384,
           capabilities: ModelCapabilities(
               supportsJson: true, supportsVision: true, supportsTools: true),
-          pricing: ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70.0),
+          pricing: ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70),
           category: '主力',
           recommended: true,
           description: 'OpenAI 旗舰多模态模型',
@@ -288,7 +288,7 @@ class ModelRegistry {
           maxOutputTokens: 8192,
           capabilities: ModelCapabilities(
               supportsJson: true, supportsVision: true, supportsTools: true),
-          pricing: ModelPricing(inputPerMillion: 21.0, outputPerMillion: 105.0),
+          pricing: ModelPricing(inputPerMillion: 21, outputPerMillion: 105),
           category: '主力',
           recommended: true,
           description: 'Anthropic Claude Sonnet 4',
@@ -301,7 +301,7 @@ class ModelRegistry {
           maxOutputTokens: 8192,
           capabilities: ModelCapabilities(
               supportsJson: true, supportsVision: true, supportsTools: true),
-          pricing: ModelPricing(inputPerMillion: 5.6, outputPerMillion: 28.0),
+          pricing: ModelPricing(inputPerMillion: 5.6, outputPerMillion: 28),
           category: '轻量',
           description: 'Anthropic 轻量模型',
         ),
@@ -319,7 +319,7 @@ class ModelRegistry {
           contextWindow: 65536,
           maxOutputTokens: 8192,
           capabilities: ModelCapabilities(supportsJson: true, supportsTools: true),
-          pricing: ModelPricing(inputPerMillion: 1.0, outputPerMillion: 2.0),
+          pricing: ModelPricing(inputPerMillion: 1, outputPerMillion: 2),
           category: '主力',
           recommended: true,
           description: 'DeepSeek V3 通用对话模型',
@@ -332,7 +332,7 @@ class ModelRegistry {
           maxOutputTokens: 8192,
           capabilities: ModelCapabilities(
               supportsJson: true, supportsReasoning: true, supportsTools: true),
-          pricing: ModelPricing(inputPerMillion: 4.0, outputPerMillion: 16.0),
+          pricing: ModelPricing(inputPerMillion: 4, outputPerMillion: 16),
           category: '推理',
           description: 'DeepSeek R1 推理模型',
         ),
@@ -360,7 +360,7 @@ class ModelRegistry {
           providerId: 'sensenova',
           contextWindow: 32768,
           maxOutputTokens: 4096,
-          pricing: ModelPricing(inputPerMillion: 2.0, outputPerMillion: 6.0),
+          pricing: ModelPricing(inputPerMillion: 2, outputPerMillion: 6),
           category: '主力',
           description: '商汤大语言模型，中文能力强',
         ),
@@ -430,8 +430,6 @@ class ModelRegistry {
               displayName: id,
               providerId: providerId,
               // 不从模型列表猜测价格和上下文窗口
-              contextWindow: null,
-              maxOutputTokens: null,
               metadataSource: MetadataSource.remote,
               description: '从 API 获取的模型',
             ))
@@ -462,8 +460,6 @@ class ModelRegistry {
               id: id,
               displayName: id,
               providerId: providerId,
-              contextWindow: null,
-              maxOutputTokens: null,
               metadataSource: MetadataSource.remote,
               description: '从 API 获取的模型',
             ))

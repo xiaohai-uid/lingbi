@@ -225,7 +225,7 @@ class _NovelWritingPanelState extends State<NovelWritingPanel> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       child: Row(
         children: [
           const Icon(Icons.auto_stories, size: 18),
@@ -273,7 +273,7 @@ class _NovelWritingPanelState extends State<NovelWritingPanel> {
 
   Widget _buildIdleView() {
     return Padding(
-      padding: const EdgeInsets.all(12.0),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -528,7 +528,7 @@ class _NovelWritingPanelState extends State<NovelWritingPanel> {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(8),
       child: Row(
         children: [
           Expanded(

@@ -20,18 +20,6 @@ class ErrorBanner extends StatelessWidget {
     this.onOpenSettings,
   });
 
-  /// 用户可见的错误信息
-  final UserFacingError error;
-
-  /// 重试回调
-  final VoidCallback? onRetry;
-
-  /// 关闭回调
-  final VoidCallback? onDismiss;
-
-  /// 打开设置回调
-  final VoidCallback? onOpenSettings;
-
   /// 从 AIServiceError 构建
   factory ErrorBanner.fromError(
     AIServiceError error, {
@@ -48,6 +36,18 @@ class ErrorBanner extends StatelessWidget {
       onOpenSettings: onOpenSettings,
     );
   }
+
+  /// 用户可见的错误信息
+  final UserFacingError error;
+
+  /// 重试回调
+  final VoidCallback? onRetry;
+
+  /// 关闭回调
+  final VoidCallback? onDismiss;
+
+  /// 打开设置回调
+  final VoidCallback? onOpenSettings;
 
   @override
   Widget build(BuildContext context) {

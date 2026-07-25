@@ -43,6 +43,24 @@ class BookState {
     this.lastUpdated,
   });
 
+  factory BookState.fromJson(Map<String, dynamic> json) => BookState(
+        novelId: json['novel_id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
+        currentChapter: json['current_chapter'] as String? ?? '',
+        currentArc: json['current_arc'] as String? ?? 'arc_001',
+        stage: BookStage.values.firstWhere(
+          (s) => s.name == json['stage'],
+          orElse: () => BookStage.planning,
+        ),
+        blockingReason: json['blocking_reason'] as String? ?? '',
+        lastAgentAction: json['last_agent_action'] as String? ?? '',
+        totalChapters: json['total_chapters'] as int? ?? 0,
+        totalWords: json['total_words'] as int? ?? 0,
+        lastUpdated: json['last_updated'] != null
+            ? DateTime.parse(json['last_updated'] as String)
+            : null,
+      );
+
   String novelId;
   String title;
   String currentChapter;
@@ -67,24 +85,6 @@ class BookState {
         if (lastUpdated != null)
           'last_updated': lastUpdated!.toIso8601String(),
       };
-
-  factory BookState.fromJson(Map<String, dynamic> json) => BookState(
-        novelId: json['novel_id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        currentChapter: json['current_chapter'] as String? ?? '',
-        currentArc: json['current_arc'] as String? ?? 'arc_001',
-        stage: BookStage.values.firstWhere(
-          (s) => s.name == json['stage'],
-          orElse: () => BookStage.planning,
-        ),
-        blockingReason: json['blocking_reason'] as String? ?? '',
-        lastAgentAction: json['last_agent_action'] as String? ?? '',
-        totalChapters: json['total_chapters'] as int? ?? 0,
-        totalWords: json['total_words'] as int? ?? 0,
-        lastUpdated: json['last_updated'] != null
-            ? DateTime.parse(json['last_updated'] as String)
-            : null,
-      );
 }
 
 /// 书籍状态存储服务

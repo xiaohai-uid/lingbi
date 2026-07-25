@@ -140,7 +140,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedPlatform.isEmpty ? null : selectedPlatform,
+                        initialValue: selectedPlatform.isEmpty ? null : selectedPlatform,
                         decoration: const InputDecoration(labelText: '目标平台'),
                         items: const [
                           DropdownMenuItem(value: '起点', child: Text('起点')),
@@ -154,7 +154,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: selectedGenre.isEmpty ? null : selectedGenre,
+                        initialValue: selectedGenre.isEmpty ? null : selectedGenre,
                         decoration: const InputDecoration(labelText: '题材'),
                         items: const [
                           DropdownMenuItem(value: '玄幻', child: Text('玄幻')),

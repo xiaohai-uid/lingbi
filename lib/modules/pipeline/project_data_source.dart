@@ -89,14 +89,14 @@ class ProjectDataSource implements ContextDataSource {
     return _outlineCache;
   }
 
-  List<String> _outlineCache = [];
+  final List<String> _outlineCache = [];
 
   @override
   String getCurrentChapterSummary(String chapterId) {
     return _currentChapterSummaryCache;
   }
 
-  String _currentChapterSummaryCache = '';
+  final String _currentChapterSummaryCache = '';
 
   @override
   List<CharacterCard> getActiveCharacters(String chapterId) {
@@ -116,7 +116,7 @@ class ProjectDataSource implements ContextDataSource {
     return _styleCache;
   }
 
-  String _styleCache = '';
+  final String _styleCache = '';
 
   @override
   WorldRules getWorldRules(String novelId) {

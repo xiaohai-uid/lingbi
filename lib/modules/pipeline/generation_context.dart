@@ -12,6 +12,19 @@ class ForeshadowingState {
     this.resolved = const [],
   });
 
+  factory ForeshadowingState.fromJson(Map<String, dynamic> json) =>
+      ForeshadowingState(
+        pending: (json['pending'] as List? ?? [])
+            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        planted: (json['planted'] as List? ?? [])
+            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        resolved: (json['resolved'] as List? ?? [])
+            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
   /// 待回收伏笔
   final List<ForeshadowingItem> pending;
 
@@ -48,19 +61,6 @@ class ForeshadowingState {
         'planted': planted.map((e) => e.toJson()).toList(),
         'resolved': resolved.map((e) => e.toJson()).toList(),
       };
-
-  factory ForeshadowingState.fromJson(Map<String, dynamic> json) =>
-      ForeshadowingState(
-        pending: (json['pending'] as List? ?? [])
-            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        planted: (json['planted'] as List? ?? [])
-            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        resolved: (json['resolved'] as List? ?? [])
-            .map((e) => ForeshadowingItem.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
 }
 
 /// 单个伏笔条目
@@ -72,6 +72,15 @@ class ForeshadowingItem {
     this.layer = '支线',
     this.targetChapter,
   });
+
+  factory ForeshadowingItem.fromJson(Map<String, dynamic> json) =>
+      ForeshadowingItem(
+        id: json['id'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        weight: json['weight'] as int? ?? 5,
+        layer: json['layer'] as String? ?? '支线',
+        targetChapter: json['target_chapter'] as String?,
+      );
 
   final String id;
   final String description;
@@ -86,15 +95,6 @@ class ForeshadowingItem {
         'layer': layer,
         if (targetChapter != null) 'target_chapter': targetChapter,
       };
-
-  factory ForeshadowingItem.fromJson(Map<String, dynamic> json) =>
-      ForeshadowingItem(
-        id: json['id'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        weight: json['weight'] as int? ?? 5,
-        layer: json['layer'] as String? ?? '支线',
-        targetChapter: json['target_chapter'] as String?,
-      );
 }
 
 /// 世界观规则
@@ -104,6 +104,15 @@ class WorldRules {
     this.entities = const [],
     this.relations = const [],
   });
+
+  factory WorldRules.fromJson(Map<String, dynamic> json) => WorldRules(
+        constraints:
+            (json['constraints'] as List? ?? []).cast<String>(),
+        entities: (json['entities'] as List? ?? [])
+            .map((e) => WorldEntity.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        relations: (json['relations'] as List? ?? []).cast<String>(),
+      );
 
   /// 世界观约束/设定
   final List<String> constraints;
@@ -141,30 +150,21 @@ class WorldRules {
         'entities': entities.map((e) => e.toJson()).toList(),
         'relations': relations,
       };
-
-  factory WorldRules.fromJson(Map<String, dynamic> json) => WorldRules(
-        constraints:
-            (json['constraints'] as List? ?? []).cast<String>(),
-        entities: (json['entities'] as List? ?? [])
-            .map((e) => WorldEntity.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        relations: (json['relations'] as List? ?? []).cast<String>(),
-      );
 }
 
 /// 世界实体
 class WorldEntity {
   const WorldEntity({required this.name, this.description = ''});
 
-  final String name;
-  final String description;
-
-  Map<String, dynamic> toJson() => {'name': name, 'description': description};
-
   factory WorldEntity.fromJson(Map<String, dynamic> json) => WorldEntity(
         name: json['name'] as String? ?? '',
         description: json['description'] as String? ?? '',
       );
+
+  final String name;
+  final String description;
+
+  Map<String, dynamic> toJson() => {'name': name, 'description': description};
 }
 
 /// 角色卡片（上下文用）
@@ -176,6 +176,15 @@ class CharacterCard {
     this.personality = '',
     this.relationships = const [],
   });
+
+  factory CharacterCard.fromJson(Map<String, dynamic> json) => CharacterCard(
+        name: json['name'] as String? ?? '',
+        role: json['role'] as String? ?? '',
+        currentState: json['current_state'] as String? ?? '',
+        personality: json['personality'] as String? ?? '',
+        relationships:
+            (json['relationships'] as List? ?? []).cast<String>(),
+      );
 
   final String name;
   final String role;
@@ -206,15 +215,6 @@ class CharacterCard {
         'personality': personality,
         'relationships': relationships,
       };
-
-  factory CharacterCard.fromJson(Map<String, dynamic> json) => CharacterCard(
-        name: json['name'] as String? ?? '',
-        role: json['role'] as String? ?? '',
-        currentState: json['current_state'] as String? ?? '',
-        personality: json['personality'] as String? ?? '',
-        relationships:
-            (json['relationships'] as List? ?? []).cast<String>(),
-      );
 }
 
 /// 戏剧位置信息
@@ -228,6 +228,18 @@ class DramaticContext {
     this.dramaticPosition = '',
     this.contentFocus = '',
   });
+
+  factory DramaticContext.fromJson(Map<String, dynamic> json) =>
+      DramaticContext(
+        arcStructure: json['arc_structure'] as String? ?? '',
+        arcEmotionalArc: json['arc_emotional_arc'] as String? ?? '',
+        sectionStructure: json['section_structure'] as String? ?? '',
+        sectionEmotionalArc:
+            json['section_emotional_arc'] as String? ?? '',
+        sectionTension: json['section_tension'] as String? ?? '',
+        dramaticPosition: json['dramatic_position'] as String? ?? '',
+        contentFocus: json['content_focus'] as String? ?? '',
+      );
 
   /// 篇弧线结构
   final String arcStructure;
@@ -268,18 +280,6 @@ class DramaticContext {
           'dramatic_position': dramaticPosition,
         if (contentFocus.isNotEmpty) 'content_focus': contentFocus,
       };
-
-  factory DramaticContext.fromJson(Map<String, dynamic> json) =>
-      DramaticContext(
-        arcStructure: json['arc_structure'] as String? ?? '',
-        arcEmotionalArc: json['arc_emotional_arc'] as String? ?? '',
-        sectionStructure: json['section_structure'] as String? ?? '',
-        sectionEmotionalArc:
-            json['section_emotional_arc'] as String? ?? '',
-        sectionTension: json['section_tension'] as String? ?? '',
-        dramaticPosition: json['dramatic_position'] as String? ?? '',
-        contentFocus: json['content_focus'] as String? ?? '',
-      );
 }
 
 /// 写作 AI 的完整上下文包
@@ -418,7 +418,7 @@ class GenerationContext {
     }
     if (activeCharacters.isNotEmpty) {
       sections['出场角色'] = activeCharacters
-          .map((c) => c.toContextText(maxChars: 200))
+          .map((c) => c.toContextText())
           .join('\n');
     }
     if (foreshadowing.pending.isNotEmpty ||

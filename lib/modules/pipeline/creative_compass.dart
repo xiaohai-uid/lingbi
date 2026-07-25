@@ -23,6 +23,17 @@ class AuthorIntent {
     this.mustHaves = const [],
   });
 
+  factory AuthorIntent.fromJson(Map<String, dynamic> json) => AuthorIntent(
+        coreTheme: json['core_theme'] as String? ?? '',
+        genre: json['genre'] as String? ?? '',
+        targetAudience: json['target_audience'] as String? ?? '',
+        tone: json['tone'] as String? ?? '',
+        coreConflict: json['core_conflict'] as String? ?? '',
+        endingVision: json['ending_vision'] as String? ?? '',
+        taboos: (json['taboos'] as List? ?? []).cast<String>(),
+        mustHaves: (json['must_haves'] as List? ?? []).cast<String>(),
+      );
+
   /// 核心主题（一句话）
   final String coreTheme;
 
@@ -73,17 +84,6 @@ class AuthorIntent {
         'taboos': taboos,
         'must_haves': mustHaves,
       };
-
-  factory AuthorIntent.fromJson(Map<String, dynamic> json) => AuthorIntent(
-        coreTheme: json['core_theme'] as String? ?? '',
-        genre: json['genre'] as String? ?? '',
-        targetAudience: json['target_audience'] as String? ?? '',
-        tone: json['tone'] as String? ?? '',
-        coreConflict: json['core_conflict'] as String? ?? '',
-        endingVision: json['ending_vision'] as String? ?? '',
-        taboos: (json['taboos'] as List? ?? []).cast<String>(),
-        mustHaves: (json['must_haves'] as List? ?? []).cast<String>(),
-      );
 }
 
 /// 当前焦点（阶段级别，随写作进度更新）
@@ -97,6 +97,20 @@ class CurrentFocus {
     this.priorityQueue = const [],
     this.updatedAt,
   });
+
+  factory CurrentFocus.fromJson(Map<String, dynamic> json) => CurrentFocus(
+        arcGoal: json['arc_goal'] as String? ?? '',
+        arcPhase: json['arc_phase'] as String? ?? '',
+        emotionalTarget: json['emotional_target'] as String? ?? '',
+        pacingDirective: json['pacing_directive'] as String? ?? '',
+        hardConstraints:
+            (json['hard_constraints'] as List? ?? []).cast<String>(),
+        priorityQueue:
+            (json['priority_queue'] as List? ?? []).cast<String>(),
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+      );
 
   /// 当前篇章目标
   final String arcGoal;
@@ -147,20 +161,6 @@ class CurrentFocus {
         'priority_queue': priorityQueue,
         if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
       };
-
-  factory CurrentFocus.fromJson(Map<String, dynamic> json) => CurrentFocus(
-        arcGoal: json['arc_goal'] as String? ?? '',
-        arcPhase: json['arc_phase'] as String? ?? '',
-        emotionalTarget: json['emotional_target'] as String? ?? '',
-        pacingDirective: json['pacing_directive'] as String? ?? '',
-        hardConstraints:
-            (json['hard_constraints'] as List? ?? []).cast<String>(),
-        priorityQueue:
-            (json['priority_queue'] as List? ?? []).cast<String>(),
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
-      );
 }
 
 /// 创作罗盘（组合 AuthorIntent + CurrentFocus）
@@ -169,6 +169,14 @@ class CreativeCompass {
     this.authorIntent = const AuthorIntent(),
     this.currentFocus = const CurrentFocus(),
   });
+
+  factory CreativeCompass.fromJson(Map<String, dynamic> json) =>
+      CreativeCompass(
+        authorIntent: AuthorIntent.fromJson(
+            json['author_intent'] as Map<String, dynamic>? ?? {}),
+        currentFocus: CurrentFocus.fromJson(
+            json['current_focus'] as Map<String, dynamic>? ?? {}),
+      );
 
   final AuthorIntent authorIntent;
   final CurrentFocus currentFocus;
@@ -189,14 +197,6 @@ class CreativeCompass {
         'author_intent': authorIntent.toJson(),
         'current_focus': currentFocus.toJson(),
       };
-
-  factory CreativeCompass.fromJson(Map<String, dynamic> json) =>
-      CreativeCompass(
-        authorIntent: AuthorIntent.fromJson(
-            json['author_intent'] as Map<String, dynamic>? ?? {}),
-        currentFocus: CurrentFocus.fromJson(
-            json['current_focus'] as Map<String, dynamic>? ?? {}),
-      );
 }
 
 /// 创作罗盘存储服务

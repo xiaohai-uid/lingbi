@@ -77,6 +77,14 @@ class SettlementItem {
     this.entityName,
   });
 
+  factory SettlementItem.fromJson(Map<String, dynamic> json) =>
+      SettlementItem(
+        category: json['category'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        entityId: json['entity_id'] as String?,
+        entityName: json['entity_name'] as String?,
+      );
+
   /// 类别: character_position, item_change, relationship_change,
   /// new_character, new_rule, new_foreshadowing, foreshadowing_resolved,
   /// plotline_change
@@ -91,14 +99,6 @@ class SettlementItem {
         if (entityId != null) 'entity_id': entityId,
         if (entityName != null) 'entity_name': entityName,
       };
-
-  factory SettlementItem.fromJson(Map<String, dynamic> json) =>
-      SettlementItem(
-        category: json['category'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        entityId: json['entity_id'] as String?,
-        entityName: json['entity_name'] as String?,
-      );
 }
 
 /// 结算建议
@@ -111,6 +111,20 @@ class SettlementProposal {
     this.status = 'pending',
     this.createdAt,
   });
+
+  factory SettlementProposal.fromJson(Map<String, dynamic> json) =>
+      SettlementProposal(
+        id: json['id'] as String? ?? '',
+        chapterId: json['chapter_id'] as String? ?? '',
+        candidateId: json['candidate_id'] as String? ?? '',
+        items: (json['items'] as List? ?? [])
+            .map((i) => SettlementItem.fromJson(i as Map<String, dynamic>))
+            .toList(),
+        status: json['status'] as String? ?? 'pending',
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+      );
 
   final String id;
   final String chapterId;
@@ -127,20 +141,6 @@ class SettlementProposal {
         'status': status,
         if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       };
-
-  factory SettlementProposal.fromJson(Map<String, dynamic> json) =>
-      SettlementProposal(
-        id: json['id'] as String? ?? '',
-        chapterId: json['chapter_id'] as String? ?? '',
-        candidateId: json['candidate_id'] as String? ?? '',
-        items: (json['items'] as List? ?? [])
-            .map((i) => SettlementItem.fromJson(i as Map<String, dynamic>))
-            .toList(),
-        status: json['status'] as String? ?? 'pending',
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : null,
-      );
 }
 
 /// 小说写作应用服务
@@ -202,7 +202,7 @@ class NovelApplicationService {
       final bookState = _bookStateStore.loadOrCreate();
       if (bookState.blockingReason.isNotEmpty &&
           bookState.stage == BookStage.settling) {
-        return PipelineResult.failure(const PipelineError(
+        return const PipelineResult.failure(PipelineError(
           PipelineError.notSettled,
           '上一章尚未完成结算，请先处理结算或重试结算',
         ));
@@ -585,7 +585,6 @@ $adoptedContent''';
       try {
         aiResult = await _aiService.currentProvider.chatSync(
           messages: messages,
-          maxTokens: 2048,
         );
       } catch (e) {
         // AI 调用失败 → 结算失败
@@ -609,7 +608,6 @@ $adoptedContent''';
         chapterId: chapterId,
         candidateId: candidateId,
         items: items,
-        status: 'pending',
         createdAt: DateTime.now(),
       );
 
@@ -741,10 +739,10 @@ $adoptedContent''';
   void _saveCandidate(CandidateEntry entry) {
     _candidateService.ensureDir();
     final metaFile =
-        File('${_projectDir}/.lingbi/candidates/${entry.id}.json');
+        File('$_projectDir/.lingbi/candidates/${entry.id}.json');
     metaFile.writeAsStringSync(jsonEncode(entry.toJson()));
     final contentFile =
-        File('${_projectDir}/.lingbi/candidates/${entry.id}.md');
+        File('$_projectDir/.lingbi/candidates/${entry.id}.md');
     contentFile.writeAsStringSync(entry.content);
   }
 

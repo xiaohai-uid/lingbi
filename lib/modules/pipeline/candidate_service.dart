@@ -45,6 +45,26 @@ class CandidateEntry {
     this.metadata = const {},
   });
 
+  factory CandidateEntry.fromJson(Map<String, dynamic> json) =>
+      CandidateEntry(
+        id: json['id'] as String? ?? '',
+        chapterId: json['chapter_id'] as String? ?? '',
+        content: json['content'] as String? ?? '',
+        status: CandidateStatus.values.firstWhere(
+          (s) => s.name == json['status'],
+          orElse: () => CandidateStatus.pending,
+        ),
+        model: json['model'] as String? ?? '',
+        reviewReport: json['review_report'] as Map<String, dynamic>?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+        metadata: (json['metadata'] as Map<String, dynamic>?) ?? {},
+      );
+
   final String id;
   final String chapterId;
   String content;
@@ -66,26 +86,6 @@ class CandidateEntry {
         if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
         'metadata': metadata,
       };
-
-  factory CandidateEntry.fromJson(Map<String, dynamic> json) =>
-      CandidateEntry(
-        id: json['id'] as String? ?? '',
-        chapterId: json['chapter_id'] as String? ?? '',
-        content: json['content'] as String? ?? '',
-        status: CandidateStatus.values.firstWhere(
-          (s) => s.name == json['status'],
-          orElse: () => CandidateStatus.pending,
-        ),
-        model: json['model'] as String? ?? '',
-        reviewReport: json['review_report'] as Map<String, dynamic>?,
-        createdAt: json['created_at'] != null
-            ? DateTime.parse(json['created_at'] as String)
-            : null,
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
-        metadata: (json['metadata'] as Map<String, dynamic>?) ?? {},
-      );
 }
 
 /// 候选区管理服务

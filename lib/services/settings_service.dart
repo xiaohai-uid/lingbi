@@ -113,10 +113,9 @@ class OnboardingState {
   ///
   /// 保留 schema 版本为当前值，清除完成标记和步骤。
   OnboardingState reset() {
-    return OnboardingState(
+    return const OnboardingState(
       completed: false,
       schemaVersion: currentOnboardingSchemaVersion,
-      lastStep: 0,
     );
   }
 }
@@ -396,7 +395,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   }
 
   /// 设置匿名数据贡献开关
-  void setAnalyticsConsent(bool enabled) {
+  void setAnalyticsConsent({required bool enabled}) {
     _analyticsConsent = AnalyticsConsent(
       enabled: enabled,
       anonymousId: _analyticsConsent.anonymousId,
