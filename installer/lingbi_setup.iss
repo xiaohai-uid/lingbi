@@ -1,11 +1,11 @@
 ﻿; ============================================================================
 ;  灵笔 (Lingbi) - AI 写作助手桌面应用 - Inno Setup 安装脚本
-;  Version: 0.4.0 (read from pubspec.yaml)
+;  Version: 1.0.0 (read from pubspec.yaml)
 ;  This script packages the main Flutter app + launcher into a single installer.
 ;  Build: iscc installer\lingbi_setup.iss  (from project root)
 ; ============================================================================
 
-#define LingbiVersion "0.4.0"
+#define LingbiVersion "1.0.0"
 
 [Setup]
 ; --- Application metadata ---
