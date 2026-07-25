@@ -80,7 +80,7 @@ abstract class AIProvider {
     if (msg.contains('404')) {
       return 'API 端点不存在，请检查 Base URL 配置';
     }
-    return '连接失败: $e';
+    return '连接失败，请检查网络和配置';
   }
 }
 

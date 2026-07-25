@@ -123,7 +123,8 @@ class EndpointConfig {
           id == other.id &&
           name == other.name &&
           baseUrl == other.baseUrl &&
-          apiKey == other.apiKey &&
+          // apiKey excluded from == (credential, not identity)
+      // apiKey == other.apiKey &&
           protocol == other.protocol &&
           modelId == other.modelId &&
           authStrategy == other.authStrategy &&
