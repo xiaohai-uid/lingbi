@@ -3,18 +3,22 @@
 /// 步骤：
 /// 0. 欢迎和数据说明
 /// 1. 选择使用模式（AI 辅助 / 本地写作）
-/// 2. 选择供应商
-/// 3. 填写密钥
-/// 4. 选择模型
-/// 5. 测试连接
+/// 2. 选择供应商（统一列表：预置+自定义平级 + 添加自定义入口）
+/// 3. 填写密钥（环境变量已配置或自定义已填则跳过）
+/// 4. 选择模型（自定义供应商自动拉取 /v1/models）
+/// 5. 测试连接（延迟+错误分类）
 /// 6. 测试生成
 /// 7. 完成
 ///
 /// 本地模式跳过步骤 2-6。
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/ai/model_registry.dart';
+import 'package:lingbi/core/ai/models/endpoint_config.dart';
+import 'package:lingbi/core/ai/provider_factory.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 
 /// 首次配置向导页面
@@ -45,7 +49,31 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
   // 模型发现状态
   bool _isDiscovering = false;
 
+  // 自定义供应商表单
+  bool _showCustomForm = false;
+  final _customNameCtrl = TextEditingController();
+  final _customUrlCtrl = TextEditingController();
+  final _customKeyCtrl = TextEditingController();
+  Protocol _customProtocol = Protocol.openai;
+  bool _isAddingCustom = false;
+  List<String> _discoveredModelIds = [];
+
   static const _totalSteps = 8;
+
+  /// 环境变量已配置的 provider ids
+  static const _envMappings = {
+    'sensenova': 'SENSENOVA_API_KEY',
+    'deepseek': 'DEEPSEEK_API_KEY',
+    'openai': 'OPENAI_API_KEY',
+    'claude': 'ANTHROPIC_API_KEY',
+  };
+
+  bool _hasEnvKey(String providerId) {
+    final envVar = _envMappings[providerId];
+    if (envVar == null) return false;
+    final val = Platform.environment[envVar];
+    return val != null && val.isNotEmpty;
+  }
 
   @override
   void initState() {
@@ -61,6 +89,9 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _customNameCtrl.dispose();
+    _customUrlCtrl.dispose();
+    _customKeyCtrl.dispose();
     super.dispose();
   }
 
@@ -280,17 +311,29 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
     );
   }
 
-  // ——— Step 2: 选择供应商 ———
+  // ——— Step 2: 选择供应商（统一列表：预置+自定义平级） ———
   Widget _buildProviderStep() {
     final platforms = ModelRegistry.allPlatforms;
+    final settings = ServiceLocator.instance.settingsService;
+    final customEndpoints = settings.customEndpoints;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text('选择 AI 供应商',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Text(
+          '预置供应商和自定义供应商享有相同地位',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 16),
+        // 预置供应商
         ...platforms.entries.map((entry) {
           final isSelected = _selectedProvider == entry.key;
+          final hasEnv = _hasEnvKey(entry.key);
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             elevation: isSelected ? 2 : 0,
@@ -303,7 +346,24 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
               ),
             ),
             child: ListTile(
-              title: Text(entry.value.name),
+              title: Row(
+                children: [
+                  Text(entry.value.name),
+                  if (hasEnv) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text('环境变量已配置',
+                          style: TextStyle(fontSize: 10, color: Colors.green.shade700)),
+                    ),
+                  ],
+                ],
+              ),
               subtitle: Text('${entry.value.models.length} 个内置模型'),
               trailing: isSelected
                   ? Icon(Icons.check_circle,
@@ -314,41 +374,302 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
                 _selectedModelId = '';
                 _connectionTestSuccess = false;
                 _testGenerationSuccess = false;
+                _showCustomForm = false;
               }),
             ),
           );
         }),
+        // 已有自定义端点
+        ...customEndpoints.map((ep) {
+          final isSelected = _selectedProvider == ep.id;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            elevation: isSelected ? 2 : 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: BorderSide(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).dividerColor,
+              ),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.dns_outlined, size: 20),
+              title: Text(ep.name),
+              subtitle: Text('${ep.baseUrl} · ${ep.protocol.name}'),
+              trailing: isSelected
+                  ? Icon(Icons.check_circle,
+                      color: Theme.of(context).colorScheme.primary)
+                  : null,
+              onTap: () => setState(() {
+                _selectedProvider = ep.id;
+                _selectedModelId = ep.modelId;
+                _connectionTestSuccess = false;
+                _testGenerationSuccess = false;
+                _showCustomForm = false;
+              }),
+            ),
+          );
+        }),
+        // 添加自定义供应商（平级入口）
+        Card(
+          margin: const EdgeInsets.only(bottom: 8),
+          elevation: _showCustomForm ? 2 : 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(
+              color: _showCustomForm
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).dividerColor,
+            ),
+          ),
+          child: Column(
+            children: [
+              ListTile(
+                leading: Icon(Icons.add_circle_outline,
+                    color: Theme.of(context).colorScheme.primary),
+                title: Text('添加自定义供应商',
+                    style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+                subtitle: const Text('任何 OpenAI 兼容或 Anthropic 格式的 API 端点'),
+                onTap: () => setState(() => _showCustomForm = !_showCustomForm),
+              ),
+              if (_showCustomForm) _buildCustomProviderForm(),
+            ],
+          ),
+        ),
       ],
     );
   }
 
+  /// 自定义供应商表单
+  Widget _buildCustomProviderForm() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _customNameCtrl,
+            decoration: const InputDecoration(
+              labelText: '名称',
+              hintText: '例如：我的中转站',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _customUrlCtrl,
+            decoration: const InputDecoration(
+              labelText: 'API 地址 (Base URL)',
+              hintText: 'https://api.example.com',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 协议选择 + 格式指引
+          Row(
+            children: [
+              const Text('协议：', style: TextStyle(fontSize: 13)),
+              ChoiceChip(
+                label: const Text('OpenAI 兼容'),
+                selected: _customProtocol == Protocol.openai,
+                onSelected: (_) => setState(() => _customProtocol = Protocol.openai),
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Anthropic'),
+                selected: _customProtocol == Protocol.anthropic,
+                onSelected: (_) => setState(() => _customProtocol = Protocol.anthropic),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _customProtocol == Protocol.openai
+                  ? 'OpenAI 兼容格式：\n'
+                    '• 请求地址：{baseUrl}/v1/chat/completions\n'
+                    '• 模型列表：{baseUrl}/v1/models\n'
+                    '• 适用于：DeepSeek、通义千问、Moonshot、任何中转站'
+                  : 'Anthropic 格式：\n'
+                    '• 请求地址：{baseUrl}/v1/messages\n'
+                    '• 认证方式：x-api-key 请求头\n'
+                    '• 适用于：Claude 系列模型',
+              style: const TextStyle(fontSize: 11, height: 1.5),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _customKeyCtrl,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              hintText: 'sk-...',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _isAddingCustom ? null : _addCustomProvider,
+            icon: _isAddingCustom
+                ? const SizedBox(
+                    width: 14, height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.add, size: 16),
+            label: Text(_isAddingCustom ? '添加中...' : '添加并拉取模型'),
+          ),
+          if (_discoveredModelIds.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('已发现 ${_discoveredModelIds.length} 个模型，请在下一步选择。',
+                style: TextStyle(fontSize: 12, color: Colors.green.shade700)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 添加自定义供应商并自动拉取模型列表
+  Future<void> _addCustomProvider() async {
+    final name = _customNameCtrl.text.trim();
+    final url = _customUrlCtrl.text.trim();
+    final key = _customKeyCtrl.text.trim();
+    if (name.isEmpty || url.isEmpty || key.isEmpty) {
+      setState(() => _statusMessage = '请填写名称、API 地址和 API Key');
+      return;
+    }
+    setState(() {
+      _isAddingCustom = true;
+      _statusMessage = '';
+      _discoveredModelIds = [];
+    });
+
+    final id = 'custom_${DateTime.now().millisecondsSinceEpoch}';
+    final config = EndpointConfig(
+      id: id,
+      name: name,
+      baseUrl: url,
+      apiKey: key,
+      protocol: _customProtocol,
+      modelId: '',
+    );
+
+    try {
+      // 注册到 SettingsService + AIService
+      final settings = ServiceLocator.instance.settingsService;
+      settings.addCustomEndpoint(config);
+
+      // 自动拉取模型列表
+      if (_customProtocol == Protocol.openai) {
+        final models = await ProviderFactory.discoverModels(config);
+        if (models.isNotEmpty) {
+          ModelRegistry.instance.replaceRemoteModels(id, models);
+          setState(() => _discoveredModelIds = models);
+        }
+      }
+
+      setState(() {
+        _selectedProvider = id;
+        _selectedModelId = '';
+        _connectionTestSuccess = false;
+        _testGenerationSuccess = false;
+        _showCustomForm = false;
+        _statusMessage = '已添加「$name」${_discoveredModelIds.isNotEmpty ? '，发现 ${_discoveredModelIds.length} 个模型' : ''}';
+      });
+    } catch (e) {
+      setState(() => _statusMessage = '添加失败: $e');
+    } finally {
+      setState(() => _isAddingCustom = false);
+    }
+  }
+
   // ——— Step 3: 填写密钥 ———
+  // 如果环境变量已配置或自定义供应商已填写 key，此步显示确认信息
   Widget _buildApiKeyStep() {
+    final hasEnv = _hasEnvKey(_selectedProvider);
+    final isCustom = _selectedProvider.startsWith('custom_');
+    final skipKey = hasEnv || isCustom;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '输入 ${ModelRegistry.allPlatforms[_selectedProvider]?.name ?? ''} API Key',
+          skipKey
+              ? 'API Key 已就绪'
+              : '输入 ${ModelRegistry.allPlatforms[_selectedProvider]?.name ?? ''} API Key',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: _apiKeyController,
-          obscureText: true,
-          decoration: const InputDecoration(
-            labelText: 'API Key',
-            hintText: 'sk-...',
-            border: OutlineInputBorder(),
+        if (hasEnv) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '已通过环境变量 ${_envMappings[_selectedProvider]} 配置 API Key，无需重复输入。',
+                    style: TextStyle(color: Colors.green.shade800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '您的 API Key 将安全存储在本地，不会上传到任何服务器。',
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ] else if (isCustom) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green.shade700, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '自定义供应商的 API Key 已在上一步配置完成。',
+                    style: TextStyle(color: Colors.green.shade800, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ] else ...[
+          TextField(
+            controller: _apiKeyController,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'API Key',
+              hintText: 'sk-...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '您的 API Key 将安全存储在本地，不会上传到任何服务器。',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -627,12 +948,19 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
     return '下一步';
   }
 
+  /// 当前选中的供应商是否已有 API Key（环境变量或自定义已填）
+  bool get _keyAlreadyProvided {
+    if (_hasEnvKey(_selectedProvider)) return true;
+    if (_selectedProvider.startsWith('custom_')) return true;
+    return false;
+  }
+
   bool get _canProceed {
     return switch (_currentStep) {
       0 => true,
       1 => true,
       2 => _selectedProvider.isNotEmpty,
-      3 => _apiKeyController.text.trim().isNotEmpty,
+      3 => _keyAlreadyProvided || _apiKeyController.text.trim().isNotEmpty,
       4 => _selectedModelId.isNotEmpty,
       5 => _connectionTestSuccess,
       6 => _testGenerationSuccess,
@@ -657,14 +985,26 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
       _saveAndComplete();
       return;
     }
-    // 本地模式跳过 2-6
-    if (_localMode && _currentStep == 1) {
-      _currentStep = 7;
+    // 步骤 3 → 4：如果 key 已提供，自动应用并跳到模型选择
+    if (_currentStep == 3 && _keyAlreadyProvided) {
+      // 环境变量 key 已在 _load 时应用到 AIService
+      // 自定义 key 已在 addCustomEndpoint 时应用
+      _currentStep = 4;
+      _autoDiscoverForCustom();
     } else if (_currentStep < 7) {
       _currentStep++;
+      // 进入模型步骤时，如果是自定义供应商，自动拉取
+      if (_currentStep == 4) _autoDiscoverForCustom();
     }
     setState(() {});
     _saveStep();
+  }
+
+  /// 自定义供应商进入模型步骤时自动拉取模型列表
+  void _autoDiscoverForCustom() {
+    if (_selectedProvider.startsWith('custom_')) {
+      _discoverModels();
+    }
   }
 
   void _completeAsLocalMode() {
@@ -675,10 +1015,22 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
 
   void _saveAndComplete() {
     final settings = ServiceLocator.instance.settingsService;
-    settings.setApiKey(_selectedProvider, _apiKeyController.text.trim());
+    // 仅在用户手动输入 key 时设置（环境变量/自定义已处理）
+    if (!_keyAlreadyProvided && _apiKeyController.text.trim().isNotEmpty) {
+      settings.setApiKey(_selectedProvider, _apiKeyController.text.trim());
+    }
     settings.setProvider(_selectedProvider);
     if (_selectedModelId.isNotEmpty) {
       settings.setSelectedModelId(_selectedProvider, _selectedModelId);
+      // 更新自定义端点的 modelId
+      if (_selectedProvider.startsWith('custom_')) {
+        final ep = settings.customEndpoints
+            .where((e) => e.id == _selectedProvider)
+            .firstOrNull;
+        if (ep != null) {
+          settings.updateCustomEndpoint(ep.copyWith(modelId: _selectedModelId));
+        }
+      }
     }
     settings.completeOnboarding(
       providerId: _selectedProvider,
@@ -723,18 +1075,25 @@ class _OnboardingWizardState extends State<OnboardingWizard> {
 
     try {
       final settings = ServiceLocator.instance.settingsService;
-      settings.setApiKey(_selectedProvider, _apiKeyController.text.trim());
+      // 仅在手动输入时设置 key
+      if (!_keyAlreadyProvided && _apiKeyController.text.trim().isNotEmpty) {
+        settings.setApiKey(_selectedProvider, _apiKeyController.text.trim());
+      }
       settings.setProvider(_selectedProvider);
       if (_selectedModelId.isNotEmpty) {
         settings.setSelectedModelId(_selectedProvider, _selectedModelId);
       }
 
-      final result = await ServiceLocator.instance.aiService.testConnection();
+      // 使用统一连接测试（含延迟+错误分类）
+      final result = await ServiceLocator.instance.aiService.testConnectionUnified(
+        providerId: _selectedProvider,
+        modelId: _selectedModelId.isNotEmpty ? _selectedModelId : null,
+      );
       setState(() {
         _connectionTestSuccess = result.success;
         _statusMessage = result.success
             ? '连接成功 (${result.latencyMs}ms)'
-            : result.message;
+            : '${result.errorCategory ?? "连接失败"} (${result.latencyMs}ms)';
       });
     } catch (e) {
       setState(() {
