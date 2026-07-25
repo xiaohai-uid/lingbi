@@ -42,6 +42,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _showingGuidedFlow = false;
   String _guidedFlowProjectId = '';
   String _guidedFlowProjectName = '';
+  String _guidedFlowId = 'default-long';
   int _sidebarIndex = 0;
   ProjectTab _currentTab = ProjectTab.editor;
   Project? _currentProject;
@@ -230,10 +231,11 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = project;
-          // 创建项目后自动进入全屏引导
+          // 创建项目后自动进入全屏引导（按题材匹配专属 Skill）
           _showingGuidedFlow = true;
           _guidedFlowProjectId = project.id;
           _guidedFlowProjectName = project.name;
+          _guidedFlowId = _resolveFlowId(project.genre);
         });
       } catch (e) {
         if (mounted) {
@@ -243,6 +245,15 @@ class _AppScaffoldState extends State<AppScaffold> {
         }
       }
     }
+  }
+
+  /// 按题材解析引导流程 flowId
+  ///
+  /// 有对应题材 Skill 时使用专属流程，否则降级到通用长篇流程。
+  String _resolveFlowId(String genre) {
+    final loader = ServiceLocator.instance.guidedFlowSkillLoader;
+    final flowId = loader.findFlowIdByGenre(genre);
+    return flowId ?? 'default-long';
   }
 
   Future<void> _openProject() async {
@@ -303,7 +314,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         child: GuidedFlowPage(
           projectId: _guidedFlowProjectId,
           projectName: _guidedFlowProjectName,
-          flowId: 'default-long',
+          flowId: _guidedFlowId,
           onComplete: () => setState(() => _showingGuidedFlow = false),
           onSkip: () => setState(() => _showingGuidedFlow = false),
         ),

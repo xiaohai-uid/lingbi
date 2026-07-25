@@ -7,6 +7,8 @@ import '../../services/document_service.dart';
 import '../../services/export_service.dart';
 import '../../services/guided_flow_engine.dart';
 import '../../services/guided_flow_defaults.dart';
+import '../../services/skill/guided_flow_skill_loader.dart';
+import '../../services/skills/xuanhuan_flow_skill.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../services/project_meta_repository.dart';
 import '../../services/project_service.dart';
@@ -89,6 +91,7 @@ class ServiceLocator {
   /// ——— 项目元数据 + 引导流程 ———
   late final ProjectMetaRepository projectMetaRepository;
   late final GuidedFlowEngine guidedFlowEngine;
+  late final GuidedFlowSkillLoader guidedFlowSkillLoader;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -150,6 +153,15 @@ class ServiceLocator {
       // 注册默认引导流程（通用长篇/短篇）
       locator.guidedFlowEngine.registerDefinition(defaultLongFlowDefinition);
       locator.guidedFlowEngine.registerDefinition(defaultShortFlowDefinition);
+
+      // 引导流程 Skill 加载器 + 官方预装题材
+      locator.guidedFlowSkillLoader = GuidedFlowSkillLoader(locator.guidedFlowEngine);
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        xuanhuanLongFlowDefinition, '玄幻',
+      );
+      locator.guidedFlowSkillLoader.registerBuiltinFlow(
+        xuanhuanShortFlowDefinition, '玄幻',
+      );
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()

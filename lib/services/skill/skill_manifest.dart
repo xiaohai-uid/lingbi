@@ -5,6 +5,12 @@ enum SkillType {
 
   /// 重量级 Skill（含代码插件）
   heavyweight,
+
+  /// 引导流程 Skill（题材引导知识载体）
+  ///
+  /// manifest 中声明 `type: guided_flow`，包含步骤定义文件（YAML/JSON）。
+  /// 加载后注册到 GuidedFlowEngine，创建项目时按题材匹配触发。
+  guidedFlow,
 }
 
 /// Skill 清单数据类，描述一个 Skill 的元数据
@@ -17,6 +23,8 @@ class SkillManifest {
     this.type = SkillType.lightweight,
     this.category,
     this.version,
+    this.genre,
+    this.flowDefinitionFile,
   });
 
   /// 唯一标识符
@@ -39,6 +47,12 @@ class SkillManifest {
 
   /// 版本号（可选）
   final String? version;
+
+  /// 题材标识（guided_flow 类型专用，如 "玄幻"）
+  final String? genre;
+
+  /// 引导流程定义文件路径（guided_flow 类型专用，相对于 Skill 目录）
+  final String? flowDefinitionFile;
 }
 
 /// SKILL.md 内容解析器，支持 Anthropic frontmatter 和纯 Markdown 两种格式
@@ -80,13 +94,31 @@ class SkillManifestParser {
 
     final name = _extractYamlField(yaml, 'name') ?? skillId;
     final description = _extractYamlField(yaml, 'description') ?? '';
+    final typeStr = _extractYamlField(yaml, 'type');
+    final genre = _extractYamlField(yaml, 'genre');
+    final flowDefFile = _extractYamlField(yaml, 'flow_definition');
 
     return SkillManifest(
       id: skillId,
       name: name,
       description: description,
       promptTemplate: body,
+      type: _parseSkillType(typeStr),
+      genre: genre,
+      flowDefinitionFile: flowDefFile,
     );
+  }
+
+  /// 解析 type 字段为 [SkillType]
+  static SkillType _parseSkillType(String? value) {
+    switch (value?.toLowerCase()) {
+      case 'heavyweight':
+        return SkillType.heavyweight;
+      case 'guided_flow':
+        return SkillType.guidedFlow;
+      default:
+        return SkillType.lightweight;
+    }
   }
 
   /// 解析纯 Markdown 社区格式
