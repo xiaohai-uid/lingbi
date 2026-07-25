@@ -5,11 +5,10 @@ import 'package:lingbi/core/models/project.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-/// 导出服务 - 支持 Markdown / TXT / PDF 格式导出
+/// 导出服务 - 支持 Markdown / TXT / PDF / Word 格式导出
 class ExportService implements IExportService {
   ExportService();
 
-  /// 导出为 Markdown（直接复制）
   @override
   Future<void> exportAsMarkdown({
     required String content,
@@ -19,7 +18,6 @@ class ExportService implements IExportService {
     await file.writeAsString(content);
   }
 
-  /// 导出为纯文本（去除 Markdown 标记）
   @override
   Future<void> exportAsTxt({
     required String content,
@@ -30,7 +28,6 @@ class ExportService implements IExportService {
     await file.writeAsString(plainText);
   }
 
-  /// 导出为 PDF
   @override
   Future<void> exportAsPdf({
     required String title,
@@ -42,7 +39,16 @@ class ExportService implements IExportService {
     await file.writeAsBytes(pdfBytes);
   }
 
-  /// 导出整个项目到指定文件夹
+  @override
+  Future<void> exportAsWord({
+    required String title,
+    required String content,
+    required String savePath,
+  }) async {
+    final html = _generateWordHtml(title, content);
+    await File(savePath).writeAsString(html);
+  }
+
   @override
   Future<void> exportProjectToDirectory({
     required Project project,
@@ -79,7 +85,6 @@ class ExportService implements IExportService {
     }
   }
 
-  /// 生成 PDF 字节数据
   Future<List<int>> _generatePdf(String title, String content) async {
     final pdf = pw.Document();
     final plainText = _stripMarkdown(content);
@@ -93,7 +98,6 @@ class ExportService implements IExportService {
             pw.Header(
               level: 0,
               child: pw.Text(title,
-                  // ignore: prefer_const_constructors
                   style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
             ),
             pw.SizedBox(height: 16),
@@ -109,7 +113,44 @@ class ExportService implements IExportService {
     return pdf.save();
   }
 
-  /// 去除 Markdown 标记
+  /// 生成 Word 兼容 HTML（embedded .doc 格式，兼容作家助手）
+  String _generateWordHtml(String title, String content) {
+    final plainText = _stripMarkdown(content);
+    final paragraphs = plainText.split('\n\n')
+        .where((p) => p.trim().isNotEmpty).toList();
+    final bodyHtml = paragraphs.map((p) {
+      final lines = p.split('\n')
+          .map((l) => l.trim()).where((l) => l.isNotEmpty);
+      return '<p>' + lines.join('<br/>') + '</p>';
+    }).join('\n');
+
+    var sb = StringBuffer();
+    sb.writeln('<html>');
+    sb.writeln('<head>');
+    sb.writeln('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">');
+    sb.writeln('<style>');
+    sb.writeln('body { font-family: SimSun, serif; font-size: 12pt; line-height: 1.8; padding: 20pt; }');
+    sb.writeln('h1 { font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 20pt; }');
+    sb.writeln('p { text-indent: 2em; margin: 0; line-height: 1.8; }');
+    sb.writeln('</style>');
+    sb.writeln('</head>');
+    sb.writeln('<body>');
+    sb.writeln('<h1>' + _escapeHtml(title) + '</h1>');
+    sb.writeln(bodyHtml);
+    sb.writeln('</body>');
+    sb.writeln('</html>');
+    return sb.toString();
+  }
+
+  /// HTML 转义
+  String _escapeHtml(String text) {
+    return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+  }
+
   String _stripMarkdown(String md) {
     var text = md;
     text = text.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
@@ -126,8 +167,7 @@ class ExportService implements IExportService {
     return text.trim();
   }
 
-  /// 安全文件名（替换非法字符）
   String _safeFileName(String name) {
-    return name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
+    return name.replaceAll(RegExp(r'[<>:"/\|?*]'), '_').trim();
   }
 }

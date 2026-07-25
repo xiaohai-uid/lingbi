@@ -19,6 +19,12 @@ abstract class IExportService {
     required String savePath,
   });
 
+  Future<void> exportAsWord({
+    required String title,
+    required String content,
+    required String savePath,
+  });
+
   Future<void> exportProjectToDirectory({
     required Project project,
     required List<Document> documents,
