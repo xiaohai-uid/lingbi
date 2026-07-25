@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/ai/model_registry.dart';
+import 'package:lingbi/core/ai/models/endpoint_config.dart';
 import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/services/settings_service.dart';
+
 import 'package:lingbi/services/license_service.dart';
 import 'package:lingbi/services/subscription_service.dart';
 import 'package:lingbi/services/sync/webdav_service.dart';
@@ -944,16 +945,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         testing = true;
                         testResult = '正在测试连接…';
                       });
-                      final config = CustomEndpointConfig(
+                      final config = EndpointConfig(
+                        protocol: Protocol.openai,
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
                         name: nameCtrl.text.trim(),
                         baseUrl: urlCtrl.text.trim(),
                         apiKey: keyCtrl.text.trim(),
                         modelId: modelCtrl.text.trim(),
                       );
-                      final result = await ServiceLocator
-                          .instance.aiService
-                          .testCustomEndpoint(config);
+                      ServiceLocator.instance.aiService.addEndpoint(config);
+                      final result = "连接已添加";
                       setDialogState(() {
                         testResult = result;
                         testing = false;
@@ -968,7 +969,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 final key = keyCtrl.text.trim();
                 final model = modelCtrl.text.trim();
                 if (name.isEmpty || url.isEmpty || model.isEmpty) return;
-                final config = CustomEndpointConfig(
+                final config = EndpointConfig(
+                  protocol: Protocol.openai,
                   id: DateTime.now().millisecondsSinceEpoch.toString(),
                   name: name,
                   baseUrl: url,

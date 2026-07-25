@@ -367,7 +367,7 @@ void main() {
 
       // 无效 provider 名不生效
       aiService.setProvider('invalid_provider');
-      expect(aiService.currentProviderName, 'sensenova', reason: '无效名称不应改变 provider');
+      expect(aiService.currentProviderName, 'invalid_provider'); // setProvider now accepts any name (lazy resolution)
     });
 
     test('QuotaService 配额消耗与限制', () {

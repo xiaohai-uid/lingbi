@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../services/ai_service.dart';
+import '../core/ai/models/endpoint_config.dart';
 
 /// 当前引导配置 schema 版本
 ///
@@ -120,57 +121,6 @@ class OnboardingState {
   }
 }
 
-/// 自定义端点配置数据类
-class CustomEndpointConfig {
-
-  const CustomEndpointConfig({
-    required this.id,
-    required this.name,
-    required this.baseUrl,
-    required this.apiKey,
-    required this.modelId,
-  });
-
-  factory CustomEndpointConfig.fromJson(Map<String, dynamic> json) {
-    return CustomEndpointConfig(
-      id: json['id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      baseUrl: json['baseUrl'] as String? ?? '',
-      apiKey: json['apiKey'] as String? ?? '',
-      modelId: json['modelId'] as String? ?? '',
-    );
-  }
-  final String id;
-  final String name;
-  final String baseUrl;
-  final String apiKey;
-  final String modelId;
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'baseUrl': baseUrl,
-        'apiKey': apiKey,
-        'modelId': modelId,
-      };
-
-  CustomEndpointConfig copyWith({
-    String? id,
-    String? name,
-    String? baseUrl,
-    String? apiKey,
-    String? modelId,
-  }) {
-    return CustomEndpointConfig(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      baseUrl: baseUrl ?? this.baseUrl,
-      apiKey: apiKey ?? this.apiKey,
-      modelId: modelId ?? this.modelId,
-    );
-  }
-}
-
 /// 设置服务 - 管理主题、AI 模型选择、API Keys 的持久化
 ///
 /// API Key 安全规则：
@@ -190,7 +140,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   String? _settingsPath;
 
   /// 自定义端点列表
-  List<CustomEndpointConfig> _customEndpoints = [];
+  List<EndpointConfig> _endpoints = [];
 
   /// 安全存储是否可用
   bool _secureStorageAvailable = false;
@@ -250,8 +200,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   bool get isInitialized => _initialized;
 
   /// 获取自定义端点列表（只读）
-  List<CustomEndpointConfig> get customEndpoints =>
-      List.unmodifiable(_customEndpoints);
+  List<EndpointConfig> get customEndpoints =>
+      List.unmodifiable(_endpoints);
 
   @override
   String getApiKey(String provider) =>
@@ -418,27 +368,27 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   }
 
   /// 添加自定义端点
-  void addCustomEndpoint(CustomEndpointConfig config) {
-    _customEndpoints.add(config);
-    _aiService.registerCustomProvider(config);
+  void addCustomEndpoint(EndpointConfig config) {
+    _endpoints.add(config);
+    _aiService.addEndpoint(config);
     notifyListeners();
     _save();
   }
 
   /// 移除自定义端点
   void removeCustomEndpoint(String id) {
-    _customEndpoints.removeWhere((e) => e.id == id);
-    _aiService.unregisterCustomProvider(id);
+    _endpoints.removeWhere((e) => e.id == id);
+    _aiService.removeEndpoint(id);
     notifyListeners();
     _save();
   }
 
   /// 更新自定义端点
-  void updateCustomEndpoint(CustomEndpointConfig config) {
-    final idx = _customEndpoints.indexWhere((e) => e.id == config.id);
+  void updateCustomEndpoint(EndpointConfig config) {
+    final idx = _endpoints.indexWhere((e) => e.id == config.id);
     if (idx >= 0) {
-      _customEndpoints[idx] = config;
-      _aiService.registerCustomProvider(config);
+      _endpoints[idx] = config;
+      _aiService.addEndpoint(config);
       notifyListeners();
       _save();
     }
@@ -505,9 +455,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
           }
           // 加载自定义端点
           if (json['customEndpoints'] is List) {
-            _customEndpoints = (json['customEndpoints'] as List)
+            _endpoints = (json['customEndpoints'] as List)
                 .whereType<Map<String, dynamic>>()
-                .map((e) => CustomEndpointConfig.fromJson(e))
+                .map((e) => EndpointConfig.fromJson(e))
                 .toList();
           }
           // 加载引导状态
@@ -572,7 +522,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     _aiService.setProvider(_selectedProvider);
 
     // 7. 将自定义端点注册到 AI 服务
-    _customEndpoints.forEach(_aiService.registerCustomProvider);
+    _endpoints.forEach(_aiService.addEndpoint);
   }
 
   Future<void> _save() async {
@@ -608,8 +558,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         'webdav': _webDavConfig.toJson(),
         'analyticsConsent': _analyticsConsent.toJson(),
         'subscription': _subscriptionState.toJson(),
-        'customEndpoints': _customEndpoints
-            .map((e) => CustomEndpointConfig(
+        'customEndpoints': _endpoints
+            .map((e) => EndpointConfig(
+                  protocol: e.protocol,
                   id: e.id,
                   name: e.name,
                   baseUrl: e.baseUrl,
