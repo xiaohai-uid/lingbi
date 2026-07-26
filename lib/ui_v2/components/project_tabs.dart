@@ -6,6 +6,7 @@ enum ProjectTab {
   editor('写作', LingBiIcons.editor),
   canon('正典', LingBiIcons.canon),
   storyboard('故事画板', LingBiIcons.storyboard),
+  toolbox('工具箱', Icons.construction_rounded),
   history('版本历史', LingBiIcons.history),
   importExport('导入/导出', LingBiIcons.importExport),
   settings('设置', LingBiIcons.settings);

@@ -19,6 +19,7 @@ import '../pages/import_export_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/skill_market_page.dart';
 import '../pages/guided_flow_page.dart';
+import 'toolbox_page.dart';
 
 class AppScaffold extends StatefulWidget {
 
@@ -440,6 +441,8 @@ class _AppScaffoldState extends State<AppScaffold> {
         return CanonPage(projectId: _currentProject?.id);
       case ProjectTab.storyboard:
         return StoryboardPage(projectId: _currentProject?.id);
+      case ProjectTab.toolbox:
+        return ToolboxPage(projectId: _currentProject?.id);
       case ProjectTab.history:
         return VersionHistoryPage(
           projectId: _currentProject?.id,
