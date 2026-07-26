@@ -39,6 +39,7 @@ import '../../services/six_dimension_review_service.dart';
 import '../../services/change_propagation_service.dart';
 import '../../services/model_router_service.dart';
 import '../../services/de_ai_flavor_service.dart';
+import '../../services/drama_conversion_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -124,6 +125,7 @@ class ServiceLocator {
   late final ChangePropagationService changePropagationService;
   late final ModelRouterService modelRouterService;
   late final DeAiFlavorService deAiFlavorService;
+  late final DramaConversionService dramaConversionService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -250,6 +252,9 @@ class ServiceLocator {
       );
       locator.modelRouterService = ModelRouterService();
       locator.deAiFlavorService = DeAiFlavorService(
+        aiProvider: locator.aiService.currentProvider,
+      );
+      locator.dramaConversionService = DramaConversionService(
         aiProvider: locator.aiService.currentProvider,
       );
 
