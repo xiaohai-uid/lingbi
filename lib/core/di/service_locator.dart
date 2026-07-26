@@ -34,6 +34,7 @@ import '../../services/market_intel_service.dart';
 import '../../services/vector_knowledge_service.dart';
 import '../../services/reference_book_service.dart';
 import '../../services/task_queue_service.dart';
+import '../../services/public_benefit_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -114,6 +115,7 @@ class ServiceLocator {
   late final VectorKnowledgeService vectorKnowledgeService;
   late final ReferenceBookService referenceBookService;
   late final TaskQueueService taskQueueService;
+  late final PublicBenefitService publicBenefitService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -230,6 +232,7 @@ class ServiceLocator {
         aiProvider: locator.aiService.currentProvider,
       );
       locator.taskQueueService = TaskQueueService();
+      locator.publicBenefitService = PublicBenefitService();
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()
