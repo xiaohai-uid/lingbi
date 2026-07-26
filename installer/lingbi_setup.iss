@@ -5,7 +5,7 @@
 ;  Build: iscc installer\lingbi_setup.iss  (from project root)
 ; ============================================================================
 
-#define LingbiVersion "1.0.0"
+#define LingbiVersion "1.0.1"
 
 [Setup]
 ; --- Application metadata ---
