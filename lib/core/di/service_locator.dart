@@ -38,6 +38,7 @@ import '../../services/public_benefit_service.dart';
 import '../../services/six_dimension_review_service.dart';
 import '../../services/change_propagation_service.dart';
 import '../../services/model_router_service.dart';
+import '../../services/de_ai_flavor_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -122,6 +123,7 @@ class ServiceLocator {
   late final SixDimensionReviewService sixDimensionReviewService;
   late final ChangePropagationService changePropagationService;
   late final ModelRouterService modelRouterService;
+  late final DeAiFlavorService deAiFlavorService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -247,6 +249,9 @@ class ServiceLocator {
         aiProvider: locator.aiService.currentProvider,
       );
       locator.modelRouterService = ModelRouterService();
+      locator.deAiFlavorService = DeAiFlavorService(
+        aiProvider: locator.aiService.currentProvider,
+      );
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()
