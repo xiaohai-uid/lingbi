@@ -5,6 +5,7 @@ import '../../services/ai_service.dart';
 import '../../services/foreshadowing_service.dart';
 import '../../services/strand_weave_service.dart';
 import '../../services/style_distillation_service.dart';
+import '../../services/web_search_service.dart';
 import '../../services/canon_service.dart';
 import '../../services/canon_linking_service.dart';
 import '../../services/document_service.dart';
@@ -106,6 +107,7 @@ class ServiceLocator {
   late final ForeshadowingService foreshadowingService;
   late final StrandWeaveService strandWeaveService;
   late final StyleDistillationService styleDistillationService;
+  late final WebSearchService webSearchService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -211,6 +213,7 @@ class ServiceLocator {
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
       );
+      locator.webSearchService = WebSearchService();
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()
