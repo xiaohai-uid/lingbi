@@ -116,6 +116,7 @@ class ServiceLocator {
 
   /// ——— 市场情报 + 云同步 ———
   late final MarketIntelService marketIntelService;
+  late final MarketIntelAnalysisService marketIntelAnalysisService;
   late final SyncManager syncManager;
 
   /// ——— 收费系统 ———
@@ -247,6 +248,10 @@ class ServiceLocator {
       // 层级 7: 市场情报 + 云同步
       final cacheDir = '${(await getApplicationDocumentsDirectory()).path}/lingbi_data/market_cache';
       locator.marketIntelService = MarketIntelService(cacheDir: cacheDir);
+      locator.marketIntelAnalysisService = MarketIntelAnalysisService(
+        metaRepository: locator.projectMetaRepository,
+        aiProvider: locator.aiService.currentProvider,
+      );
       locator.syncManager = SyncManager(
         config: locator.settingsService.webDavConfig,
       );

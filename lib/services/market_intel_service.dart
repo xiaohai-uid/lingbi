@@ -15,6 +15,9 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+
 /// 市场趋势条目 — 单个榜单作品
 class MarketTrendEntry {
   const MarketTrendEntry({
@@ -212,5 +215,249 @@ class MarketIntelService {
 
   void dispose() {
     _client.close();
+  }
+}
+
+/// AI 趋势分析结果
+class MarketIntelAnalysis {
+  const MarketIntelAnalysis({
+    required this.id,
+    required this.platform,
+    required this.crawledAt,
+    this.trends = const [],
+    this.summary = '',
+    this.openingPatterns = const [],
+    this.satisfactionDensity = '',
+  });
+
+  factory MarketIntelAnalysis.fromJson(Map<String, dynamic> json) {
+    return MarketIntelAnalysis(
+      id: json['id'] as String? ?? '',
+      platform: json['platform'] as String? ?? '',
+      crawledAt: json['crawledAt'] != null
+          ? DateTime.parse(json['crawledAt'] as String)
+          : DateTime.now(),
+      trends: (json['trends'] as List<dynamic>?)
+              ?.map((e) => GenreTrend.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      summary: json['summary'] as String? ?? '',
+      openingPatterns:
+          (json['openingPatterns'] as List<dynamic>?)?.cast<String>() ??
+              const [],
+      satisfactionDensity: json['satisfactionDensity'] as String? ?? '',
+    );
+  }
+
+  final String id;
+  final String platform;
+  final DateTime crawledAt;
+  final List<GenreTrend> trends;
+  final String summary;
+  final List<String> openingPatterns;
+  final String satisfactionDensity;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'platform': platform,
+        'crawledAt': crawledAt.toIso8601String(),
+        'trends': trends.map((t) => t.toJson()).toList(),
+        'summary': summary,
+        'openingPatterns': openingPatterns,
+        'satisfactionDensity': satisfactionDensity,
+      };
+}
+
+/// 题材趋势条目
+class GenreTrend {
+  const GenreTrend({
+    required this.genre,
+    this.tags = const [],
+    this.heatScore = 0,
+    this.patterns = const [],
+  });
+
+  factory GenreTrend.fromJson(Map<String, dynamic> json) {
+    return GenreTrend(
+      genre: json['genre'] as String? ?? '',
+      tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+      heatScore: json['heatScore'] as int? ?? 0,
+      patterns:
+          (json['patterns'] as List<dynamic>?)?.cast<String>() ?? const [],
+    );
+  }
+
+  final String genre;
+  final List<String> tags;
+  final int heatScore;
+  final List<String> patterns;
+
+  Map<String, dynamic> toJson() => {
+        'genre': genre,
+        'tags': tags,
+        'heatScore': heatScore,
+        'patterns': patterns,
+      };
+}
+
+/// 市场情报分析服务（AI 增强版）
+///
+/// 在基础 MarketIntelService 之上增加：
+/// - AI 趋势分析（调用用户 API）
+/// - 分析结果存储在 project_meta/market_intel/
+/// - ContextAssembler 可选注入
+class MarketIntelAnalysisService {
+  MarketIntelAnalysisService({
+    required IProjectMetaRepository metaRepository,
+    required AIProvider aiProvider,
+  })  : _metaRepository = metaRepository,
+        _aiProvider = aiProvider;
+
+  final IProjectMetaRepository _metaRepository;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) {
+    _aiProvider = provider;
+  }
+
+  /// 使用 AI 分析榜单数据
+  Future<MarketIntelAnalysis> analyzeTrends({
+    required String platform,
+    required MarketIntelSnapshot snapshot,
+  }) async {
+    final trendData = snapshot.trends
+        .map((t) => '${t.rank}. ${t.title} [题材:${t.genre}] '
+            '标签:${t.tags.join("/")} 热度:${t.heatScore}')
+        .join('\n');
+
+    final prompt = '''
+你是一位网文市场分析师。请分析以下$platform榜单数据，以 JSON 格式输出：
+
+{
+  "summary": "一段话总结当前市场趋势（100字以内）",
+  "trends": [
+    {"genre": "题材名", "tags": ["热门标签"], "heatScore": 95, "patterns": ["创作模式/套路"]}
+  ],
+  "openingPatterns": ["开头模式1", "开头模式2"],
+  "satisfactionDensity": "爽点密度分析（如：平均每3章一个小高潮）"
+}
+
+榜单数据：
+$trendData
+
+热门标签: ${snapshot.hotTags.join("、")}''';
+
+    try {
+      final result = await _aiProvider.chatSync(
+        messages: [
+          const ChatMessage(
+              role: 'system', content: '你是网文市场分析师，只输出 JSON。'),
+          ChatMessage(role: 'user', content: prompt),
+        ],
+      );
+
+      final jsonStr = _extractJson(result);
+      if (jsonStr != null) {
+        final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return MarketIntelAnalysis(
+          id: 'mi_${DateTime.now().millisecondsSinceEpoch}',
+          platform: platform,
+          crawledAt: snapshot.fetchedAt,
+          trends: (data['trends'] as List<dynamic>?)
+                  ?.map(
+                      (e) => GenreTrend.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              [],
+          summary: data['summary'] as String? ?? '',
+          openingPatterns:
+              (data['openingPatterns'] as List<dynamic>?)?.cast<String>() ??
+                  [],
+          satisfactionDensity:
+              data['satisfactionDensity'] as String? ?? '',
+        );
+      }
+    } catch (_) {
+      // AI 分析失败降级
+    }
+
+    return MarketIntelAnalysis(
+      id: 'mi_${DateTime.now().millisecondsSinceEpoch}',
+      platform: platform,
+      crawledAt: snapshot.fetchedAt,
+      summary: 'AI 分析未能完成，请重试。',
+    );
+  }
+
+  /// 保存分析结果到 project_meta/market_intel/
+  Future<void> saveAnalysis(
+      String projectId, MarketIntelAnalysis analysis) async {
+    await _metaRepository.write(
+      projectId,
+      'market_intel_${analysis.id}.json',
+      analysis.toJson(),
+    );
+  }
+
+  /// 加载项目所有市场情报分析
+  Future<List<MarketIntelAnalysis>> listAnalyses(
+      String projectId) async {
+    final files = await _metaRepository.list(projectId);
+    final intelFiles =
+        files.where((f) => f.startsWith('market_intel_')).toList()
+          ..sort();
+
+    final results = <MarketIntelAnalysis>[];
+    for (final file in intelFiles) {
+      final data = await _metaRepository.read(projectId, file);
+      if (data != null) {
+        results.add(MarketIntelAnalysis.fromJson(data));
+      }
+    }
+    return results;
+  }
+
+  /// 构建市场情报上下文（供 ContextAssembler 注入）
+  Future<String> buildContextText(String projectId) async {
+    final analyses = await listAnalyses(projectId);
+    if (analyses.isEmpty) return '';
+
+    final latest = analyses.last;
+    final buffer = StringBuffer();
+    buffer.writeln('【市场情报分析 — ${latest.platform}】');
+    if (latest.summary.isNotEmpty) {
+      buffer.writeln('趋势: ${latest.summary}');
+    }
+    if (latest.trends.isNotEmpty) {
+      buffer.writeln('热门题材:');
+      for (final t in latest.trends.take(5)) {
+        buffer.writeln(
+            '- ${t.genre}(热度${t.heatScore}) ${t.tags.take(3).join("/")}');
+      }
+    }
+    if (latest.openingPatterns.isNotEmpty) {
+      buffer.writeln('开头模式: ${latest.openingPatterns.join("、")}');
+    }
+    if (latest.satisfactionDensity.isNotEmpty) {
+      buffer.writeln('爽点密度: ${latest.satisfactionDensity}');
+    }
+    return buffer.toString();
+  }
+
+  String? _extractJson(String text) {
+    try {
+      jsonDecode(text);
+      return text;
+    } catch (_) {}
+
+    final codeBlockRegex = RegExp(r'```(?:json)?\s*\n?([\s\S]*?)```');
+    final match = codeBlockRegex.firstMatch(text);
+    if (match != null) return match.group(1)?.trim();
+
+    final braceStart = text.indexOf('{');
+    final braceEnd = text.lastIndexOf('}');
+    if (braceStart != -1 && braceEnd > braceStart) {
+      return text.substring(braceStart, braceEnd + 1);
+    }
+    return null;
   }
 }
