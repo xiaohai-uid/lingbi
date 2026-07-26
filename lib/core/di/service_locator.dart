@@ -36,6 +36,7 @@ import '../../services/reference_book_service.dart';
 import '../../services/task_queue_service.dart';
 import '../../services/public_benefit_service.dart';
 import '../../services/six_dimension_review_service.dart';
+import '../../services/change_propagation_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -118,6 +119,7 @@ class ServiceLocator {
   late final TaskQueueService taskQueueService;
   late final PublicBenefitService publicBenefitService;
   late final SixDimensionReviewService sixDimensionReviewService;
+  late final ChangePropagationService changePropagationService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -236,6 +238,10 @@ class ServiceLocator {
       locator.taskQueueService = TaskQueueService();
       locator.publicBenefitService = PublicBenefitService();
       locator.sixDimensionReviewService = SixDimensionReviewService(
+        aiProvider: locator.aiService.currentProvider,
+      );
+      locator.changePropagationService = ChangePropagationService(
+        vectorKnowledgeService: locator.vectorKnowledgeService,
         aiProvider: locator.aiService.currentProvider,
       );
 
