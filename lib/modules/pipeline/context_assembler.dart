@@ -79,6 +79,9 @@ abstract class ContextDataSource {
 
   /// 获取叙事线配比约束（StrandWeave）
   String getStrandConstraints(String novelId) => '';
+
+  /// 获取 RAG 语义召回上下文（向量知识库）
+  String getRagContext(String novelId, String chapterId) => '';
 }
 
 /// 章节摘要条目
@@ -145,6 +148,7 @@ class ContextAssembler {
     List<String> spoilerBlacklist = const [],
     String marketContext = '',
     String strandConstraints = '',
+    String ragContext = '',
   }) {
     // 1. 创作罗盘（永不截断）
     final compass = _compassStore.loadOrCreate();
@@ -188,6 +192,11 @@ class ContextAssembler {
         ? strandConstraints
         : _dataSource.getStrandConstraints(novelId);
 
+    // RAG 语义召回
+    final effectiveRagContext = ragContext.isNotEmpty
+        ? ragContext
+        : _dataSource.getRagContext(novelId, chapterId);
+
     // 3. 组装
     var context = GenerationContext(
       novelId: novelId,
@@ -213,6 +222,7 @@ class ContextAssembler {
       tokenBudget: _config.tokenBudget,
       marketContext: marketContext,
       strandConstraints: effectiveStrandConstraints,
+      ragContext: effectiveRagContext,
     );
 
     // 4. Token 预算裁剪
@@ -285,6 +295,7 @@ class ContextAssembler {
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
         strandConstraints: result.strandConstraints,
+        ragContext: result.ragContext,
       );
     }
 
@@ -313,6 +324,7 @@ class ContextAssembler {
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
         strandConstraints: result.strandConstraints,
+        ragContext: result.ragContext,
       );
     }
 
@@ -346,6 +358,7 @@ class ContextAssembler {
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
         strandConstraints: result.strandConstraints,
+        ragContext: result.ragContext,
       );
     }
 
@@ -376,6 +389,7 @@ class ContextAssembler {
         spoilerBlacklist: result.spoilerBlacklist,
         tokenBudget: result.tokenBudget,
         strandConstraints: result.strandConstraints,
+        ragContext: result.ragContext,
       );
     }
 
@@ -423,4 +437,7 @@ class EmptyDataSource implements ContextDataSource {
 
   @override
   String getStrandConstraints(String novelId) => '';
+
+  @override
+  String getRagContext(String novelId, String chapterId) => '';
 }

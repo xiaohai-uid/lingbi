@@ -294,4 +294,7 @@ class ProjectDataSource implements ContextDataSource {
 
   @override
   String getStrandConstraints(String novelId) => '';
+
+  @override
+  String getRagContext(String novelId, String chapterId) => '';
 }

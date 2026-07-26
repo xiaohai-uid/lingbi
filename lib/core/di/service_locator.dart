@@ -31,6 +31,7 @@ import '../../services/skill/skill_loader.dart';
 import '../../services/skill/distillation_service.dart';
 import '../../services/skill_marketplace.dart';
 import '../../services/market_intel_service.dart';
+import '../../services/vector_knowledge_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -108,6 +109,7 @@ class ServiceLocator {
   late final StrandWeaveService strandWeaveService;
   late final StyleDistillationService styleDistillationService;
   late final WebSearchService webSearchService;
+  late final VectorKnowledgeService vectorKnowledgeService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -215,6 +217,10 @@ class ServiceLocator {
         aiProvider: locator.aiService.currentProvider,
       );
       locator.webSearchService = WebSearchService();
+      locator.vectorKnowledgeService = VectorKnowledgeService(
+        metaRepository: locator.projectMetaRepository,
+        aiProvider: locator.aiService.currentProvider,
+      );
 
       // 层级 5: 技能服务（无依赖）
       locator.skillActionService = SkillActionService()

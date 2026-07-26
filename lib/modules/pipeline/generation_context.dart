@@ -312,6 +312,7 @@ class GenerationContext {
     this.tokenBudget = 8000,
     this.marketContext = '',
     this.strandConstraints = '',
+    this.ragContext = '',
   });
 
   // ─── 基础信息 ───
@@ -388,6 +389,9 @@ class GenerationContext {
 
   /// 多线叙事配比约束（StrandWeave）
   final String strandConstraints;
+
+  /// RAG 语义召回上下文（向量知识库）
+  final String ragContext;
 
   /// 粗略估算总 token 数（中文约 1.5 字/token）
   int estimateTokens() {
@@ -494,6 +498,9 @@ class GenerationContext {
     if (strandConstraints.isNotEmpty) {
       sections['叙事线配比'] = strandConstraints;
     }
+    if (ragContext.isNotEmpty) {
+      sections['知识库召回'] = ragContext;
+    }
 
     return sections;
   }
@@ -534,5 +541,6 @@ class GenerationContext {
         'token_budget': tokenBudget,
         'market_context': marketContext,
         'strand_constraints': strandConstraints,
+        'rag_context': ragContext,
       };
 }
