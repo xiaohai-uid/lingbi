@@ -231,7 +231,6 @@ class WorkflowApprovalService {
     final record = ApprovalRecord(
       targetId: targetId,
       targetType: targetType,
-      status: ApprovalStatus.draft,
       content: content,
       createdAt: now,
       updatedAt: now,

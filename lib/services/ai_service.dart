@@ -1,21 +1,21 @@
-import "dart:async";
+import 'dart:async';
 
-import "package:lingbi/services/interfaces/i_ai_service.dart";
-import "../core/ai/ai_provider.dart";
-import "../core/ai/ai_response_normalizer.dart";
-import "../core/ai/free_provider.dart";
-import "../core/ai/model_registry.dart";
-import "../core/ai/models/endpoint_config.dart";
-import "../core/ai/provider_factory.dart";
-import "../core/errors/ai_error.dart";
-import "quota_service.dart";
+import 'package:lingbi/services/interfaces/i_ai_service.dart';
+import '../core/ai/ai_provider.dart';
+import '../core/ai/ai_response_normalizer.dart';
+import '../core/ai/free_provider.dart';
+import '../core/ai/model_registry.dart';
+import '../core/ai/models/endpoint_config.dart';
+import '../core/ai/provider_factory.dart';
+import '../core/errors/ai_error.dart';
+import 'quota_service.dart';
 
 class AIService implements IAIService {
   AIService({required QuotaService quotaService}) : _quota = quotaService;
   final FreeProvider _freeProvider = FreeProvider();
   final QuotaService _quota;
-  String _currentProvider = "free";
-  String _projectContext = "";
+  String _currentProvider = 'free';
+  String _projectContext = '';
   StreamSubscription<String>? _activeSubscription;
   bool get isGenerating => _activeSubscription != null;
   final List<EndpointConfig> _endpoints = [];
@@ -31,7 +31,7 @@ class AIService implements IAIService {
   void removeEndpoint(String id) {
     _endpoints.removeWhere((e) => e.id == id);
     _providerCache.remove(id);
-    if (_currentProvider == id) _currentProvider = "free";
+    if (_currentProvider == id) _currentProvider = 'free';
   }
 
   EndpointConfig? getEndpoint(String id) {
@@ -50,7 +50,7 @@ class AIService implements IAIService {
   }
 
   AIProvider get currentProvider {
-    if (_currentProvider == "free") return _freeProvider;
+    if (_currentProvider == 'free') return _freeProvider;
     return _getOrCreateProvider(_currentProvider) ?? _freeProvider;
   }
 
@@ -82,7 +82,7 @@ class AIService implements IAIService {
       addEndpoint(EndpointConfig(
         id: provider,
         name: provider,
-        baseUrl: 'https://api.${provider}.com',
+        baseUrl: 'https://api.$provider.com',
         apiKey: key,
         protocol: protocol,
         modelId: provider == 'openai' ? 'gpt-4o' : 
@@ -96,16 +96,16 @@ class AIService implements IAIService {
   List<ChatMessage> _buildMessages(String userMessage) {
     final messages = <ChatMessage>[];
     if (_projectContext.isNotEmpty) {
-      messages.add(ChatMessage(role: "system", content: "当前项目上下文：\n$_projectContext\n\n你是一个专业的写作助手，帮助用户进行小说创作。请基于上述上下文提供帮助。"));
+      messages.add(ChatMessage(role: 'system', content: '当前项目上下文：\n$_projectContext\n\n你是一个专业的写作助手，帮助用户进行小说创作。请基于上述上下文提供帮助。'));
     } else {
-      messages.add(const ChatMessage(role: "system", content: "你是一个专业的 AI 写作助手，帮助用户进行小说创作。可以续写、改写、扩写文本，也可以分析结构和风格。"));
+      messages.add(const ChatMessage(role: 'system', content: '你是一个专业的 AI 写作助手，帮助用户进行小说创作。可以续写、改写、扩写文本，也可以分析结构和风格。'));
     }
-    messages.add(ChatMessage(role: "user", content: userMessage));
+    messages.add(ChatMessage(role: 'user', content: userMessage));
     return messages;
   }
 
   ModelInfo? get currentModelInfo {
-    return ModelRegistry.instance.findModel(currentProvider.currentModelId, providerId: _currentProvider == "free" ? null : _currentProvider);
+    return ModelRegistry.instance.findModel(currentProvider.currentModelId, providerId: _currentProvider == 'free' ? null : _currentProvider);
   }
 
   String get currentModelId => currentProvider.currentModelId;
@@ -114,7 +114,7 @@ class AIService implements IAIService {
   Stream<String> testGeneration({String? providerId, int maxTokens = 100}) async* {
     final provider = providerId != null ? _resolveProvider(providerId) : currentProvider;
     final controller = StreamController<String>();
-    _activeSubscription = provider.chat(messages: const [ChatMessage(role: "user", content: "请用一句不超过 30 字的中文，描写雨夜中的旧车站。")], maxTokens: maxTokens).listen(
+    _activeSubscription = provider.chat(messages: const [ChatMessage(role: 'user', content: '请用一句不超过 30 字的中文，描写雨夜中的旧车站。')], maxTokens: maxTokens).listen(
       (chunk) => controller.add(chunk),
       onError: (Object error) { controller.addError(AiErrorMapper.map(error, provider: providerId ?? _currentProvider)); },
       onDone: () => controller.close(),
@@ -132,11 +132,11 @@ class AIService implements IAIService {
     final provider = _resolveProvider(pid);
     final sw = Stopwatch()..start();
     try {
-      final resp = await provider.chatSync(messages: [const ChatMessage(role: "user", content: "只回复：连接成功")], maxTokens: 10);
+      final resp = await provider.chatSync(messages: [const ChatMessage(role: 'user', content: '只回复：连接成功')], maxTokens: 10);
       sw.stop();
       final t = resp.trim();
-      if (t.isEmpty) return ConnectionTestResult(success: false, latencyMs: sw.elapsedMilliseconds, modelId: modelId ?? provider.currentModelId, providerId: pid, message: "收到空响应，请检查模型配置", errorCategory: "空响应");
-      return ConnectionTestResult(success: true, latencyMs: sw.elapsedMilliseconds, modelId: modelId ?? provider.currentModelId, providerId: pid, message: "连接成功", responsePreview: _buildResponsePreview(t));
+      if (t.isEmpty) return ConnectionTestResult(success: false, latencyMs: sw.elapsedMilliseconds, modelId: modelId ?? provider.currentModelId, providerId: pid, message: '收到空响应，请检查模型配置', errorCategory: '空响应');
+      return ConnectionTestResult(success: true, latencyMs: sw.elapsedMilliseconds, modelId: modelId ?? provider.currentModelId, providerId: pid, message: '连接成功', responsePreview: _buildResponsePreview(t));
     } catch (e) {
       sw.stop();
       final cat = _classifyError(e);
@@ -145,23 +145,23 @@ class AIService implements IAIService {
   }
 
   String _buildResponsePreview(String response) {
-    final c = response.replaceAll(RegExp(r"[\r\n\t]"), " ").replaceAll(RegExp(r"[\x00-\x1F\x7F]"), "").trim();
+    final c = response.replaceAll(RegExp(r'[\r\n\t]'), ' ').replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '').trim();
     if (c.length <= 80) return c;
-    return "${c.substring(0, 77)}...";
+    return '${c.substring(0, 77)}...';
   }
 
   String _classifyError(Object e) {
     final msg = e.toString().toLowerCase();
-    if (msg.contains("401") || msg.contains("unauthorized")) return "密钥无效，请检查 API Key 是否复制完整";
-    if (msg.contains("403") || msg.contains("forbidden")) return "权限不足，请检查账户状态";
-    if (msg.contains("404") || msg.contains("not found")) return "模型不存在，请检查 modelId 配置";
-    if (msg.contains("429") || msg.contains("rate limit")) return "频率限制，请稍后重试";
-    if (msg.contains("balance") || msg.contains("insufficient") || msg.contains("余额")) return "余额不足，请充值后重试";
-    if (msg.contains("socket") || msg.contains("timeout") || msg.contains("connection") || msg.contains("network")) return "网络不可达，请检查网络连接";
-    if (msg.contains("500") || msg.contains("502") || msg.contains("503") || msg.contains("internal server")) return "服务端错误，请稍后重试";
-    if (msg.contains("empty") || msg.contains("空")) return "空响应，请检查模型配置";
-    if (msg.contains("format") || msg.contains("parse") || msg.contains("json")) return "格式异常，响应无法解析";
-    return "连接失败，请检查配置";
+    if (msg.contains('401') || msg.contains('unauthorized')) return '密钥无效，请检查 API Key 是否复制完整';
+    if (msg.contains('403') || msg.contains('forbidden')) return '权限不足，请检查账户状态';
+    if (msg.contains('404') || msg.contains('not found')) return '模型不存在，请检查 modelId 配置';
+    if (msg.contains('429') || msg.contains('rate limit')) return '频率限制，请稍后重试';
+    if (msg.contains('balance') || msg.contains('insufficient') || msg.contains('余额')) return '余额不足，请充值后重试';
+    if (msg.contains('socket') || msg.contains('timeout') || msg.contains('connection') || msg.contains('network')) return '网络不可达，请检查网络连接';
+    if (msg.contains('500') || msg.contains('502') || msg.contains('503') || msg.contains('internal server')) return '服务端错误，请稍后重试';
+    if (msg.contains('empty') || msg.contains('空')) return '空响应，请检查模型配置';
+    if (msg.contains('format') || msg.contains('parse') || msg.contains('json')) return '格式异常，响应无法解析';
+    return '连接失败，请检查配置';
   }
 
   Future<List<ModelInfo>> discoverModels(String providerId) async {
@@ -174,17 +174,17 @@ class AIService implements IAIService {
   }
 
   AIProvider _resolveProvider(String providerId) {
-    if (providerId == "free") return _freeProvider;
+    if (providerId == 'free') return _freeProvider;
     return _getOrCreateProvider(providerId) ?? _freeProvider;
   }
 
   Stream<NormalizerEvent> normalizedChat({required String message, double temperature = 0.7, int maxTokens = 2048, bool treatAllAsCandidate = false}) async* {
-    if (!_quota.tryConsume()) { yield const NormalizerError(message: "今日免费额度已用完。请配置自己的 API Key 或明天再试。"); return; }
+    if (!_quota.tryConsume()) { yield const NormalizerError(message: '今日免费额度已用完。请配置自己的 API Key 或明天再试。'); return; }
     yield* AiResponseNormalizer(treatAllAsCandidate: treatAllAsCandidate).normalize(currentProvider.chat(messages: _buildMessages(message), temperature: temperature, maxTokens: maxTokens));
   }
 
   @override Stream<String> chat({required String message, double temperature = 0.7, int maxTokens = 2048}) async* {
-    if (!_quota.tryConsume()) { yield "今日免费额度已用完（${_quota.dailyLimit}次/天）。请配置自己的 API Key 或明天再试。"; return; }
+    if (!_quota.tryConsume()) { yield '今日免费额度已用完（${_quota.dailyLimit}次/天）。请配置自己的 API Key 或明天再试。'; return; }
     final controller = StreamController<String>();
     _activeSubscription = currentProvider.chat(messages: _buildMessages(message), temperature: temperature, maxTokens: maxTokens).listen(
       (chunk) => controller.add(chunk),
@@ -197,28 +197,30 @@ class AIService implements IAIService {
 
   @override Future<String> analyzeStyle(String text) async {
     return currentProvider.chatSync(messages: [
-      const ChatMessage(role: "system", content: "你是一个文学风格分析专家。请分析以下文本的写作风格，包括：用词特点、句式结构、语气语调、修辞手法、节奏感。请用中文回复，输出结构化分析。"),
-      ChatMessage(role: "user", content: text),
+      const ChatMessage(role: 'system', content: '你是一个文学风格分析专家。请分析以下文本的写作风格，包括：用词特点、句式结构、语气语调、修辞手法、节奏感。请用中文回复，输出结构化分析。'),
+      ChatMessage(role: 'user', content: text),
     ], maxTokens: 1024);
   }
 
   @override Future<String> analyzeNovel(String text) async {
     return currentProvider.chatSync(messages: [
-      const ChatMessage(role: "system", content: "你是一个小说结构分析专家。请从以下文本中识别：角色、情节线、章节结构、叙事视角、主题、冲突类型。请用中文输出结构化报告。"),
-      ChatMessage(role: "user", content: text),
+      const ChatMessage(role: 'system', content: '你是一个小说结构分析专家。请从以下文本中识别：角色、情节线、章节结构、叙事视角、主题、冲突类型。请用中文输出结构化报告。'),
+      ChatMessage(role: 'user', content: text),
     ]);
   }
 
   @override Stream<String> continueWriting(String text) {
     return currentProvider.chat(messages: [
-      const ChatMessage(role: "system", content: "你是一个小说续写助手。请根据前文内容，自然地续写下一段。保持风格一致。"),
-      ChatMessage(role: "user", content: text),
+      const ChatMessage(role: 'system', content: '你是一个小说续写助手。请根据前文内容，自然地续写下一段。保持风格一致。'),
+      ChatMessage(role: 'user', content: text),
     ], maxTokens: 1024);
   }
 
   Future<void> dispose() async {
     await _freeProvider.dispose();
-    for (final p in _providerCache.values) await p.dispose();
+    for (final p in _providerCache.values) {
+      await p.dispose();
+    }
     _providerCache.clear();
   }
 }

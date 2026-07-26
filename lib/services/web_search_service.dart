@@ -181,6 +181,7 @@ class WebSearchService {
   SearchBackendConfig get config => _config;
 
   /// 更新搜索后端配置
+  // ignore: use_setters_to_change_properties
   void updateConfig(SearchBackendConfig config) {
     _config = config;
   }

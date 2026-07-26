@@ -258,7 +258,7 @@ $sampleText''';
     // 取前中后各一段，总计约 6000 字
     if (text.length <= 6000) return text;
 
-    final partLen = 2000;
+    const partLen = 2000;
     final start = text.substring(0, partLen);
     final midStart = (text.length - partLen) ~/ 2;
     final mid = text.substring(midStart, midStart + partLen);

@@ -298,7 +298,6 @@ class DeAiFlavorService {
       type: RuleType.word,
       pattern: '不禁',
       description: 'AI高频情感词',
-      severity: 'medium',
       category: 'emotion',
     ),
     DetectionRule(
@@ -314,7 +313,6 @@ class DeAiFlavorService {
       type: RuleType.phrase,
       pattern: '在这一刻',
       description: 'AI时间过渡套话',
-      severity: 'medium',
       category: 'transition',
     ),
     DetectionRule(
@@ -322,7 +320,6 @@ class DeAiFlavorService {
       type: RuleType.phrase,
       pattern: '仿佛一切都',
       description: 'AI总结性套话',
-      severity: 'medium',
       category: 'summary',
     ),
     DetectionRule(
@@ -346,7 +343,6 @@ class DeAiFlavorService {
       type: RuleType.phrase,
       pattern: '不由自主地',
       description: 'AI情感表达套话',
-      severity: 'medium',
       category: 'emotion',
     ),
     DetectionRule(
@@ -354,7 +350,6 @@ class DeAiFlavorService {
       type: RuleType.pattern,
       pattern: '他[的]?眼[中神].*?[闪掠]过',
       description: 'AI眼神描写模板',
-      severity: 'medium',
       category: 'description',
     ),
     DetectionRule(
@@ -362,7 +357,6 @@ class DeAiFlavorService {
       type: RuleType.pattern,
       pattern: '嘴角.*?[勾扬浮]起.*?[弧笑]',
       description: 'AI微笑描写模板',
-      severity: 'medium',
       category: 'description',
     ),
   ];

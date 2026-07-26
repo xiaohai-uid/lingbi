@@ -954,7 +954,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         modelId: modelCtrl.text.trim(),
                       );
                       ServiceLocator.instance.aiService.addEndpoint(config);
-                      final result = "连接已添加";
+                      const result = '连接已添加';
                       setDialogState(() {
                         testResult = result;
                         testing = false;

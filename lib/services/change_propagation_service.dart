@@ -242,7 +242,7 @@ class ChangePropagationService {
 
   /// 应用修复建议（返回修改后的章节内容映射）
   ///
-  /// [applyFix] 为可注入的文件写入函数（便于测试）。
+  /// [persist] 为可注入的文件写入函数（便于测试）。
   Future<Map<String, String>> applyFixes({
     required List<FixSuggestion> suggestions,
     required Map<String, String> chapterContents,

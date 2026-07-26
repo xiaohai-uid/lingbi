@@ -4,8 +4,8 @@
 /// 发送前自动清理异常字符，防止特殊字符导致请求被拒。
 class AiParamValidator {
   /// 温度范围
-  static const double minTemperature = 0.0;
-  static const double maxTemperature = 2.0;
+  static const double minTemperature = 0;
+  static const double maxTemperature = 2;
 
   /// 最大 Token 范围
   static const int minMaxTokens = 1;

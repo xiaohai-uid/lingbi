@@ -98,7 +98,7 @@ class ExportService implements IExportService {
             pw.Header(
               level: 0,
               child: pw.Text(title,
-                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
             ),
             pw.SizedBox(height: 16),
             pw.Paragraph(
@@ -121,10 +121,10 @@ class ExportService implements IExportService {
     final bodyHtml = paragraphs.map((p) {
       final lines = p.split('\n')
           .map((l) => l.trim()).where((l) => l.isNotEmpty);
-      return '<p>' + lines.join('<br/>') + '</p>';
+      return '<p>${lines.join('<br/>')}</p>';
     }).join('\n');
 
-    var sb = StringBuffer();
+    final sb = StringBuffer();
     sb.writeln('<html>');
     sb.writeln('<head>');
     sb.writeln('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">');
@@ -135,7 +135,7 @@ class ExportService implements IExportService {
     sb.writeln('</style>');
     sb.writeln('</head>');
     sb.writeln('<body>');
-    sb.writeln('<h1>' + _escapeHtml(title) + '</h1>');
+    sb.writeln('<h1>${_escapeHtml(title)}</h1>');
     sb.writeln(bodyHtml);
     sb.writeln('</body>');
     sb.writeln('</html>');

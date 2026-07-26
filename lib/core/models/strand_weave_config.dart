@@ -142,7 +142,7 @@ class StrandWeaveConfig {
 
   /// 所有比例之和
   double get totalRatio =>
-      strands.fold(0.0, (sum, s) => sum + s.ratio);
+      strands.fold(0, (sum, s) => sum + s.ratio);
 
   /// 比例是否合法（总和约等于 1.0）
   bool get isRatioValid =>

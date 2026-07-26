@@ -115,13 +115,11 @@ class AnthropicProvider extends AIProvider {
     }
 
     final buffer = StringBuffer();
-    await for (final chunk in chat(
+    await chat(
       messages: messages,
       temperature: temperature,
       maxTokens: maxTokens,
-    )) {
-      buffer.write(chunk);
-    }
+    ).forEach(buffer.write);
     return buffer.toString();
   }
 

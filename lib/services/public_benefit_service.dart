@@ -237,7 +237,6 @@ class PublicBenefitService {
       displayName: '公益 DeepSeek (免费)',
       endpoint: 'https://benefit.lingbi.app/v1',
       modelId: 'deepseek-chat',
-      contextWindow: 4096,
       capabilityNote: '基础对话能力，适合体验。长文生成质量有限。',
     ),
     BenefitModelInfo(
@@ -245,7 +244,6 @@ class PublicBenefitService {
       displayName: '公益 Qwen (免费)',
       endpoint: 'https://benefit.lingbi.app/v1',
       modelId: 'qwen-turbo',
-      contextWindow: 4096,
       capabilityNote: '轻量快速，适合短文本。复杂情节理解力有限。',
     ),
   ];

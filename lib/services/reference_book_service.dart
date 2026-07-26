@@ -8,7 +8,6 @@
 /// - 全部使用用户自己的 API Key 调用 LLM 完成分析
 library;
 
-import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
@@ -275,7 +274,7 @@ class ReferenceBookService {
 
   /// 开始/继续爬取
   ///
-  /// 从 [book.crawledChapters] 处继续，支持断点续爬。
+  /// 从 `book.crawledChapters` 处继续，支持断点续爬。
   /// [fetchChapter] 为可注入的爬取函数（便于测试）。
   Future<ReferenceBook> crawl({
     required String projectId,
@@ -330,7 +329,7 @@ class ReferenceBookService {
       book = book.copyWith(
         crawlStatus: CrawlStatus.completed,
         crawledChapters: endChapter,
-        crawlProgress: 1.0,
+        crawlProgress: 1,
         content: contentBuffer.toString(),
         updatedAt: DateTime.now().toIso8601String(),
       );

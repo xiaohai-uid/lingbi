@@ -6,7 +6,6 @@
 /// - 未配置时降级为当前默认模型
 library;
 
-import 'package:lingbi/core/ai/ai_provider.dart';
 
 // ─── 数据模型 ───
 
@@ -154,6 +153,7 @@ class ModelRouterService {
   }
 
   /// 加载配置
+  // ignore: use_setters_to_change_properties
   void loadConfig(ModelRouteConfig config) {
     _config = config;
   }
