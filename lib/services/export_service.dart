@@ -98,7 +98,8 @@ class ExportService implements IExportService {
             pw.Header(
               level: 0,
               child: pw.Text(title,
-                  style: const pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  // ignore: prefer_const_constructors
+                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
             ),
             pw.SizedBox(height: 16),
             pw.Paragraph(
