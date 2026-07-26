@@ -41,6 +41,7 @@ import '../../services/model_router_service.dart';
 import '../../services/de_ai_flavor_service.dart';
 import '../../services/drama_conversion_service.dart';
 import '../../services/parallel_world_service.dart';
+import '../../services/character_relation_graph_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -128,6 +129,7 @@ class ServiceLocator {
   late final DeAiFlavorService deAiFlavorService;
   late final DramaConversionService dramaConversionService;
   late final ParallelWorldService parallelWorldService;
+  late final CharacterRelationGraphService characterRelationGraphService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -260,6 +262,10 @@ class ServiceLocator {
         aiProvider: locator.aiService.currentProvider,
       );
       locator.parallelWorldService = ParallelWorldService(
+        metaRepository: locator.projectMetaRepository,
+        aiProvider: locator.aiService.currentProvider,
+      );
+      locator.characterRelationGraphService = CharacterRelationGraphService(
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
       );
