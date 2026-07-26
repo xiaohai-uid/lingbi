@@ -33,11 +33,31 @@ build/
 .env.local
 lingbi_data/
 
-# Documentation generated
-docs/superpowers/
+# AI workflow internals (not part of the product)
+.agents/
+.ai/
+.scratch/
+.superpowers/
+openspec/
+reports/
+community/
+coverage/
+skills-lock.json
+litellm_config.yaml
+
+# Incomplete sub-projects (not required to run the app)
+lingbi_server/
+services/
+launcher/
+docs/
+
+# Docker (not a runtime prerequisite)
+Dockerfile
+docker-compose.yml
+.dockerignore
 
 # Temp / dev scripts
 fix_*.js
 tmp_*.dart
 *.png
-*.bmp.scratch/
+*.bmp

@@ -163,46 +163,20 @@ lingbi/
 │   │   ├── sync/           # WebDAV 云同步
 │   │   └── interfaces/     # 服务接口定义
 │   ├── ui_v2/              # 新版 UI（组件化 + Design Tokens）
-│   │   ├── components/     # 可复用组件（AI助手/市场面板/ProGate）
+│   │   ├── components/     # 可复用组件（18个服务面板 + 工具箱）
 │   │   ├── pages/          # 页面（编辑器/设置/技能市场）
 │   │   └── theme/          # 主题 Tokens + 图标
 │   └── utils/
 ├── test/                   # 847 个测试用例
-├── community/skills/       # 17 个社区 Skill
-├── launcher/               # 一键启动器
 ├── installer/              # Inno Setup 安装脚本
-├── lingbi_server/          # 可选微服务（Docker 部署）
-└── docs/                   # ADR + 决策文档
+└── windows/                # Flutter Windows 平台层
 ```
-
-## 微服务（可选）
-
-灵笔为 **local-first** 架构，微服务不是运行前提。如需多设备协作或部署云端：
-
-```bash
-cp .env.example .env
-docker-compose up -d
-```
-
-详见 [DEPLOY.md](DEPLOY.md)
-
-## 贡献指南
-
-请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证
 
 [MIT](LICENSE)
 
-## 相关链接
-
-- [Release 下载](https://github.com/xiaohai-uid/lingbi/releases)
-- [领域语言 (CONTEXT.md)](CONTEXT.md)
-- [部署指南 (DEPLOY.md)](DEPLOY.md)
-- [安全说明 (SECURITY.md)](SECURITY.md)
-
 ## 安全说明
 
 - **API Key 存储**：本地 JSON (`{用户文档}/lingbi_data/settings.json`)，环境变量优先级更高。
 - **离线优先**：许可证验证、Skill 执行、写作流水线均不依赖网络。
-- **报告漏洞**：请参阅 [SECURITY.md](SECURITY.md)
