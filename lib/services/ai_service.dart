@@ -79,10 +79,13 @@ class AIService implements IAIService {
     } else if (key.isNotEmpty && provider != 'free') {
       // Auto-create endpoint for known providers (backward compatibility)
       final protocol = (provider == 'claude') ? Protocol.anthropic : Protocol.openai;
+      final baseUrl = provider == 'sensenova'
+          ? 'https://token.sensenova.cn/v1'
+          : 'https://api.$provider.com';
       addEndpoint(EndpointConfig(
         id: provider,
         name: provider,
-        baseUrl: 'https://api.$provider.com',
+        baseUrl: baseUrl,
         apiKey: key,
         protocol: protocol,
         modelId: provider == 'openai' ? 'gpt-4o' : 

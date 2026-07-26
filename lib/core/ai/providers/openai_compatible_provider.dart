@@ -66,15 +66,27 @@ class OpenAICompatibleProvider extends AIProvider {
     };
   }
 
-  /// 解析 SSE 流中的内容
-  String? _parseSseChunk(String line) {
+  /// 解析 SSE 流中的内容（支持 reasoning 思考模型）
+  ///
+  /// 返回 (content, isReasoning) 元组
+  (String, bool)? _parseSseChunk(String line) {
     if (!line.startsWith('data: ')) return null;
     final data = line.substring(6).trim();
     if (data == '[DONE]') return null;
 
     try {
       final json = jsonDecode(data);
-      return json['choices']?[0]?['delta']?['content'] as String?;
+      final delta = json['choices']?[0]?['delta'];
+      if (delta == null) return null;
+      final reasoning = delta['reasoning'] ?? delta['reasoning_content'];
+      if (reasoning != null && (reasoning as String).isNotEmpty) {
+        return (reasoning, true);
+      }
+      final content = delta['content'] as String?;
+      if (content != null && content.isNotEmpty) {
+        return (content, false);
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -117,15 +129,30 @@ class OpenAICompatibleProvider extends AIProvider {
         return;
       }
 
+      bool isReasoning = false;
       await for (final chunk
           in streamedResponse.stream.transform(utf8.decoder)) {
         for (final line in chunk.split('\n')) {
-          final content = _parseSseChunk(line);
-          if (content != null && content.isNotEmpty) {
-            yield content;
+          final parsed = _parseSseChunk(line);
+          if (parsed != null) {
+            final (text, reasoning) = parsed;
+            if (reasoning) {
+              if (!isReasoning) {
+                isReasoning = true;
+                yield '<think>';
+              }
+              yield text;
+            } else {
+              if (isReasoning) {
+                isReasoning = false;
+                yield '</think>';
+              }
+              yield text;
+            }
           }
         }
       }
+      if (isReasoning) yield '</think>';
     } on TimeoutException {
       yield '请求超时，请检查网络连接';
     } catch (e) {
@@ -163,7 +190,12 @@ class OpenAICompatibleProvider extends AIProvider {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        return json['choices']?[0]?['message']?['content'] ?? '';
+        final message = json['choices']?[0]?['message'];
+        final content = message?['content'] as String? ?? '';
+        final reasoning = (message?['reasoning'] ?? message?['reasoning_content']) as String? ?? '';
+        if (content.isNotEmpty) return content;
+        if (reasoning.isNotEmpty) return '<think>$reasoning</think>';
+        return '';
       }
       return _friendlyHttpError(response.statusCode);
     } on TimeoutException {
