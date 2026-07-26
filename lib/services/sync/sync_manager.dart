@@ -57,6 +57,20 @@ class SyncConflict {
 /// 冲突解决策略
 enum ConflictResolution { unresolved, keepLocal, keepRemote, merge }
 
+/// 本地文件信息（增量同步用）
+class LocalFileInfo {
+  const LocalFileInfo({
+    required this.content,
+    required this.lastModified,
+  });
+
+  /// 文件内容
+  final String content;
+
+  /// 最后修改时间
+  final DateTime lastModified;
+}
+
 /// 匿名数据贡献配置
 class AnalyticsConsent {
   AnalyticsConsent({
@@ -171,6 +185,99 @@ class SyncManager {
         state: SyncState.done,
         lastSyncAt: DateTime.now(),
         progress: '同步完成: $synced/$total 个文件',
+      );
+      return synced;
+    } catch (e) {
+      _status = SyncStatus(
+        state: SyncState.error,
+        error: e.toString(),
+      );
+      return 0;
+    }
+  }
+
+  /// 增量同步 — 基于文件修改时间戳，只传变更文件
+  ///
+  /// [localFiles] — 本地文件路径→(content, lastModified) 映射
+  /// [lastSyncTimestamps] — 上次同步时各文件的修改时间
+  /// 返回同步成功的文件数。
+  Future<int> syncIncremental({
+    required Map<String, LocalFileInfo> localFiles,
+    required Map<String, DateTime> lastSyncTimestamps,
+  }) async {
+    if (!isConfigured || _webDav == null) return 0;
+
+    _status = const SyncStatus(state: SyncState.syncing, progress: '扫描变更...');
+    conflicts.clear();
+
+    try {
+      // 筛选变更文件
+      final changedFiles = <String, LocalFileInfo>{};
+      for (final entry in localFiles.entries) {
+        final lastSync = lastSyncTimestamps[entry.key];
+        if (lastSync == null ||
+            entry.value.lastModified.isAfter(lastSync)) {
+          changedFiles[entry.key] = entry.value;
+        }
+      }
+
+      if (changedFiles.isEmpty) {
+        _status = SyncStatus(
+          state: SyncState.done,
+          lastSyncAt: DateTime.now(),
+          progress: '无变更文件',
+        );
+        return 0;
+      }
+
+      // 检测冲突（远端也修改了）
+      final remoteEntries = await _webDav.listDirectory('lingbi');
+      for (final remote in remoteEntries) {
+        if (remote.isCollection || remote.lastModified == null) continue;
+        final local = changedFiles[remote.path];
+        if (local != null) {
+          final lastSync = lastSyncTimestamps[remote.path];
+          if (lastSync != null &&
+              remote.lastModified!.isAfter(lastSync) &&
+              local.lastModified.isAfter(lastSync)) {
+            // 双方都修改了 — 冲突
+            conflicts.add(SyncConflict(
+              filePath: remote.path,
+              localModified: local.lastModified,
+              remoteModified: remote.lastModified!,
+              resolution: local.lastModified.isAfter(remote.lastModified!)
+                  ? ConflictResolution.keepLocal
+                  : ConflictResolution.keepRemote,
+            ));
+          }
+        }
+      }
+
+      // 上传变更文件（跳过冲突中远端更新的）
+      var synced = 0;
+      final conflictRemoteWins = conflicts
+          .where((c) => c.resolution == ConflictResolution.keepRemote)
+          .map((c) => c.filePath)
+          .toSet();
+
+      for (final entry in changedFiles.entries) {
+        if (conflictRemoteWins.contains(entry.key)) continue;
+
+        _status = SyncStatus(
+          state: SyncState.syncing,
+          progress: '同步 ${synced + 1}/${changedFiles.length}...',
+        );
+
+        final success =
+            await _webDav.uploadFile(entry.key, entry.value.content);
+        if (success) synced++;
+      }
+
+      _status = SyncStatus(
+        state: SyncState.done,
+        lastSyncAt: DateTime.now(),
+        progress: '增量同步完成: $synced 个文件'
+            '${conflicts.isNotEmpty ? ", ${conflicts.length} 个冲突" : ""}',
       );
       return synced;
     } catch (e) {
