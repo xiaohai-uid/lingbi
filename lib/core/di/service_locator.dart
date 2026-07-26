@@ -32,6 +32,7 @@ import '../../services/skill/distillation_service.dart';
 import '../../services/skill_marketplace.dart';
 import '../../services/market_intel_service.dart';
 import '../../services/vector_knowledge_service.dart';
+import '../../services/reference_book_service.dart';
 import '../../services/sync/sync_manager.dart';
 import '../../services/subscription_service.dart';
 import '../../services/license_service.dart';
@@ -110,6 +111,7 @@ class ServiceLocator {
   late final StyleDistillationService styleDistillationService;
   late final WebSearchService webSearchService;
   late final VectorKnowledgeService vectorKnowledgeService;
+  late final ReferenceBookService referenceBookService;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -218,6 +220,10 @@ class ServiceLocator {
       );
       locator.webSearchService = WebSearchService();
       locator.vectorKnowledgeService = VectorKnowledgeService(
+        metaRepository: locator.projectMetaRepository,
+        aiProvider: locator.aiService.currentProvider,
+      );
+      locator.referenceBookService = ReferenceBookService(
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
       );
