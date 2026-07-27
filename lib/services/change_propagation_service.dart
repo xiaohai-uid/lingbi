@@ -29,8 +29,7 @@ class ImpactLocation {
       chapterId: json['chapter_id'] as String? ?? '',
       paragraphIndex: json['paragraph_index'] as int? ?? 0,
       excerpt: json['excerpt'] as String? ?? '',
-      relevanceScore:
-          (json['relevance_score'] as num?)?.toDouble() ?? 0,
+      relevanceScore: (json['relevance_score'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -65,8 +64,7 @@ class ChangeImpactReport {
       settingName: json['setting_name'] as String? ?? '',
       changeDescription: json['change_description'] as String? ?? '',
       affectedLocations: (json['affected_locations'] as List?)
-              ?.map(
-                  (e) => ImpactLocation.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => ImpactLocation.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       affectedChapterIds:
@@ -88,8 +86,7 @@ class ChangeImpactReport {
         'setting_id': settingId,
         'setting_name': settingName,
         'change_description': changeDescription,
-        'affected_locations':
-            affectedLocations.map((e) => e.toJson()).toList(),
+        'affected_locations': affectedLocations.map((e) => e.toJson()).toList(),
         'affected_chapter_ids': affectedChapterIds,
         'total_affected': totalAffected,
         'analyzed_at': analyzedAt.toIso8601String(),
@@ -157,7 +154,9 @@ class ChangePropagationService {
         _aiProvider = aiProvider;
 
   final VectorKnowledgeService _vectorService;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   // ─── 1. 影响分析 ───
 
@@ -183,10 +182,8 @@ class ChangePropagationService {
     final chapterIds = <String>{};
 
     for (final r in results) {
-      final chapterId = r.entry.metadata['chapter_id'] as String? ??
-          r.entry.id;
-      final paragraphIdx =
-          r.entry.metadata['paragraph_index'] as int? ?? 0;
+      final chapterId = r.entry.metadata['chapter_id'] as String? ?? r.entry.id;
+      final paragraphIdx = r.entry.metadata['paragraph_index'] as int? ?? 0;
 
       locations.add(ImpactLocation(
         chapterId: chapterId,
@@ -256,8 +253,7 @@ class ChangePropagationService {
       if (content == null) continue;
 
       // 替换原文
-      if (fix.originalText.isNotEmpty &&
-          content.contains(fix.originalText)) {
+      if (fix.originalText.isNotEmpty && content.contains(fix.originalText)) {
         updatedContents[fix.chapterId] =
             content.replaceFirst(fix.originalText, fix.suggestedText);
       }
@@ -290,11 +286,8 @@ class ChangePropagationService {
     final result = await _aiProvider.chatSync(
       messages: [
         const ChatMessage(
-            role: 'system',
-            content: '你是小说修订专家。根据设定变更找出需要修改的段落并给出修改建议。'),
-        ChatMessage(
-            role: 'user',
-            content: '''
+            role: 'system', content: '你是小说修订专家。根据设定变更找出需要修改的段落并给出修改建议。'),
+        ChatMessage(role: 'user', content: '''
 设定变更：「$settingName」— $changeDescription
 
 请找出以下章节中需要相应修改的内容，以 JSON 数组格式输出：
@@ -310,8 +303,7 @@ $truncated'''),
     return _parseFixSuggestions(result, chapterId);
   }
 
-  List<FixSuggestion> _parseFixSuggestions(
-      String response, String chapterId) {
+  List<FixSuggestion> _parseFixSuggestions(String response, String chapterId) {
     final suggestions = <FixSuggestion>[];
     try {
       final start = response.indexOf('[');

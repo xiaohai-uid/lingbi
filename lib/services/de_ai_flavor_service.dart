@@ -126,7 +126,9 @@ class DeAiFlavorService {
   })  : _aiProvider = aiProvider,
         _rules = [..._builtinRules, ...?customRules];
 
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
   final List<DetectionRule> _rules;
 
   // ─── 1. 规则管理 ───
@@ -148,7 +150,8 @@ class DeAiFlavorService {
 
   /// 检测文本中的 AI 痕迹
   DetectionResult detect(String text) {
-    final paragraphs = text.split('\n').where((p) => p.trim().isNotEmpty).toList();
+    final paragraphs =
+        text.split('\n').where((p) => p.trim().isNotEmpty).toList();
     final hits = <DetectionHit>[];
     final suspiciousSet = <int>{};
 
@@ -194,9 +197,7 @@ class DeAiFlavorService {
               content: '你是文学编辑，擅长消除AI写作痕迹。改写时保持原意，'
                   '去除套话和模板化表达，使文本更自然、更有个人风格。'
                   '只输出改写后的文本，不要解释。'),
-          ChatMessage(
-              role: 'user',
-              content: '请改写以下段落，去除AI味：\n\n$original'),
+          ChatMessage(role: 'user', content: '请改写以下段落，去除AI味：\n\n$original'),
         ],
       );
       return RewriteResult(

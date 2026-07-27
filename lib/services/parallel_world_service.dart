@@ -105,10 +105,9 @@ class StoryBranch {
           [],
       createdAt: json['created_at'] as String? ?? '',
       status: BranchStatus.fromString(json['status'] as String? ?? 'active'),
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
     );
   }
 
@@ -225,7 +224,9 @@ class BranchTreeNode {
   final StoryBranch branch;
   final List<BranchTreeNode> children;
 
-  int get depth => children.isEmpty ? 0 : 1 + children.map((c) => c.depth).reduce((a, b) => a > b ? a : b);
+  int get depth => children.isEmpty
+      ? 0
+      : 1 + children.map((c) => c.depth).reduce((a, b) => a > b ? a : b);
 }
 
 // ─── 服务 ───
@@ -239,7 +240,9 @@ class ParallelWorldService {
         _aiProvider = aiProvider;
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   static const _storageKey = 'parallel_worlds';
   static int _idCounter = 0;
@@ -316,14 +319,12 @@ class ParallelWorldService {
   }
 
   /// 归档分支
-  Future<StoryBranch?> archiveBranch(
-      String projectId, String branchId) async {
+  Future<StoryBranch?> archiveBranch(String projectId, String branchId) async {
     return _updateStatus(projectId, branchId, BranchStatus.archived);
   }
 
   /// 标记合并
-  Future<StoryBranch?> markMerged(
-      String projectId, String branchId) async {
+  Future<StoryBranch?> markMerged(String projectId, String branchId) async {
     return _updateStatus(projectId, branchId, BranchStatus.merged);
   }
 
@@ -335,8 +336,7 @@ class ParallelWorldService {
     return _buildTreeNodes(branches, '');
   }
 
-  List<BranchTreeNode> _buildTreeNodes(
-      List<StoryBranch> all, String parentId) {
+  List<BranchTreeNode> _buildTreeNodes(List<StoryBranch> all, String parentId) {
     final children = all.where((b) => b.parentBranchId == parentId).toList();
     return children.map((b) {
       return BranchTreeNode(
@@ -359,10 +359,9 @@ class ParallelWorldService {
     if (branchA == null || branchB == null) return [];
 
     final diffs = <BranchDiffEntry>[];
-    final maxLen =
-        branchA.chapters.length > branchB.chapters.length
-            ? branchA.chapters.length
-            : branchB.chapters.length;
+    final maxLen = branchA.chapters.length > branchB.chapters.length
+        ? branchA.chapters.length
+        : branchB.chapters.length;
 
     for (var i = 0; i < maxLen; i++) {
       final hasA = i < branchA.chapters.length;
@@ -448,8 +447,8 @@ class ParallelWorldService {
     String branchId, {
     String styleHint = '国漫',
   }) async {
-    final prompt = await buildDramaPrompt(projectId, branchId,
-        styleHint: styleHint);
+    final prompt =
+        await buildDramaPrompt(projectId, branchId, styleHint: styleHint);
     if (prompt.isEmpty) return '';
 
     try {

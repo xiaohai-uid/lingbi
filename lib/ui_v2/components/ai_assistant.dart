@@ -6,7 +6,7 @@ import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
-import 'model_status_bar.dart';
+import 'model_selector.dart';
 
 class _ChatMessage {
 
@@ -393,7 +393,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
           if (_guidedMode) _buildGuidedProgressBar(c),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
-            child: ModelStatusBar(compact: true),
+            child: ModelSelector(compact: true),
           ),
           _buildTabs(c),
           Expanded(
