@@ -610,7 +610,25 @@ Commit: `feat: complete Windows trusted writing loop`
 - [ ] Verify clean install, upgrade, uninstall-with-data-preserved, and rollback in disposable Windows profiles.
 - [ ] Commit: `build: add Windows release and migration gates`
 
-### Task 27: Final Commercial Verification and Publication
+### Task 27: Live Provider and User-Journey Acceptance
+
+**Files:**
+- Create: `integration_test/commercial_user_journey_test.dart`
+- Create: `tool/eval/run_live_provider_acceptance.dart`
+- Create: `docs/qa/live-provider-acceptance-report.md`
+
+**Interfaces:**
+- The live harness reads an API credential only through a protected local credential alias or process environment; it never accepts a key on the command line and never prints, persists, exports, or snapshots the value.
+- Live requests are bounded by an explicit maximum request count and token budget, and write only redacted provider/model/status/latency evidence.
+
+- [ ] Write RED tests proving the harness refuses missing credentials, redacts authorization headers, caps usage, and cannot include manuscript/API secrets in logs.
+- [ ] Add user-perspective journeys for first launch, every project entry, every primary navigation item, all 31 capability states, model switching, offline fallback, error recovery, export/reimport, and restart resume.
+- [ ] Run deterministic fake-provider journeys first, then use the protected free API for bounded live generation, review, style, continuity, routing, and adaptation checks.
+- [ ] Record functional result, actual provider/model, latency, recoverability, and user-visible next action for every journey.
+- [ ] Keep any feature with failed or missing live evidence disabled or labelled `BLOCKED_EXTERNAL`; do not mark the release commercial-ready.
+- [ ] Commit: `test: add live commercial user acceptance`
+
+### Task 28: Final Commercial Verification and Publication
 
 **Files:**
 - Create: `docs/qa/commercial-release-report.md`
@@ -622,6 +640,7 @@ Commit: `feat: complete Windows trusted writing loop`
 - [ ] Run `flutter analyze lib/` and record zero errors.
 - [ ] Run full `flutter test` and record count/failures.
 - [ ] Run long-form and professional evaluation suites.
+- [ ] Run live-provider user journeys and verify the acceptance report contains no credential or manuscript content.
 - [ ] Run `flutter build windows --release` and record artifact checksum.
 - [ ] Check `git diff`, stage only project-owned changes, and create final commits.
 - [ ] Push `verify/batch1-20260724` to `origin`.
