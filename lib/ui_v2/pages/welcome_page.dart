@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import '../models/project_template.dart';
 
 class WelcomePage extends StatelessWidget {
-
   const WelcomePage({
     super.key,
     required this.onCreateProject,
     required this.onOpenProject,
     required this.onOpenSkillMarket,
   });
-  final VoidCallback onCreateProject;
+  final ValueChanged<ProjectTemplate> onCreateProject;
   final VoidCallback onOpenProject;
   final VoidCallback onOpenSkillMarket;
 
@@ -97,7 +97,7 @@ class WelcomePage extends StatelessWidget {
     return SizedBox(
       height: 48,
       child: ElevatedButton.icon(
-        onPressed: onCreateProject,
+        onPressed: () => onCreateProject(ProjectTemplate.freeform),
         icon: const Icon(LingBiIcons.add, size: 20),
         label: const Text('新建项目'),
         style: ElevatedButton.styleFrom(
@@ -134,25 +134,17 @@ class WelcomePage extends StatelessWidget {
   }
 
   Widget _buildTemplateGrid(LingBiColors c) {
-    final templates = [
-      const _TemplateData('玄幻', '神秘大陆、修仙之路', Icons.auto_stories_outlined),
-      const _TemplateData('都市', '现代都市、职场商战', Icons.business_outlined),
-      const _TemplateData('悬疑', '推理探案、心理惊悚', Icons.search_outlined),
-      const _TemplateData('言情', '浪漫爱情、情感纠葛', Icons.favorite_outline),
-      const _TemplateData('科幻', '未来世界、星际冒险', Icons.rocket_launch_outlined),
-      const _TemplateData('历史', '古代王朝、历史演绎', Icons.account_balance_outlined),
-    ];
-
     return Wrap(
       spacing: LingBiTokens.space3,
       runSpacing: LingBiTokens.space3,
-      children: templates.map((t) => _buildTemplateCard(t, c)).toList(),
+      children:
+          ProjectTemplate.values.map((t) => _buildTemplateCard(t, c)).toList(),
     );
   }
 
-  Widget _buildTemplateCard(_TemplateData t, LingBiColors c) {
+  Widget _buildTemplateCard(ProjectTemplate t, LingBiColors c) {
     return InkWell(
-      onTap: onCreateProject,
+      onTap: () => onCreateProject(t),
       borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
       child: Container(
         width: 220,
@@ -170,7 +162,7 @@ class WelcomePage extends StatelessWidget {
             Icon(t.icon, size: 24, color: c.accent),
             const SizedBox(height: LingBiTokens.space3),
             Text(
-              t.title,
+              t.genreLabel,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -179,7 +171,7 @@ class WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: LingBiTokens.space1),
             Text(
-              t.desc,
+              t.description,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
@@ -198,7 +190,8 @@ class WelcomePage extends StatelessWidget {
       children: [
         _buildActionChip(c, LingBiIcons.upload, '导入已有作品', onTap: onOpenProject),
         const SizedBox(width: LingBiTokens.space3),
-        _buildActionChip(c, LingBiIcons.skillMarket, '浏览技能市场', onTap: onOpenSkillMarket),
+        _buildActionChip(c, LingBiIcons.skillMarket, '浏览技能市场',
+            onTap: onOpenSkillMarket),
       ],
     );
   }
@@ -222,11 +215,4 @@ class WelcomePage extends StatelessWidget {
       ),
     );
   }
-}
-
-class _TemplateData {
-  const _TemplateData(this.title, this.desc, this.icon);
-  final String title;
-  final String desc;
-  final IconData icon;
 }
