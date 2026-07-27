@@ -75,15 +75,14 @@ class ApprovalRecord {
       targetId: json['target_id'] as String? ?? '',
       targetType: ApprovalTargetType.fromString(
           json['target_type'] as String? ?? 'chapter'),
-      status:
-          ApprovalStatus.fromString(json['status'] as String? ?? 'draft'),
+      status: ApprovalStatus.fromString(json['status'] as String? ?? 'draft'),
       feedback: json['feedback'] as String? ?? '',
       content: json['content'] as String? ?? '',
       createdAt: json['created_at'] as String? ?? '',
       updatedAt: json['updated_at'] as String? ?? '',
       history: (json['history'] as List<dynamic>?)
-              ?.map((e) => ApprovalHistoryEntry.fromJson(
-                  e as Map<String, dynamic>))
+              ?.map((e) =>
+                  ApprovalHistoryEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
@@ -173,8 +172,7 @@ class InvalidTransitionException implements Exception {
   final ApprovalStatus to;
 
   @override
-  String toString() =>
-      'InvalidTransition: ${from.label} → ${to.label} 不合法';
+  String toString() => 'InvalidTransition: ${from.label} → ${to.label} 不合法';
 }
 
 /// 缺少修改意见异常
@@ -194,7 +192,9 @@ class WorkflowApprovalService {
         _aiProvider = aiProvider;
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   static const _storageKey = 'workflow_approvals';
 
@@ -259,9 +259,7 @@ class WorkflowApprovalService {
   /// 获取待审列表
   Future<List<ApprovalRecord>> getPendingList(String projectId) async {
     final records = await listRecords(projectId);
-    return records
-        .where((r) => r.status == ApprovalStatus.pending)
-        .toList();
+    return records.where((r) => r.status == ApprovalStatus.pending).toList();
   }
 
   // ─── 2. 状态流转 ───

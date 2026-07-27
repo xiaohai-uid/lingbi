@@ -139,14 +139,12 @@ class ReviewReport {
     return ReviewReport(
       chapterId: json['chapter_id'] as String? ?? '',
       scores: (json['scores'] as List?)
-              ?.map(
-                  (e) => DimensionScore.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => DimensionScore.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       overallScore: json['overall_score'] as int? ?? 0,
       summary: json['summary'] as String? ?? '',
-      fixSuggestions:
-          (json['fix_suggestions'] as List?)?.cast<String>() ?? [],
+      fixSuggestions: (json['fix_suggestions'] as List?)?.cast<String>() ?? [],
       reviewedAt: DateTime.tryParse(json['reviewed_at'] as String? ?? ''),
     );
   }
@@ -172,8 +170,7 @@ class ReviewReport {
       scores.where((s) => s.isLow).toList();
 
   /// 获取所有问题
-  List<ReviewIssue> get allIssues =>
-      scores.expand((s) => s.issues).toList();
+  List<ReviewIssue> get allIssues => scores.expand((s) => s.issues).toList();
 
   Map<String, dynamic> toJson() => {
         'chapter_id': chapterId,
@@ -195,7 +192,9 @@ class SixDimensionReviewService {
     this.lowScoreThreshold = 5,
   }) : _aiProvider = aiProvider;
 
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   /// 是否生成后自动审稿
   final bool autoReview;
@@ -216,8 +215,7 @@ class SixDimensionReviewService {
     final result = await _aiProvider.chatSync(
       messages: [
         const ChatMessage(
-            role: 'system',
-            content: '你是网文质量审稿专家。严格按 JSON 格式输出六维评分。'),
+            role: 'system', content: '你是网文质量审稿专家。严格按 JSON 格式输出六维评分。'),
         ChatMessage(role: 'user', content: prompt),
       ],
     );
@@ -252,8 +250,7 @@ class SixDimensionReviewService {
     try {
       final result = await _aiProvider.chatSync(
         messages: [
-          const ChatMessage(
-              role: 'system', content: '你是网文修改顾问，输出具体可操作的修改建议。'),
+          const ChatMessage(role: 'system', content: '你是网文修改顾问，输出具体可操作的修改建议。'),
           ChatMessage(
               role: 'user',
               content: '以下章节在六维审稿中得分较低，请给出具体修改建议：\n\n'

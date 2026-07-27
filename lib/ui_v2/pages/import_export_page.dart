@@ -5,12 +5,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import 'recovery_center_page.dart';
 
 class ImportExportPage extends StatefulWidget {
-
   const ImportExportPage({super.key, this.projectId});
   final String? projectId;
-
 
   @override
   State<ImportExportPage> createState() => _ImportExportPageState();
@@ -39,20 +38,25 @@ class _ImportExportPageState extends State<ImportExportPage> {
       _showSnack('当前项目没有文档');
       return null;
     }
-    final content =
-        await ServiceLocator.instance.documentService.readContent(docs.first.filePath);
+    final content = await ServiceLocator.instance.documentService
+        .readContent(docs.first.filePath);
     return (content: content, title: docs.first.title);
   }
 
   /// 获取项目所有文档内容
-  Future<({Map<String, String> contents, List<dynamic> docs, String projectName})?>
-      _getAllDocContents() async {
+  Future<
+      ({
+        Map<String, String> contents,
+        List<dynamic> docs,
+        String projectName
+      })?> _getAllDocContents() async {
     final pid = widget.projectId;
     if (pid == null) {
       _showSnack('请先打开一个项目');
       return null;
     }
-    final project = await ServiceLocator.instance.projectService.getProject(pid);
+    final project =
+        await ServiceLocator.instance.projectService.getProject(pid);
     if (project == null) {
       _showSnack('项目不存在');
       return null;
@@ -65,8 +69,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
     }
     final contents = <String, String>{};
     for (final doc in docs) {
-      contents[doc.id] =
-          await ServiceLocator.instance.documentService.readContent(doc.filePath);
+      contents[doc.id] = await ServiceLocator.instance.documentService
+          .readContent(doc.filePath);
     }
     return (contents: contents, docs: docs, projectName: project.name);
   }
@@ -146,10 +150,6 @@ class _ImportExportPageState extends State<ImportExportPage> {
     }
   }
 
-  Future<void> _exportDocx() async {
-    _showSnack('Word 导出功能开发中');
-  }
-
   // ── 导入操作 ──
 
   Future<void> _pickAndImportFile() async {
@@ -164,18 +164,13 @@ class _ImportExportPageState extends State<ImportExportPage> {
       final result = await FilePicker.platform.pickFiles(
         dialogTitle: '选择导入文件',
         type: FileType.custom,
-        allowedExtensions: const ['md', 'txt', 'docx'],
+        allowedExtensions: const ['md', 'txt'],
       );
       if (result == null || result.files.isEmpty) return;
       final file = result.files.first;
       final path = file.path;
       if (path == null) {
         _showSnack('无法读取文件路径');
-        return;
-      }
-      final ext = path.split('.').last.toLowerCase();
-      if (ext == 'docx') {
-        _showSnack('Word 格式导入开发中');
         return;
       }
       final content = await File(path).readAsString();
@@ -216,8 +211,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
         dialogTitle: '选择导出目录',
       );
       if (outputDir == null) return;
-      final project =
-          await ServiceLocator.instance.projectService.getProject(widget.projectId!);
+      final project = await ServiceLocator.instance.projectService
+          .getProject(widget.projectId!);
       if (project == null) return;
       final docs = await ServiceLocator.instance.documentService
           .getDocuments(widget.projectId!);
@@ -243,12 +238,40 @@ class _ImportExportPageState extends State<ImportExportPage> {
         dialogTitle: '选择项目文件夹',
       );
       if (dirPath == null) return;
-      final result =
-          await ServiceLocator.instance.projectService.openPortableProject(dirPath);
+      final result = await ServiceLocator.instance.projectService
+          .openPortableProject(dirPath);
       ServiceLocator.instance.projectTabController.openProject(result.project);
       _showSnack('项目导入成功: ${result.project.name}');
     } catch (e) {
       _showSnack('导入失败: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _importProjectPackage() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final selected = await FilePicker.platform.pickFiles(
+        dialogTitle: '选择灵笔项目包',
+        type: FileType.custom,
+        allowedExtensions: const ['zip'],
+      );
+      final packagePath = selected?.files.single.path;
+      if (packagePath == null) return;
+      final destination = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: '选择空目录以恢复项目',
+      );
+      if (destination == null) return;
+      await ServiceLocator.instance.portableProjectPackageService
+          .importPackage(packagePath, destination);
+      final opened = await ServiceLocator.instance.projectService
+          .openPortableProject(destination);
+      ServiceLocator.instance.projectTabController.openProject(opened.project);
+      _showSnack('项目包已校验并恢复: ${opened.project.name}');
+    } catch (e) {
+      _showSnack('项目包导入失败: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -263,29 +286,19 @@ class _ImportExportPageState extends State<ImportExportPage> {
     }
     setState(() => _busy = true);
     try {
-      final data = await _getAllDocContents();
-      if (data == null) return;
-      final outputDir = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: '选择备份目录',
-      );
-      if (outputDir == null) return;
       final project =
           await ServiceLocator.instance.projectService.getProject(pid);
       if (project == null) return;
-      final docs =
-          await ServiceLocator.instance.documentService.getDocuments(pid);
-      final timestamp = DateTime.now()
-          .toIso8601String()
-          .replaceAll(':', '-')
-          .replaceAll('.', '-');
-      final backupDir = '$outputDir/${data.projectName}_backup_$timestamp';
-      await ServiceLocator.instance.exportService.exportProjectToDirectory(
-        project: project,
-        documents: docs,
-        contents: data.contents,
-        outputDir: backupDir,
+      final packagePath = await FilePicker.platform.saveFile(
+        dialogTitle: '导出可恢复项目包',
+        fileName: '${project.name}.lingbi.zip',
+        type: FileType.custom,
+        allowedExtensions: const ['zip'],
       );
-      _showSnack('备份已保存到 $backupDir');
+      if (packagePath == null) return;
+      await ServiceLocator.instance.portableProjectPackageService
+          .exportPackage(project.directoryPath, packagePath);
+      _showSnack('完整项目包已校验并保存');
     } catch (e) {
       _showSnack('备份失败: $e');
     } finally {
@@ -314,6 +327,19 @@ class _ImportExportPageState extends State<ImportExportPage> {
                       _buildImportSection(c),
                       const SizedBox(height: LingBiTokens.space10),
                       _buildBatchSection(c),
+                      if (widget.projectId != null) ...[
+                        const SizedBox(height: LingBiTokens.space10),
+                        Text(
+                          '恢复中心',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: c.fg,
+                          ),
+                        ),
+                        const SizedBox(height: LingBiTokens.space4),
+                        RecoveryCenterPage(projectId: widget.projectId!),
+                      ],
                     ],
                   ),
                 ),
@@ -369,13 +395,14 @@ class _ImportExportPageState extends State<ImportExportPage> {
         const SizedBox(height: LingBiTokens.space4),
         Row(
           children: [
-            _buildFormatCard(c, 'Markdown', '.md', LingBiIcons.download, _exportMarkdown),
+            _buildFormatCard(
+                c, 'Markdown', '.md', LingBiIcons.download, _exportMarkdown),
             const SizedBox(width: LingBiTokens.space4),
-            _buildFormatCard(c, '纯文本', '.txt', LingBiIcons.download, _exportTxt),
+            _buildFormatCard(
+                c, '纯文本', '.txt', LingBiIcons.download, _exportTxt),
             const SizedBox(width: LingBiTokens.space4),
-            _buildFormatCard(c, 'PDF', '.pdf', LingBiIcons.download, _exportPdf),
-            const SizedBox(width: LingBiTokens.space4),
-            _buildFormatCard(c, 'Word', '.docx', LingBiIcons.download, _exportDocx),
+            _buildFormatCard(
+                c, 'PDF', '.pdf', LingBiIcons.download, _exportPdf),
           ],
         ),
       ],
@@ -471,7 +498,7 @@ class _ImportExportPageState extends State<ImportExportPage> {
               ),
               const SizedBox(height: LingBiTokens.space2),
               Text(
-                '支持 Markdown (.md)、纯文本 (.txt)、Word (.docx) 格式',
+                '支持 Markdown (.md)、纯文本 (.txt) 格式',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
@@ -517,11 +544,17 @@ class _ImportExportPageState extends State<ImportExportPage> {
         const SizedBox(height: LingBiTokens.space4),
         Row(
           children: [
-            _buildBatchCard(c, '导出全部章节', '将所有章节合并导出', LingBiIcons.download, _exportAllChapters),
+            _buildBatchCard(c, '导出全部章节', '将所有章节合并导出', LingBiIcons.download,
+                _exportAllChapters),
             const SizedBox(width: LingBiTokens.space4),
-            _buildBatchCard(c, '导入项目文件夹', '导入包含多文件的文件夹', LingBiIcons.upload, _importProjectFolder),
+            _buildBatchCard(c, '导入项目文件夹', '导入包含多文件的文件夹', LingBiIcons.upload,
+                _importProjectFolder),
             const SizedBox(width: LingBiTokens.space4),
-            _buildBatchCard(c, '备份项目', '创建完整项目备份', LingBiIcons.save, _backupProject),
+            _buildBatchCard(c, '导入项目包', '校验完整性后恢复到空目录', LingBiIcons.upload,
+                _importProjectPackage),
+            const SizedBox(width: LingBiTokens.space4),
+            _buildBatchCard(
+                c, '备份项目', '创建带校验清单的完整项目包', LingBiIcons.save, _backupProject),
           ],
         ),
       ],

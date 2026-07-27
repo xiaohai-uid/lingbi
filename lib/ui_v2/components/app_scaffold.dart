@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/domain/project/project_asset.dart';
+import 'package:lingbi/ui_v2/models/project_template.dart';
 import 'package:lingbi/utils/paths.dart';
 import '../theme/tokens.dart';
 import 'sidebar.dart';
@@ -12,17 +15,18 @@ import 'ai_assistant.dart';
 import 'project_tabs.dart';
 import '../pages/welcome_page.dart';
 import '../pages/editor_page.dart';
-import '../pages/canon_page.dart';
 import '../pages/storyboard_page.dart';
-import '../pages/version_history_page.dart';
 import '../pages/import_export_page.dart';
-import '../pages/settings_page.dart';
+import '../pages/project_overview_page.dart';
+import '../pages/project_onboarding_page.dart';
 import '../pages/skill_market_page.dart';
-import '../pages/guided_flow_page.dart';
+import '../pages/settings_page.dart';
+import '../services/command_palette_service.dart';
 import 'toolbox_page.dart';
+import 'project_brief_sheet.dart';
+import 'command_palette.dart';
 
 class AppScaffold extends StatefulWidget {
-
   const AppScaffold({
     super.key,
     required this.isDarkMode,
@@ -40,14 +44,13 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _aiPanelVisible = true;
   bool _hasProject = false;
   bool _showingSkillMarket = false;
-  bool _showingGuidedFlow = false;
-  String _guidedFlowProjectId = '';
-  String _guidedFlowProjectName = '';
-  String _guidedFlowId = 'default-long';
+  bool _showingSettings = false;
+  bool _showProjectOnboarding = false;
   int _sidebarIndex = 0;
-  ProjectTab _currentTab = ProjectTab.editor;
+  ProjectTab _currentTab = ProjectTab.overview;
   Project? _currentProject;
   Document? _currentDocument;
+  final CommandPaletteService _commandService = CommandPaletteService();
 
   @override
   void initState() {
@@ -57,8 +60,8 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   @override
   void dispose() {
-    ServiceLocator.instance.projectTabController
-        .removeListener(_onTabsChanged);
+    ServiceLocator.instance.projectTabController.removeListener(_onTabsChanged);
+    _commandService.dispose();
     super.dispose();
   }
 
@@ -81,6 +84,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       setState(() {
         _hasProject = false;
         _showingSkillMarket = false;
+        _showProjectOnboarding = false;
         _currentProject = null;
         _currentDocument = null;
       });
@@ -97,8 +101,10 @@ class _AppScaffoldState extends State<AppScaffold> {
   void _toggleSidebar() => setState(() => _sidebarVisible = !_sidebarVisible);
   void _toggleAiPanel() => setState(() => _aiPanelVisible = !_aiPanelVisible);
 
-  void _openSkillMarket() =>
-      setState(() => _showingSkillMarket = !_showingSkillMarket);
+  void _openSkillMarket() => setState(() {
+        _showingSettings = false;
+        _showingSkillMarket = !_showingSkillMarket;
+      });
 
   /// Collapse all project tabs → back to welcome screen
   void _collapseNavigation() {
@@ -106,137 +112,96 @@ class _AppScaffoldState extends State<AppScaffold> {
     setState(() {
       _hasProject = false;
       _showingSkillMarket = false;
+      _showingSettings = false;
+      _showProjectOnboarding = false;
       _currentProject = null;
       _currentDocument = null;
     });
   }
 
-  Future<void> _createProject() async {
-    final nameController = TextEditingController();
-    final descController = TextEditingController();
-    String selectedPlatform = '';
-    String selectedGenre = '';
-    final audienceController = TextEditingController();
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('新建项目'),
-          content: SizedBox(
-            width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: '项目名称',
-                    hintText: '例如：我的小说',
-                  ),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: descController,
-                  decoration: const InputDecoration(labelText: '项目描述（可选）'),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: selectedPlatform.isEmpty ? null : selectedPlatform,
-                        decoration: const InputDecoration(labelText: '目标平台'),
-                        items: const [
-                          DropdownMenuItem(value: '起点', child: Text('起点')),
-                          DropdownMenuItem(value: '番茄', child: Text('番茄')),
-                          DropdownMenuItem(value: '七猫', child: Text('七猫')),
-                          DropdownMenuItem(value: '其他', child: Text('其他')),
-                        ],
-                        onChanged: (v) => setDialogState(() => selectedPlatform = v ?? ''),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: selectedGenre.isEmpty ? null : selectedGenre,
-                        decoration: const InputDecoration(labelText: '题材'),
-                        items: const [
-                          DropdownMenuItem(value: '玄幻', child: Text('玄幻')),
-                          DropdownMenuItem(value: '都市', child: Text('都市')),
-                          DropdownMenuItem(value: '悬疑', child: Text('悬疑')),
-                          DropdownMenuItem(value: '言情', child: Text('言情')),
-                          DropdownMenuItem(value: '科幻', child: Text('科幻')),
-                          DropdownMenuItem(value: '历史', child: Text('历史')),
-                        ],
-                        onChanged: (v) => setDialogState(() => selectedGenre = v ?? ''),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: audienceController,
-                  decoration: const InputDecoration(
-                    labelText: '读者画像（可选）',
-                    hintText: '例如：18-25岁男性、喜欢爽文',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  Navigator.pop(ctx, {
-                    'name': nameController.text,
-                    'description': descController.text,
-                    'targetPlatform': selectedPlatform,
-                    'genre': selectedGenre,
-                    'audience': audienceController.text,
-                  });
-                }
-              },
-              child: const Text('创建'),
-            ),
-          ],
-        ),
-      ),
+  void _executeCommand(AppCommand command) {
+    switch (command) {
+      case AppCommand.newProject:
+        _collapseNavigation();
+        return;
+      case AppCommand.openProject:
+        _openProject();
+        return;
+      case AppCommand.commandPalette:
+        CommandPalette.show(context, onSelected: _executeCommand);
+        return;
+      case AppCommand.toggleAi:
+        _toggleAiPanel();
+        return;
+      case AppCommand.settings:
+        setState(() {
+          _showingSkillMarket = false;
+          _showingSettings = true;
+        });
+        return;
+      case AppCommand.save:
+        _commandService.dispatch(AppCommand.save);
+        return;
+      case AppCommand.dismiss:
+        if (_showingSettings || _showingSkillMarket) {
+          setState(() {
+            _showingSettings = false;
+            _showingSkillMarket = false;
+          });
+        }
+        return;
+    }
+  }
+
+  Widget _commandShell(Widget child) {
+    final bindings = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+          _executeCommand(AppCommand.newProject),
+      const SingleActivator(LogicalKeyboardKey.keyO, control: true): () =>
+          _executeCommand(AppCommand.openProject),
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+          _executeCommand(AppCommand.commandPalette),
+      const SingleActivator(LogicalKeyboardKey.keyA,
+          control: true,
+          shift: true): () => _executeCommand(AppCommand.toggleAi),
+      const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
+          _executeCommand(AppCommand.settings),
+      const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
+          _executeCommand(AppCommand.save),
+      if (_showingSettings || _showingSkillMarket)
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            _executeCommand(AppCommand.dismiss),
+    };
+    return CallbackShortcuts(
+      bindings: bindings,
+      child: Focus(autofocus: true, child: child),
+    );
+  }
+
+  Future<void> _createProject(ProjectTemplate template) async {
+    final result = await ProjectBriefSheet.show(
+      context,
+      template: template,
     );
 
     if (result != null && mounted) {
       try {
         final projectDir =
-            '${resolveDefaultProjectRoot()}${Platform.pathSeparator}${result['name']!}';
+            '${resolveDefaultProjectRoot()}${Platform.pathSeparator}${result.title}';
 
-        final project = await ServiceLocator.instance.projectService
-            .createPortableProject(
-          name: result['name']!,
-          description: result['description'] ?? '',
+        final project =
+            await ServiceLocator.instance.projectService.createPortableProject(
           directoryPath: projectDir,
+          brief: result,
         );
-
-        // 设置市场定位字段
-        project.targetPlatform = result['targetPlatform'] ?? '';
-        project.genre = result['genre'] ?? '';
-        project.audience = result['audience'] ?? '';
 
         ServiceLocator.instance.projectTabController.openProject(project);
 
         setState(() {
           _hasProject = true;
           _currentProject = project;
-          // 创建项目后自动进入全屏引导（按题材匹配专属 Skill）
-          _showingGuidedFlow = true;
-          _guidedFlowProjectId = project.id;
-          _guidedFlowProjectName = project.name;
-          _guidedFlowId = _resolveFlowId(project.genre);
+          _currentTab = ProjectTab.overview;
+          _showProjectOnboarding = true;
         });
       } catch (e) {
         if (mounted) {
@@ -246,15 +211,6 @@ class _AppScaffoldState extends State<AppScaffold> {
         }
       }
     }
-  }
-
-  /// 按题材解析引导流程 flowId
-  ///
-  /// 有对应题材 Skill 时使用专属流程，否则降级到通用长篇流程。
-  String _resolveFlowId(String genre) {
-    final loader = ServiceLocator.instance.guidedFlowSkillLoader;
-    final flowId = loader.findFlowIdByGenre(genre);
-    return flowId ?? 'default-long';
   }
 
   Future<void> _openProject() async {
@@ -283,6 +239,8 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = result.project;
+          _currentTab = ProjectTab.overview;
+          _showProjectOnboarding = false;
         });
 
         if (mounted) {
@@ -307,152 +265,191 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
-
-    // 全屏引导模式（创建项目后）
-    if (_showingGuidedFlow) {
-      return Material(
-        color: c.bg,
-        child: GuidedFlowPage(
-          projectId: _guidedFlowProjectId,
-          projectName: _guidedFlowProjectName,
-          flowId: _guidedFlowId,
-          onComplete: () => setState(() => _showingGuidedFlow = false),
-          onSkip: () => setState(() => _showingGuidedFlow = false),
-        ),
-      );
-    }
-
-    if (!_hasProject && !_showingSkillMarket) {
-      return Material(
+    late final Widget content;
+    if (_showingSettings) {
+      content = Material(
         color: c.bg,
         child: Column(
-        children: [
-          TopBar(
-            isDarkMode: widget.isDarkMode,
-            aiPanelVisible: _aiPanelVisible,
-            sidebarVisible: _sidebarVisible,
-            onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-            onToggleAiPanel: _toggleAiPanel,
-            onToggleSidebar: _toggleSidebar,
-            onSkillMarket: _openSkillMarket,
-            onSearch: _onSearch,
-            onProjectSwitch: _onProjectSwitch,
-            onCloseTab: _onCloseTab,
-          ),
-          Expanded(
-            child: WelcomePage(
-              onCreateProject: _createProject,
-              onOpenProject: _openProject,
-              onOpenSkillMarket: _openSkillMarket,
-            ),
-          ),
-        ],
-      ),
+          children: [
+            _buildTopBar(),
+            const Expanded(child: SettingsPage()),
+          ],
+        ),
       );
-    }
-
-    if (_showingSkillMarket) {
-      return Material(
+    } else if (!_hasProject && !_showingSkillMarket) {
+      content = Material(
         color: c.bg,
         child: Column(
-        children: [
-          TopBar(
-            isDarkMode: widget.isDarkMode,
-            aiPanelVisible: _aiPanelVisible,
-            sidebarVisible: _sidebarVisible,
-            onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-            onToggleAiPanel: _toggleAiPanel,
-            onToggleSidebar: _toggleSidebar,
-            onSkillMarket: _openSkillMarket,
-            onSearch: _onSearch,
-            onProjectSwitch: _onProjectSwitch,
-            onCloseTab: _onCloseTab,
-          ),
-          Expanded(
-            child: SkillMarketPage(
-              onBack: () => setState(() => _showingSkillMarket = false),
+          children: [
+            _buildTopBar(),
+            Expanded(
+              child: WelcomePage(
+                onCreateProject: _createProject,
+                onOpenProject: _openProject,
+                onOpenSkillMarket: _openSkillMarket,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    } else if (_showingSkillMarket) {
+      content = Material(
+        color: c.bg,
+        child: Column(
+          children: [
+            _buildTopBar(),
+            Expanded(
+              child: SkillMarketPage(
+                onBack: () => setState(() => _showingSkillMarket = false),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      content = Material(
+        color: c.bg,
+        child: Column(
+          children: [
+            _buildTopBar(),
+            ProjectNavigationBar(
+              currentTab: _currentTab,
+              onTabChanged: (tab) => setState(() {
+                _currentTab = tab;
+                _showProjectOnboarding = false;
+              }),
+              onCollapse: _collapseNavigation,
+            ),
+            Expanded(child: _buildResponsiveWorkspace()),
+          ],
+        ),
       );
     }
+    return _commandShell(
+      Semantics(label: '灵笔 Windows 主工作区', container: true, child: content),
+    );
+  }
 
-    return Material(
-      color: c.bg,
-      child: Column(
-      children: [
-        TopBar(
-          isDarkMode: widget.isDarkMode,
-          aiPanelVisible: _aiPanelVisible,
-          sidebarVisible: _sidebarVisible,
-          onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-          onToggleAiPanel: _toggleAiPanel,
-          onToggleSidebar: _toggleSidebar,
-          onSkillMarket: _openSkillMarket,
-          onSearch: _onSearch,
-          onProjectSwitch: _onProjectSwitch,
-          onCloseTab: _onCloseTab,
-        ),
-        ProjectNavigationBar(
-          currentTab: _currentTab,
-          onTabChanged: (tab) => setState(() => _currentTab = tab),
-          onCollapse: _collapseNavigation,
-        ),
-        Expanded(
-          child: Row(
-            children: [
-              if (_sidebarVisible)
-                Sidebar(
-                  selectedIndex: _sidebarIndex,
-                  onItemSelected: (i) =>
-                      setState(() => _sidebarIndex = i),
-                  projectId: _currentProject?.id,
-                  projectName: _currentProject?.name,
-                  projectDirectoryPath: _currentProject?.directoryPath,
-                  onDocumentSelected: (doc) =>
-                      setState(() => _currentDocument = doc),
-                  onDocumentCreated: (doc) =>
-                      setState(() => _currentDocument = doc),
-                ),
-              Expanded(child: _buildPage()),
-              if (_aiPanelVisible)
-                AiAssistantPanel(
-                  projectId: _currentProject?.id,
-                  projectName: _currentProject?.name,
-                ),
-            ],
+  Widget _buildTopBar() {
+    return TopBar(
+      isDarkMode: widget.isDarkMode,
+      aiPanelVisible: _aiPanelVisible,
+      sidebarVisible: _sidebarVisible,
+      onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
+      onToggleAiPanel: _toggleAiPanel,
+      onToggleSidebar: _toggleSidebar,
+      onSkillMarket: _openSkillMarket,
+      onSearch: _onSearch,
+      onProjectSwitch: _onProjectSwitch,
+      onCloseTab: _onCloseTab,
+    );
+  }
+
+  Widget _buildResponsiveWorkspace() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final policy = WorkspaceLayoutPolicy.forWidth(constraints.maxWidth);
+        final aiDocked =
+            _aiPanelVisible && policy.aiPresentation != AiPresentation.overlay;
+        final sidebarHasRoom = !aiDocked || constraints.maxWidth >= 1180;
+        final showSidebar =
+            _sidebarVisible && sidebarHasRoom && constraints.maxWidth >= 900;
+        final editor = Expanded(
+          child: Semantics(
+            label: '项目内容区',
+            container: true,
+            child: _buildPage(),
           ),
-        ),
-      ],
-    ),
+        );
+        final base = Row(
+          children: [
+            if (showSidebar)
+              Sidebar(
+                selectedIndex: _sidebarIndex,
+                onItemSelected: (i) => setState(() => _sidebarIndex = i),
+                projectId: _currentProject?.id,
+                projectName: _currentProject?.name,
+                projectDirectoryPath: _currentProject?.directoryPath,
+                onDocumentSelected: (doc) =>
+                    setState(() => _currentDocument = doc),
+                onDocumentCreated: (doc) =>
+                    setState(() => _currentDocument = doc),
+              ),
+            editor,
+            if (aiDocked)
+              AiAssistantPanel(
+                projectId: _currentProject?.id,
+                projectName: _currentProject?.name,
+              ),
+          ],
+        );
+        if (!_aiPanelVisible ||
+            policy.aiPresentation != AiPresentation.overlay) {
+          return base;
+        }
+        return Stack(
+          children: [
+            base,
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: Material(
+                elevation: 12,
+                child: AiAssistantPanel(
+                  projectId: _currentProject?.id,
+                  projectName: _currentProject?.name,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildPage() {
+    if (_showProjectOnboarding) {
+      return ProjectOnboardingPage(
+        projectId: _currentProject!.id,
+        workflow: ServiceLocator.instance.projectOnboardingWorkflow,
+        onCompleted: () => setState(() {
+          _showProjectOnboarding = false;
+          _currentTab = ProjectTab.overview;
+        }),
+        onManualWriting: () => setState(() {
+          _showProjectOnboarding = false;
+          _currentTab = ProjectTab.writing;
+        }),
+      );
+    }
     switch (_currentTab) {
-      case ProjectTab.editor:
+      case ProjectTab.overview:
+        return ProjectOverviewPage(
+          project: _currentProject!,
+          repository: ServiceLocator.instance.projectAssetRepository,
+          onAssetSelected: (asset) => setState(() {
+            if (asset.type == ProjectAssetType.firstChapter) {
+              _currentTab = ProjectTab.writing;
+            } else {
+              _showProjectOnboarding = true;
+            }
+          }),
+        );
+      case ProjectTab.writing:
         return EditorPage(
           projectId: _currentProject?.id,
+          projectDirectoryPath: _currentProject?.directoryPath,
           documentId: _currentDocument?.id,
           documentTitle: _currentDocument?.title,
+          commandService: _commandService,
         );
-      case ProjectTab.canon:
-        return CanonPage(projectId: _currentProject?.id);
-      case ProjectTab.storyboard:
+      case ProjectTab.ideation:
         return StoryboardPage(projectId: _currentProject?.id);
-      case ProjectTab.toolbox:
+      case ProjectTab.review:
         return ToolboxPage(projectId: _currentProject?.id);
-      case ProjectTab.history:
-        return VersionHistoryPage(
-          projectId: _currentProject?.id,
-          projectDir: _currentProject?.directoryPath,
-          docId: _currentDocument?.id,
-        );
-      case ProjectTab.importExport:
+      case ProjectTab.publish:
         return ImportExportPage(projectId: _currentProject?.id);
-      case ProjectTab.settings:
-        return const SettingsPage();
     }
   }
 }

@@ -6,10 +6,9 @@ import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
-import 'model_status_bar.dart';
+import 'model_selector.dart';
 
 class _ChatMessage {
-
   _ChatMessage({
     required this.content,
     required this.isUser,
@@ -26,18 +25,21 @@ class _ChatMessage {
   final bool isStreaming;
   final String processContent;
   final bool isThinking;
+
   /// 是否为确认卡消息（T4）
   final bool isClarification;
+
   /// 确认卡问题
   final String clarifyQuestion;
+
   /// 快速选项
   final List<String> quickOptions;
+
   /// 触发确认卡的原始消息（选择选项后拼接发送）
   final String originalMessage;
 }
 
 class AiAssistantPanel extends StatefulWidget {
-
   const AiAssistantPanel({
     super.key,
     this.projectId,
@@ -359,8 +361,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   void _onOptionSelected(String originalMessage, String option) {
     // 移除确认卡
     setState(() {
-      _messages.removeWhere((m) =>
-          m.isClarification && m.originalMessage == originalMessage);
+      _messages.removeWhere(
+          (m) => m.isClarification && m.originalMessage == originalMessage);
     });
     // 将选项拼接到原始消息
     final enrichedMessage = '$originalMessage（$option）';
@@ -370,8 +372,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   /// 用户选择"直接生成"跳过确认
   void _onSkipClarification(String originalMessage) {
     setState(() {
-      _messages.removeWhere((m) =>
-          m.isClarification && m.originalMessage == originalMessage);
+      _messages.removeWhere(
+          (m) => m.isClarification && m.originalMessage == originalMessage);
     });
     _sendMessage(originalMessage);
   }
@@ -379,34 +381,38 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
-    return Container(
-      width: LingBiTokens.aiPanelWidth,
-      decoration: BoxDecoration(
-        color: c.surface,
-        border: Border(
-          left: BorderSide(color: c.borderOpaque.withValues(alpha: 0.5)),
+    return Semantics(
+      label: 'AI 助手面板',
+      container: true,
+      child: Container(
+        width: LingBiTokens.aiPanelWidth,
+        decoration: BoxDecoration(
+          color: c.surface,
+          border: Border(
+            left: BorderSide(color: c.borderOpaque.withValues(alpha: 0.5)),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(c),
-          if (_guidedMode) _buildGuidedProgressBar(c),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: ModelStatusBar(compact: true),
-          ),
-          _buildTabs(c),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildChatTab(c),
-                _buildWebSearchTab(c),
-                _buildCanonTab(c),
-              ],
+        child: Column(
+          children: [
+            _buildHeader(c),
+            if (_guidedMode) _buildGuidedProgressBar(c),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: ModelSelector(compact: true),
             ),
-          ),
-        ],
+            _buildTabs(c),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildChatTab(c),
+                  _buildWebSearchTab(c),
+                  _buildCanonTab(c),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -603,7 +609,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(LingBiIcons.aiAssistant, size: 36, color: c.accent.withValues(alpha: 0.4)),
+            Icon(LingBiIcons.aiAssistant,
+                size: 36, color: c.accent.withValues(alpha: 0.4)),
             const SizedBox(height: LingBiTokens.space3),
             Text(
               '向 AI 助手提问，开始对话',
@@ -636,7 +643,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
+            padding:
+                const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
             children: [
               _buildSearchResult(
                 c,
@@ -677,7 +685,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
+            padding:
+                const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
             children: [
               _buildCanonItem(c, '时间之喉', '传说地点', '纳斯卡地下的神秘空间，传说连结过去与未来…'),
               const SizedBox(height: LingBiTokens.space2),
@@ -782,7 +791,9 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                     ),
                   ),
                 // "转为候选"按钮（仅在非流式且有内容时显示）
-                if (!isStreaming && text.isNotEmpty && widget.onConvertToCandidate != null)
+                if (!isStreaming &&
+                    text.isNotEmpty &&
+                    widget.onConvertToCandidate != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: InkWell(
@@ -799,8 +810,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                             const SizedBox(width: 4),
                             Text(
                               '转为候选',
-                              style: TextStyle(
-                                  fontSize: 11, color: c.accent),
+                              style: TextStyle(fontSize: 11, color: c.accent),
                             ),
                           ],
                         ),
@@ -922,10 +932,10 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                     children: [
                       for (final option in msg.quickOptions)
                         InkWell(
-                          onTap: () => _onOptionSelected(
-                              msg.originalMessage, option),
-                          borderRadius: BorderRadius.circular(
-                              LingBiTokens.radiusPill),
+                          onTap: () =>
+                              _onOptionSelected(msg.originalMessage, option),
+                          borderRadius:
+                              BorderRadius.circular(LingBiTokens.radiusPill),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -950,9 +960,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                                 fontWeight: option == '直接生成'
                                     ? FontWeight.w600
                                     : FontWeight.w400,
-                                color: option == '直接生成'
-                                    ? c.accent
-                                    : c.fgSecondary,
+                                color:
+                                    option == '直接生成' ? c.accent : c.fgSecondary,
                               ),
                             ),
                           ),
@@ -965,8 +974,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                   onTap: () => _onSkipClarification(msg.originalMessage),
                   borderRadius: BorderRadius.circular(4),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 4, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Text(
                       '跳过，直接生成 →',
                       style: TextStyle(

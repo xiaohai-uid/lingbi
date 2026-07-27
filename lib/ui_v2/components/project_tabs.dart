@@ -3,13 +3,11 @@ import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 
 enum ProjectTab {
-  editor('写作', LingBiIcons.editor),
-  canon('正典', LingBiIcons.canon),
-  storyboard('故事画板', LingBiIcons.storyboard),
-  toolbox('工具箱', Icons.construction_rounded),
-  history('版本历史', LingBiIcons.history),
-  importExport('导入/导出', LingBiIcons.importExport),
-  settings('设置', LingBiIcons.settings);
+  overview('总览', Icons.space_dashboard_outlined),
+  writing('写作', LingBiIcons.editor),
+  ideation('构思', LingBiIcons.storyboard),
+  review('审稿', Icons.fact_check_outlined),
+  publish('发布', LingBiIcons.importExport);
 
   const ProjectTab(this.label, this.icon);
 
@@ -18,7 +16,6 @@ enum ProjectTab {
 }
 
 class ProjectNavigationBar extends StatelessWidget {
-
   const ProjectNavigationBar({
     super.key,
     required this.currentTab,

@@ -22,6 +22,8 @@ import '../../services/skills/kehuan_flow_skill.dart';
 import '../../services/skills/lishi_flow_skill.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../services/project_meta_repository.dart';
+import '../../services/project_asset_repository.dart';
+import '../../services/project_onboarding_workflow.dart';
 import '../../services/project_service.dart';
 import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
@@ -50,9 +52,14 @@ import '../../services/license_service.dart';
 import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../services/version_history_service.dart';
+import '../../services/atomic_file_store.dart';
+import '../../services/recovery_center_service.dart';
+import '../../services/portable_project_package_service.dart';
 import '../database/zvec_service.dart';
 import '../file_system/file_service.dart';
 import '../file_system/sync_service.dart';
+import '../ai/provider_factory.dart';
+import '../ai/runtime_model_selection.dart';
 
 /// 服务定位器 - 集中管理所有 Service 的创建和生命周期
 ///
@@ -69,7 +76,6 @@ import '../file_system/sync_service.dart';
 /// 10. SkillActionService, IntentConfirmationService (无依赖)
 /// 11. ExportService, VersionHistoryService, ProjectTabController (无依赖)
 class ServiceLocator {
-
   ServiceLocator._();
   // ignore: use_late_for_private_fields_and_variables
   static ServiceLocator? _instance;
@@ -91,6 +97,9 @@ class ServiceLocator {
   late final StorageService storageService;
   late final FileService fileService;
   late final QuotaService quotaService;
+  late final AtomicFileStore atomicFileStore;
+  late final RecoveryCenterService recoveryCenterService;
+  late final PortableProjectPackageService portableProjectPackageService;
 
   /// ——— 仓储 ———
   late final StoryBeatsRepository storyBeatsRepository;
@@ -114,6 +123,8 @@ class ServiceLocator {
 
   /// ——— 项目元数据 + 引导流程 ———
   late final ProjectMetaRepository projectMetaRepository;
+  late final ProjectAssetRepository projectAssetRepository;
+  late final ProjectOnboardingWorkflow projectOnboardingWorkflow;
   late final GuidedFlowEngine guidedFlowEngine;
   late final GuidedFlowSkillLoader guidedFlowSkillLoader;
   late final AntiHallucinationService antiHallucinationService;
@@ -134,6 +145,7 @@ class ServiceLocator {
   late final CharacterRelationGraphService characterRelationGraphService;
   late final WorkflowApprovalService workflowApprovalService;
   late final ShortStoryService shortStoryService;
+  late final RuntimeModelSelection runtimeModelSelection;
 
   /// ——— Skill 生态服务 ———
   late final SkillMarketplace skillMarketplace;
@@ -162,6 +174,10 @@ class ServiceLocator {
       locator.storageService = StorageService();
       locator.fileService = FileService();
       locator.quotaService = QuotaService();
+      locator.atomicFileStore = AtomicFileStore();
+      locator.recoveryCenterService = RecoveryCenterService(
+        atomicStore: locator.atomicFileStore,
+      );
 
       // 层级 2: 依赖叶子服务
       locator.zvecService = ZVecService(storageService: locator.storageService);
@@ -174,6 +190,7 @@ class ServiceLocator {
       locator.documentService = DocumentService(
         zvecService: locator.zvecService,
         fileService: locator.fileService,
+        atomicStore: locator.atomicFileStore,
       );
       locator.canonService = CanonService(zvecService: locator.zvecService);
       locator.projectService = ProjectService(zvecService: locator.zvecService);
@@ -183,11 +200,21 @@ class ServiceLocator {
       locator.canonLinkingService =
           CanonLinkingService(canonService: locator.canonService);
       locator.settingsService = SettingsService(aiService: locator.aiService);
+      // 提前初始化 SettingsService 以加载环境变量 API Key，
+      // 确保后续服务获取的 currentProvider 是真实 provider 而非 FreeProvider
+      await locator.settingsService.initialize();
 
       // 层级 4.5: 项目元数据 + 引导流程引擎
       locator.projectMetaRepository = ProjectMetaRepository(
         projectService: locator.projectService,
         canonService: locator.canonService,
+      );
+      locator.projectAssetRepository = ProjectAssetRepository(
+        metaRepository: locator.projectMetaRepository,
+      );
+      locator.projectOnboardingWorkflow = ProjectOnboardingWorkflow(
+        metaRepository: locator.projectMetaRepository,
+        assetRepository: locator.projectAssetRepository,
       );
       locator.guidedFlowEngine = GuidedFlowEngine(
         metaRepository: locator.projectMetaRepository,
@@ -198,30 +225,39 @@ class ServiceLocator {
       locator.guidedFlowEngine.registerDefinition(defaultShortFlowDefinition);
 
       // 引导流程 Skill 加载器 + 官方预装题材
-      locator.guidedFlowSkillLoader = GuidedFlowSkillLoader(locator.guidedFlowEngine);
+      locator.guidedFlowSkillLoader =
+          GuidedFlowSkillLoader(locator.guidedFlowEngine);
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanhuanLongFlowDefinition, '玄幻',
+        xuanhuanLongFlowDefinition,
+        '玄幻',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanhuanShortFlowDefinition, '玄幻',
+        xuanhuanShortFlowDefinition,
+        '玄幻',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xianxiaLongFlowDefinition, '仙侠',
+        xianxiaLongFlowDefinition,
+        '仙侠',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        dushiLongFlowDefinition, '都市',
+        dushiLongFlowDefinition,
+        '都市',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanyiLongFlowDefinition, '悬疑',
+        xuanyiLongFlowDefinition,
+        '悬疑',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        yanqingLongFlowDefinition, '言情',
+        yanqingLongFlowDefinition,
+        '言情',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        kehuanLongFlowDefinition, '科幻',
+        kehuanLongFlowDefinition,
+        '科幻',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        lishiLongFlowDefinition, '历史',
+        lishiLongFlowDefinition,
+        '历史',
       );
 
       // 反幻觉三定律 + 监督智能体
@@ -307,16 +343,67 @@ class ServiceLocator {
       }
 
       // 层级 6: 无依赖工具服务
-      locator.exportService = ExportService();
-      locator.versionHistoryService = VersionHistoryService();
+      locator.exportService =
+          ExportService(atomicStore: locator.atomicFileStore);
+      locator.versionHistoryService = VersionHistoryService(
+        atomicStore: locator.atomicFileStore,
+        recoveryCenter: locator.recoveryCenterService,
+      );
+      locator.portableProjectPackageService = PortableProjectPackageService(
+        atomicStore: locator.atomicFileStore,
+        rebuildIndexes: (directoryPath) async {
+          final opened =
+              await locator.projectService.openPortableProject(directoryPath);
+          await locator.zvecService.upsert(
+            'projects',
+            opened.project.id,
+            opened.project.toJson(),
+          );
+          for (final document in opened.documents) {
+            await locator.zvecService.upsert(
+              'documents',
+              document.id,
+              document.toJson(),
+            );
+          }
+        },
+      );
       locator.projectTabController = ProjectTabController();
 
       // 层级 7: 市场情报 + 云同步
-      final cacheDir = '${(await getApplicationDocumentsDirectory()).path}/lingbi_data/market_cache';
+      final cacheDir =
+          '${(await getApplicationDocumentsDirectory()).path}/lingbi_data/market_cache';
       locator.marketIntelService = MarketIntelService(cacheDir: cacheDir);
       locator.marketIntelAnalysisService = MarketIntelAnalysisService(
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
+      );
+
+      // One validated transaction owns every runtime model change. This keeps
+      // long-lived services from silently retaining a stale provider instance.
+      locator.runtimeModelSelection = RuntimeModelSelection(
+        aiService: locator.aiService,
+        validateConnection: ProviderFactory.testConnection,
+        synchronizeConsumers: [
+          (provider) => locator.guidedFlowEngine.aiProvider = provider,
+          (provider) => locator.antiHallucinationService.aiProvider = provider,
+          (provider) => locator.strandWeaveService.aiProvider = provider,
+          (provider) => locator.styleDistillationService.aiProvider = provider,
+          (provider) => locator.vectorKnowledgeService.aiProvider = provider,
+          (provider) => locator.referenceBookService.aiProvider = provider,
+          (provider) => locator.sixDimensionReviewService.aiProvider = provider,
+          (provider) => locator.changePropagationService.aiProvider = provider,
+          (provider) => locator.deAiFlavorService.aiProvider = provider,
+          (provider) => locator.dramaConversionService.aiProvider = provider,
+          (provider) => locator.parallelWorldService.aiProvider = provider,
+          (provider) =>
+              locator.characterRelationGraphService.aiProvider = provider,
+          (provider) => locator.workflowApprovalService.aiProvider = provider,
+          (provider) => locator.shortStoryService.aiProvider = provider,
+          (provider) =>
+              locator.marketIntelAnalysisService.aiProvider = provider,
+        ],
+        persistSelection: locator.settingsService.commitRuntimeSelection,
       );
       locator.syncManager = SyncManager(
         config: locator.settingsService.webDavConfig,
@@ -324,7 +411,8 @@ class ServiceLocator {
 
       // 层级 8: 收费系统（订阅 + 许可证）
       locator.subscriptionService = SubscriptionService();
-      final licenseDir = '${(await getApplicationDocumentsDirectory()).path}/lingbi_data';
+      final licenseDir =
+          '${(await getApplicationDocumentsDirectory()).path}/lingbi_data';
       locator.licenseService = LicenseService(storageDir: licenseDir);
       // 启动时恢复订阅状态
       try {
@@ -344,7 +432,6 @@ class ServiceLocator {
       locator.storyBeatsRepository =
           StoryBeatsRepository(storageService: locator.storageService);
       await locator.zvecService.initialize();
-      await locator.settingsService.initialize();
     } catch (e) {
       locator.initSucceeded = false;
       locator.initError = e.toString();

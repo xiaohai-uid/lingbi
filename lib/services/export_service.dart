@@ -4,18 +4,21 @@ import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'atomic_file_store.dart';
 
 /// 导出服务 - 支持 Markdown / TXT / PDF / Word 格式导出
 class ExportService implements IExportService {
-  ExportService();
+  ExportService({AtomicFileStore? atomicStore})
+      : _atomicStore = atomicStore ?? AtomicFileStore();
+
+  final AtomicFileStore _atomicStore;
 
   @override
   Future<void> exportAsMarkdown({
     required String content,
     required String savePath,
   }) async {
-    final file = File(savePath);
-    await file.writeAsString(content);
+    await _atomicStore.writeString(savePath, content);
   }
 
   @override
@@ -24,8 +27,7 @@ class ExportService implements IExportService {
     required String savePath,
   }) async {
     final plainText = _stripMarkdown(content);
-    final file = File(savePath);
-    await file.writeAsString(plainText);
+    await _atomicStore.writeString(savePath, plainText);
   }
 
   @override
@@ -34,19 +36,8 @@ class ExportService implements IExportService {
     required String content,
     required String savePath,
   }) async {
-    final file = File(savePath);
     final pdfBytes = await _generatePdf(title, content);
-    await file.writeAsBytes(pdfBytes);
-  }
-
-  @override
-  Future<void> exportAsWord({
-    required String title,
-    required String content,
-    required String savePath,
-  }) async {
-    final html = _generateWordHtml(title, content);
-    await File(savePath).writeAsString(html);
+    await _atomicStore.writeBytes(savePath, pdfBytes);
   }
 
   @override
@@ -71,16 +62,16 @@ class ExportService implements IExportService {
         case 'txt':
           filePath = '${dir.path}/$safeName.txt';
           final plainText = _stripMarkdown(content);
-          await File(filePath).writeAsString(plainText);
+          await _atomicStore.writeString(filePath, plainText);
           break;
         case 'pdf':
           filePath = '${dir.path}/$safeName.pdf';
           final pdfBytes = await _generatePdf(doc.title, content);
-          await File(filePath).writeAsBytes(pdfBytes);
+          await _atomicStore.writeBytes(filePath, pdfBytes);
           break;
         default:
           filePath = '${dir.path}/$safeName.md';
-          await File(filePath).writeAsString(content);
+          await _atomicStore.writeString(filePath, content);
       }
     }
   }
@@ -99,7 +90,8 @@ class ExportService implements IExportService {
               level: 0,
               child: pw.Text(title,
                   // ignore: prefer_const_constructors
-                  style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  style: pw.TextStyle(
+                      fontSize: 22, fontWeight: pw.FontWeight.bold)),
             ),
             pw.SizedBox(height: 16),
             pw.Paragraph(
@@ -114,51 +106,14 @@ class ExportService implements IExportService {
     return pdf.save();
   }
 
-  /// 生成 Word 兼容 HTML（embedded .doc 格式，兼容作家助手）
-  String _generateWordHtml(String title, String content) {
-    final plainText = _stripMarkdown(content);
-    final paragraphs = plainText.split('\n\n')
-        .where((p) => p.trim().isNotEmpty).toList();
-    final bodyHtml = paragraphs.map((p) {
-      final lines = p.split('\n')
-          .map((l) => l.trim()).where((l) => l.isNotEmpty);
-      return '<p>${lines.join('<br/>')}</p>';
-    }).join('\n');
-
-    final sb = StringBuffer();
-    sb.writeln('<html>');
-    sb.writeln('<head>');
-    sb.writeln('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">');
-    sb.writeln('<style>');
-    sb.writeln('body { font-family: SimSun, serif; font-size: 12pt; line-height: 1.8; padding: 20pt; }');
-    sb.writeln('h1 { font-size: 18pt; font-weight: bold; text-align: center; margin-bottom: 20pt; }');
-    sb.writeln('p { text-indent: 2em; margin: 0; line-height: 1.8; }');
-    sb.writeln('</style>');
-    sb.writeln('</head>');
-    sb.writeln('<body>');
-    sb.writeln('<h1>${_escapeHtml(title)}</h1>');
-    sb.writeln(bodyHtml);
-    sb.writeln('</body>');
-    sb.writeln('</html>');
-    return sb.toString();
-  }
-
-  /// HTML 转义
-  String _escapeHtml(String text) {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
-  }
-
   String _stripMarkdown(String md) {
     var text = md;
     text = text.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
     text = text.replaceAll(RegExp(r'\*{1,3}|_{1,3}'), '');
     text = text.replaceAll(RegExp(r'```[\s\S]*?```'), '');
     text = text.replaceAll(RegExp(r'`[^`]+`'), '');
-    text = text.replaceAllMapped(RegExp(r'\[([^\]]+)\]\([^)]+\)'), (m) => m[1] ?? '');
+    text = text.replaceAllMapped(
+        RegExp(r'\[([^\]]+)\]\([^)]+\)'), (m) => m[1] ?? '');
     text = text.replaceAll(RegExp(r'!\[([^\]]*)\]\([^)]+\)'), '');
     text = text.replaceAll(RegExp(r'^[\s]*[-*+]\s+', multiLine: true), '');
     text = text.replaceAll(RegExp(r'^\s*\d+\.\s+', multiLine: true), '');

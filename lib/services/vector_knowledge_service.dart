@@ -136,7 +136,9 @@ class VectorKnowledgeService {
         _aiProvider = aiProvider;
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   /// 默认检索返回条数
   final int topK;
@@ -196,9 +198,7 @@ class VectorKnowledgeService {
     );
 
     // 替换或追加
-    final updatedEntries = index.entries
-        .where((e) => e.id != id)
-        .toList()
+    final updatedEntries = index.entries.where((e) => e.id != id).toList()
       ..add(entry);
 
     final updatedIndex = VectorIndex(
@@ -239,8 +239,7 @@ class VectorKnowledgeService {
   /// 删除指定条目
   Future<void> removeEntry(String projectId, String id) async {
     final index = await loadIndex(projectId);
-    final updatedEntries =
-        index.entries.where((e) => e.id != id).toList();
+    final updatedEntries = index.entries.where((e) => e.id != id).toList();
     final updatedIndex = VectorIndex(
       projectId: projectId,
       entries: updatedEntries,
@@ -294,8 +293,7 @@ class VectorKnowledgeService {
 
     var candidates = index.entries;
     if (typeFilter != null) {
-      candidates =
-          candidates.where((e) => e.type == typeFilter).toList();
+      candidates = candidates.where((e) => e.type == typeFilter).toList();
     }
 
     final results = <RetrievalResult>[];
@@ -351,8 +349,7 @@ class VectorKnowledgeService {
     final index = await loadIndex(projectId);
     final stats = <String, int>{'total': index.entries.length};
     for (final type in VectorEntryType.values) {
-      stats[type.name] =
-          index.entries.where((e) => e.type == type).length;
+      stats[type.name] = index.entries.where((e) => e.type == type).length;
     }
     return stats;
   }
@@ -415,7 +412,8 @@ class VectorKnowledgeService {
       final entries = data['entries'] as List?;
       if (entries != null) {
         return entries
-            .map((e) => e is Map ? (e['name'] ?? e['title'] ?? '').toString() : '')
+            .map((e) =>
+                e is Map ? (e['name'] ?? e['title'] ?? '').toString() : '')
             .where((s) => s.isNotEmpty)
             .join('\n');
       }

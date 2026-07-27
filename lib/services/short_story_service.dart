@@ -166,10 +166,9 @@ class TrendingEntry {
       platform: json['platform'] as String? ?? '',
       author: json['author'] as String? ?? '',
       heat: json['heat'] as int? ?? 0,
-      tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              [],
       summary: json['summary'] as String? ?? '',
     );
   }
@@ -287,7 +286,9 @@ class ShortStoryService {
         _aiProvider = aiProvider;
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   static const _flowKey = 'short_story_flow';
   static const _modeKey = 'writing_mode';
@@ -295,8 +296,7 @@ class ShortStoryService {
   // ─── 1. 模式管理 ───
 
   /// 设置项目写作模式
-  Future<void> setWritingMode(
-      String projectId, WritingMode mode) async {
+  Future<void> setWritingMode(String projectId, WritingMode mode) async {
     await _metaRepository.write(projectId, _modeKey, {'mode': mode.name});
   }
 
@@ -382,7 +382,8 @@ class ShortStoryService {
           ),
           ChatMessage(
             role: 'user',
-            content: '故事创意: $storyIdea${genre.isNotEmpty ? '\n题材: $genre' : ''}',
+            content:
+                '故事创意: $storyIdea${genre.isNotEmpty ? '\n题材: $genre' : ''}',
           ),
         ],
       );
@@ -419,8 +420,7 @@ class ShortStoryService {
         maxTokens: 4096,
       );
 
-      final json =
-          jsonDecode(_cleanJson(response)) as Map<String, dynamic>;
+      final json = jsonDecode(_cleanJson(response)) as Map<String, dynamic>;
       return ShortStoryAnalysis.fromJson(json);
     } catch (e) {
       return ShortStoryAnalysis(error: '分析失败: $e');
@@ -440,7 +440,8 @@ class ShortStoryService {
 
     try {
       final entryText = entries
-          .map((e) => '- ${e.title} (${e.platform}) 热度:${e.heat} 标签:${e.tags.join(",")}')
+          .map((e) =>
+              '- ${e.title} (${e.platform}) 热度:${e.heat} 标签:${e.tags.join(",")}')
           .join('\n');
 
       final response = await _aiProvider.chatSync(
@@ -454,8 +455,7 @@ class ShortStoryService {
         ],
       );
 
-      final json =
-          jsonDecode(_cleanJson(response)) as Map<String, dynamic>;
+      final json = jsonDecode(_cleanJson(response)) as Map<String, dynamic>;
       return TrendAnalysisReport(
         hotTopics: (json['hot_topics'] as List<dynamic>?)
                 ?.map((e) => e as String)

@@ -5,11 +5,15 @@
 /// SkillExecutor 统一入口，将轻量/重量 Skill 路由到正确执行路径。
 library;
 
+import 'dart:io';
+
 import 'package:lingbi/core/models/canon_entry.dart';
 import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
+import 'package:lingbi/services/skill/skill_audit_log.dart';
 import 'package:lingbi/services/skill/skill_manifest.dart';
 import 'package:lingbi/services/skill/skill_permission.dart';
 import 'package:lingbi/services/skill_action_service.dart';
+import 'package:path/path.dart' as path;
 
 /// 权限违反异常
 class PermissionViolation implements Exception {
@@ -37,6 +41,14 @@ abstract class SkillApi {
       String projectId, String documentId, String content);
 }
 
+/// External resources are injected at the sandbox seam so a denied request
+/// never reaches the network or secure storage adapter.
+abstract class SkillExternalAccess {
+  Future<String> networkGet(Uri uri);
+
+  Future<String?> readSecret(String projectId, String key);
+}
+
 /// 受权限约束的 API 实现
 ///
 /// 每次调用前先校验 permissions 是否包含所需权限，
@@ -45,13 +57,31 @@ class SandboxedSkillApi implements SkillApi {
   SandboxedSkillApi({
     required this.permissions,
     required SkillApi delegate,
-  }) : _delegate = delegate;
+    this.projectId,
+    this.skillId = 'unknown-skill',
+    Set<String> capabilities = const {},
+    this.projectRoot,
+    SkillExternalAccess? externalAccess,
+    this.auditLog,
+  })  : capabilities = Set.unmodifiable(capabilities),
+        _delegate = delegate,
+        _externalAccess = externalAccess;
 
   /// 当前 Skill 声明的权限集
   final PermissionSet permissions;
 
+  /// Project this runtime instance is allowed to access. Legacy callers that
+  /// omit it are locked to the first project they touch.
+  final String? projectId;
+  final String skillId;
+  final Set<String> capabilities;
+  final String? projectRoot;
+  final SkillAuditLog? auditLog;
+
   /// 真实服务代理（生产环境注入 CanonService/DocumentService 适配器）
   final SkillApi _delegate;
+  final SkillExternalAccess? _externalAccess;
+  String? _boundProjectId;
 
   void _checkPermission(SkillPermission required) {
     if (!permissions.can(required)) {
@@ -61,20 +91,36 @@ class SandboxedSkillApi implements SkillApi {
     }
   }
 
+  void _checkProject(String requestedProjectId) {
+    final allowed = projectId ?? _boundProjectId;
+    if (allowed == null) {
+      _boundProjectId = requestedProjectId;
+      return;
+    }
+    if (requestedProjectId != allowed) {
+      throw PermissionViolation(
+        'Skill $skillId cannot access project $requestedProjectId',
+      );
+    }
+  }
+
   @override
   Future<List<CanonEntry>> canonRead(String projectId) {
+    _checkProject(projectId);
     _checkPermission(SkillPermission.canonRead);
     return _delegate.canonRead(projectId);
   }
 
   @override
   Future<void> canonWrite(String projectId, CanonEntry entry) {
+    _checkProject(projectId);
     _checkPermission(SkillPermission.canonWrite);
     return _delegate.canonWrite(projectId, entry);
   }
 
   @override
   Future<String> documentRead(String projectId, String documentId) {
+    _checkProject(projectId);
     _checkPermission(SkillPermission.documentRead);
     return _delegate.documentRead(projectId, documentId);
   }
@@ -82,8 +128,89 @@ class SandboxedSkillApi implements SkillApi {
   @override
   Future<void> documentWrite(
       String projectId, String documentId, String content) {
+    _checkProject(projectId);
     _checkPermission(SkillPermission.documentWrite);
     return _delegate.documentWrite(projectId, documentId, content);
+  }
+
+  Future<String> networkGet(Uri uri) async {
+    final capability = 'network:${uri.host.toLowerCase()}';
+    if (!capabilities.contains('network') && !capabilities.contains(capability)) {
+      await _recordDenied('network.get', {'host': uri.host});
+      throw PermissionViolation('Skill $skillId did not declare $capability');
+    }
+    final external = _externalAccess;
+    if (external == null) {
+      throw PermissionViolation('Network access adapter is unavailable');
+    }
+    return external.networkGet(uri);
+  }
+
+  Future<String?> readSecret(String requestedProjectId, String key) async {
+    try {
+      _checkProject(requestedProjectId);
+    } on PermissionViolation {
+      await _recordDenied('secret.read', {'key': key});
+      rethrow;
+    }
+    final capability = 'secret.read:$key';
+    if (!capabilities.contains(capability)) {
+      await _recordDenied('secret.read', {'key': key});
+      throw PermissionViolation('Skill $skillId did not declare $capability');
+    }
+    final external = _externalAccess;
+    if (external == null) {
+      throw PermissionViolation('Secret access adapter is unavailable');
+    }
+    return external.readSecret(requestedProjectId, key);
+  }
+
+  Future<String> readProjectFile(
+    String requestedProjectId,
+    String relativePath,
+  ) async {
+    _checkProject(requestedProjectId);
+    if (!capabilities.contains('project.file.read')) {
+      await _recordDenied('project.file.read', {'path': relativePath});
+      throw PermissionViolation(
+        'Skill $skillId did not declare project.file.read',
+      );
+    }
+    final root = projectRoot;
+    if (root == null || !_isSafeRelativePath(relativePath)) {
+      await _recordDenied('project.file.read', {'path': relativePath});
+      throw PermissionViolation('Project path escapes the configured root');
+    }
+    final absoluteRoot = path.normalize(path.absolute(root));
+    final target = path.normalize(path.join(absoluteRoot, relativePath));
+    if (!path.isWithin(absoluteRoot, target)) {
+      await _recordDenied('project.file.read', {'path': relativePath});
+      throw PermissionViolation('Project path escapes the configured root');
+    }
+    return File(target).readAsString();
+  }
+
+  bool _isSafeRelativePath(String value) {
+    if (value.isEmpty || path.isAbsolute(value)) return false;
+    return !value
+        .replaceAll('\\', '/')
+        .split('/')
+        .any((segment) => segment == '..' || segment.isEmpty);
+  }
+
+  Future<void> _recordDenied(
+    String operation,
+    Map<String, String> details,
+  ) async {
+    final log = auditLog;
+    if (log == null) return;
+    await log.append(
+      skillId: skillId,
+      projectId: projectId ?? _boundProjectId ?? '',
+      operation: operation,
+      outcome: SkillAuditOutcome.denied,
+      details: details,
+    );
   }
 }
 

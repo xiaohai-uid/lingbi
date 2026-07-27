@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "title": "合成评估小说：青梧夜行",
+    "chapters": 5,
+    "total_chars": 2500,
+    "language": "zh-CN",
+    "rights": "synthetic-eval-only",
+    "created": "2026-07-28"
+  },
+  "chapters": [
+    {
+      "id": "ch-001",
+      "title": "入城",
+      "content": "叶澜第一次踏进青梧城，便被巡夜司拦下。她的左袖空荡，右手握着半截断剑。顾尘站在城门口，目光落在她断臂上，没有说话。"
+    },
+    {
+      "id": "ch-002",
+      "title": "夜司",
+      "content": "入夜后，阿澜跟着顾尘去了青梧山。巡夜司的灯火在山顶亮如白昼。顾先生告诉她：夜司并不信任外乡人。叶澜没有回答，只是握紧了断剑。"
+    },
+    {
+      "id": "ch-003",
+      "title": "试炼",
+      "content": "青梧城钟声响起时，叶澜与顾尘同时回头。山雨封路，巡夜司只得暂守青梧。叶澜用右手接住了落下的瓦片，动作干净利落。"
+    },
+    {
+      "id": "ch-004",
+      "title": "真相",
+      "content": "顾尘终于开口：你的左臂，是在北境丢的？叶澜点头。那一年北境沦陷，三万人无一生还。她是唯一的例外，代价是一条手臂。"
+    },
+    {
+      "id": "ch-005",
+      "title": "抉择",
+      "content": "巡夜司司主亲自下山。他看着叶澜的空袖，说：北境遗孤，巡夜司收留你，但你必须交出一个秘密。叶澜沉默良久，右手松开了断剑。"
+    }
+  ],
+  "expected_facts": [
+    {"entity": "character:ye-lan", "fact": "lost left arm in northern border", "valid_from": 1, "valid_to": null},
+    {"entity": "character:ye-lan", "fact": "sole survivor of northern border fall", "valid_from": 4, "valid_to": null},
+    {"entity": "character:gu-chen", "fact": "member of night watch", "valid_from": 1, "valid_to": null},
+    {"entity": "location:qing-wu", "fact": "city with mountain night watch headquarters", "valid_from": 1, "valid_to": null},
+    {"entity": "faction:night-watch", "fact": "distrusts outsiders", "valid_from": 2, "valid_to": null}
+  ]
+}

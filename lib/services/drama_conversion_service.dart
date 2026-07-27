@@ -356,7 +356,9 @@ class DramaConversionService {
   })  : _aiProvider = aiProvider,
         _formats = [..._builtinFormats, ...?customFormats];
 
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
   final List<OutputFormatTemplate> _formats;
 
   // ─── 格式管理 ───

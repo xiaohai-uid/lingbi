@@ -53,7 +53,8 @@ enum RelationType {
       };
 
   /// 是否虚线
-  bool get isDashed => this == RelationType.stranger || this == RelationType.rival;
+  bool get isDashed =>
+      this == RelationType.stranger || this == RelationType.rival;
 
   static RelationType fromString(String s) {
     return RelationType.values.firstWhere(
@@ -162,8 +163,9 @@ class RelationGraph {
               .toList() ??
           [],
       edges: (json['edges'] as List<dynamic>?)
-              ?.map((e) =>
-                  GraphEdge(relation: CharacterRelation.fromJson(e as Map<String, dynamic>)))
+              ?.map((e) => GraphEdge(
+                  relation:
+                      CharacterRelation.fromJson(e as Map<String, dynamic>)))
               .toList() ??
           [],
       lastUpdatedChapter: json['last_updated_chapter'] as int? ?? 0,
@@ -240,7 +242,9 @@ class CharacterRelationGraphService {
         _aiProvider = aiProvider;
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
 
   static const _storageKey = 'relation_graph';
 
@@ -320,8 +324,7 @@ class CharacterRelationGraphService {
   }) async {
     final graph = await loadGraph(projectId);
     final edges = graph.edges
-        .where((e) =>
-            !(e.relation.fromId == fromId && e.relation.toId == toId))
+        .where((e) => !(e.relation.fromId == fromId && e.relation.toId == toId))
         .toList();
 
     final updated = RelationGraph(
@@ -373,8 +376,9 @@ class CharacterRelationGraphService {
     if (chapterText.trim().isEmpty) return [];
 
     try {
-      final charHint =
-          knownCharacters.isNotEmpty ? '已知角色: ${knownCharacters.join(", ")}' : '';
+      final charHint = knownCharacters.isNotEmpty
+          ? '已知角色: ${knownCharacters.join(", ")}'
+          : '';
 
       final response = await _aiProvider.chatSync(
         messages: [

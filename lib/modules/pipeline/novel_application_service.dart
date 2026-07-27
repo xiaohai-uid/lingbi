@@ -77,8 +77,7 @@ class SettlementItem {
     this.entityName,
   });
 
-  factory SettlementItem.fromJson(Map<String, dynamic> json) =>
-      SettlementItem(
+  factory SettlementItem.fromJson(Map<String, dynamic> json) => SettlementItem(
         category: json['category'] as String? ?? '',
         description: json['description'] as String? ?? '',
         entityId: json['entity_id'] as String?,
@@ -187,6 +186,11 @@ class NovelApplicationService {
   /// 是否忙碌
   bool get isBusy => _stateMachine.isBusy;
 
+  /// Cancel the provider request used by a recoverable workflow.
+  Future<void> cancelGeneration() async {
+    _aiService.currentProvider.cancel();
+  }
+
   // ─── 1. 准备章节写作 ───────────────────────────────────────────
 
   /// 准备章节写作：组装上下文，记录源版本
@@ -250,7 +254,8 @@ class NovelApplicationService {
       );
 
       // 推进状态机
-      _stateMachine.advance(PipelineStage.writing, message: 'context assembled');
+      _stateMachine.advance(PipelineStage.writing,
+          message: 'context assembled');
 
       return PipelineResult.success(ChapterWritePreparation(
         context: context,
@@ -332,8 +337,7 @@ class NovelApplicationService {
         ChatMessage(role: 'user', content: userPrompt),
       ];
 
-      await for (final chunk
-          in _aiService.currentProvider.chat(
+      await for (final chunk in _aiService.currentProvider.chat(
         messages: messages,
         temperature: temperature,
         maxTokens: maxTokens,
@@ -348,7 +352,8 @@ class NovelApplicationService {
       _saveCandidate(candidate);
 
       // 推进状态机到 awaitingAdoption（跳过 reviewing，本轮无审稿 Agent）
-      _stateMachine.advance(PipelineStage.reviewing, message: 'generation done');
+      _stateMachine.advance(PipelineStage.reviewing,
+          message: 'generation done');
       _stateMachine.advance(PipelineStage.awaitingAdoption,
           message: 'candidate ready');
 
@@ -506,7 +511,8 @@ class NovelApplicationService {
         await _createSnapshot(targetFilePath, chapterId);
 
         // 4. 写临时文件
-        final tempPath = '$targetFilePath.tmp_${DateTime.now().millisecondsSinceEpoch}';
+        final tempPath =
+            '$targetFilePath.tmp_${DateTime.now().millisecondsSinceEpoch}';
         final tempFile = File(tempPath);
         tempFile.writeAsStringSync(candidate.content, flush: true);
 
@@ -533,8 +539,7 @@ class NovelApplicationService {
         if (_stateMachine.activeWorkflow != null) {
           final stage = _stateMachine.activeWorkflow!.currentStage;
           if (_stateMachine.canTransition(stage, PipelineStage.adopted)) {
-            _stateMachine.advance(PipelineStage.adopted,
-                message: 'adopted');
+            _stateMachine.advance(PipelineStage.adopted, message: 'adopted');
           }
         }
 
@@ -622,7 +627,8 @@ $adoptedContent''';
               message: 'settlement proposed');
         }
         if (_stateMachine.canTransition(
-            _stateMachine.activeWorkflow!.currentStage, PipelineStage.settled)) {
+            _stateMachine.activeWorkflow!.currentStage,
+            PipelineStage.settled)) {
           _stateMachine.advance(PipelineStage.settled,
               message: 'settlement done');
           _stateMachine.advance(PipelineStage.idle, message: 'complete');
@@ -686,8 +692,8 @@ $adoptedContent''';
     for (final file in _settlementDir.listSync()) {
       if (file is File && file.path.endsWith('.json')) {
         try {
-          final json = jsonDecode(file.readAsStringSync())
-              as Map<String, dynamic>;
+          final json =
+              jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
           if (json['chapter_id'] == chapterId) {
             return SettlementProposal.fromJson(json);
           }
@@ -738,11 +744,9 @@ $adoptedContent''';
   /// 保存候选（内部使用）
   void _saveCandidate(CandidateEntry entry) {
     _candidateService.ensureDir();
-    final metaFile =
-        File('$_projectDir/.lingbi/candidates/${entry.id}.json');
+    final metaFile = File('$_projectDir/.lingbi/candidates/${entry.id}.json');
     metaFile.writeAsStringSync(jsonEncode(entry.toJson()));
-    final contentFile =
-        File('$_projectDir/.lingbi/candidates/${entry.id}.md');
+    final contentFile = File('$_projectDir/.lingbi/candidates/${entry.id}.md');
     contentFile.writeAsStringSync(entry.content);
   }
 

@@ -5,7 +5,6 @@ import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 
 class Sidebar extends StatefulWidget {
-
   const Sidebar({
     super.key,
     required this.selectedIndex,
@@ -66,8 +65,8 @@ class _SidebarState extends State<Sidebar> {
     if (pid == _lastProjectId && _documents.isNotEmpty) return;
     if (mounted) setState(() => _loading = true);
     try {
-      final docs = await ServiceLocator.instance.documentService
-          .getDocuments(pid);
+      final docs =
+          await ServiceLocator.instance.documentService.getDocuments(pid);
       if (mounted && pid == widget.projectId) {
         setState(() {
           _documents = docs;
@@ -130,21 +129,25 @@ class _SidebarState extends State<Sidebar> {
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
-    return Container(
-      width: LingBiTokens.sidebarWidth,
-      decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(
-          right: BorderSide(color: c.borderOpaque.withValues(alpha: 0.5)),
+    return Semantics(
+      label: '章节导航',
+      container: true,
+      child: Container(
+        width: LingBiTokens.sidebarWidth,
+        decoration: BoxDecoration(
+          color: c.bg,
+          border: Border(
+            right: BorderSide(color: c.borderOpaque.withValues(alpha: 0.5)),
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildProjectHeader(c),
-          const Divider(height: 1),
-          Expanded(child: _buildChapterTree(c)),
-        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildProjectHeader(c),
+            const Divider(height: 1),
+            Expanded(child: _buildChapterTree(c)),
+          ],
+        ),
       ),
     );
   }
@@ -188,7 +191,12 @@ class _SidebarState extends State<Sidebar> {
               ),
             ),
           ),
-          _iconButton(LingBiIcons.add, c, _showAddDocumentDialog),
+          _iconButton(
+            LingBiIcons.add,
+            c,
+            _showAddDocumentDialog,
+            semanticLabel: '新建文档',
+          ),
         ],
       ),
     );
@@ -202,8 +210,10 @@ class _SidebarState extends State<Sidebar> {
         if (_loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: SizedBox(
-              width: 20, height: 20,
+            child: Center(
+                child: SizedBox(
+              width: 20,
+              height: 20,
               child: CircularProgressIndicator(strokeWidth: 2),
             )),
           )
@@ -315,13 +325,25 @@ class _SidebarState extends State<Sidebar> {
     );
   }
 
-  Widget _iconButton(IconData icon, LingBiColors c, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-      child: Padding(
-        padding: const EdgeInsets.all(LingBiTokens.space1),
-        child: Icon(icon, size: 18, color: c.fgSecondary),
+  Widget _iconButton(
+    IconData icon,
+    LingBiColors c,
+    VoidCallback onTap, {
+    required String semanticLabel,
+  }) {
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Tooltip(
+        message: semanticLabel,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+          child: Padding(
+            padding: const EdgeInsets.all(LingBiTokens.space1),
+            child: Icon(icon, size: 18, color: c.fgSecondary),
+          ),
+        ),
       ),
     );
   }

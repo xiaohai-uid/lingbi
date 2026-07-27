@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
+import 'package:lingbi/services/skill/skill_manifest_verifier.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Skill 条目 — 代表一个可安装的 AI 技能
@@ -70,16 +72,139 @@ class SkillMarketEvent {
   final String skillId;
 }
 
+enum SkillInstallSource {
+  registry,
+  bundled,
+  offlinePackage,
+  distilled,
+}
+
+class SkillPermissionDiff {
+  SkillPermissionDiff({
+    required Set<String> added,
+    required Set<String> removed,
+  })  : added = Set.unmodifiable(added),
+        removed = Set.unmodifiable(removed);
+
+  final Set<String> added;
+  final Set<String> removed;
+
+  Map<String, Object> toJson() => {
+        'added': added.toList()..sort(),
+        'removed': removed.toList()..sort(),
+      };
+
+  factory SkillPermissionDiff.fromJson(Map<String, dynamic> json) {
+    return SkillPermissionDiff(
+      added: (json['added'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toSet(),
+      removed: (json['removed'] as List? ?? const [])
+          .map((value) => value.toString())
+          .toSet(),
+    );
+  }
+}
+
+class SkillInstallMetadata {
+  SkillInstallMetadata({
+    required this.skillId,
+    required this.version,
+    required this.source,
+    required this.sourceUri,
+    required this.signerId,
+    required this.signatureStatus,
+    required Set<String> permissions,
+    required this.permissionDiff,
+    required this.packageHash,
+    required this.installedAt,
+    required this.packageState,
+  }) : permissions = Set.unmodifiable(permissions);
+
+  final String skillId;
+  final String version;
+  final SkillInstallSource source;
+  final String sourceUri;
+  final String? signerId;
+  final SkillSignatureStatus signatureStatus;
+  final Set<String> permissions;
+  final SkillPermissionDiff permissionDiff;
+  final String packageHash;
+  final DateTime installedAt;
+  final SkillPackageState packageState;
+
+  Map<String, Object?> toJson() => {
+        'skill_id': skillId,
+        'version': version,
+        'source': source.name,
+        'source_uri': sourceUri,
+        'signer_id': signerId,
+        'signature_status': signatureStatus.name,
+        'permissions': permissions.toList()..sort(),
+        'permission_diff': permissionDiff.toJson(),
+        'package_hash': packageHash,
+        'installed_at': installedAt.toUtc().toIso8601String(),
+        'package_state': packageState.name,
+      };
+
+  factory SkillInstallMetadata.fromJson(Map<String, dynamic> json) {
+    return SkillInstallMetadata(
+      skillId: json['skill_id'] as String,
+      version: json['version'] as String,
+      source: SkillInstallSource.values.byName(json['source'] as String),
+      sourceUri: json['source_uri'] as String? ?? '',
+      signerId: json['signer_id'] as String?,
+      signatureStatus: SkillSignatureStatus.values
+          .byName(json['signature_status'] as String),
+      permissions: (json['permissions'] as List)
+          .map((value) => value.toString())
+          .toSet(),
+      permissionDiff: SkillPermissionDiff.fromJson(
+        Map<String, dynamic>.from(json['permission_diff'] as Map),
+      ),
+      packageHash: json['package_hash'] as String,
+      installedAt: DateTime.parse(json['installed_at'] as String).toUtc(),
+      packageState: SkillPackageState.values
+          .byName(json['package_state'] as String),
+    );
+  }
+}
+
+class OfflineSkillPackage {
+  OfflineSkillPackage({
+    required this.manifest,
+    required Map<String, List<int>> files,
+    required this.packagePath,
+  }) : files = Map.unmodifiable(
+          files.map(
+            (name, bytes) => MapEntry(name, List<int>.unmodifiable(bytes)),
+          ),
+        );
+
+  final SkillPackageManifest manifest;
+  final Map<String, List<int>> files;
+  final String packagePath;
+}
+
 /// Skill 市场服务 — 浏览、搜索、安装、卸载 Skill
 class SkillMarketplace {
   SkillMarketplace({
     this.registryUrl =
         'https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skill-registry.json',
     http.Client? client,
-  }) : _client = client ?? http.Client();
+    String? installDir,
+    SkillManifestVerifier? manifestVerifier,
+    DateTime Function()? clock,
+  })  : _client = client ?? http.Client(),
+        _installDir = installDir,
+        _manifestVerifier =
+            manifestVerifier ?? const SkillManifestVerifier.production(),
+        _clock = clock ?? DateTime.now;
 
   final String registryUrl;
   final http.Client _client;
+  final SkillManifestVerifier _manifestVerifier;
+  final DateTime Function() _clock;
   List<SkillEntry> _cache = [];
   Set<String> _installedIds = {};
   String? _installDir;
@@ -93,12 +218,14 @@ class SkillMarketplace {
 
   /// 获取技能安装目录
   Future<String> getInstallDir() async {
-    if (_installDir != null) return _installDir!;
-    try {
-      final appDir = await getApplicationDocumentsDirectory();
-      _installDir = '${appDir.path}/lingbi_skills';
-    } catch (_) {
-      _installDir = '${Platform.environment['USERPROFILE'] ?? '.'}/lingbi_skills';
+    if (_installDir == null) {
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        _installDir = '${appDir.path}/lingbi_skills';
+      } catch (_) {
+        _installDir =
+            '${Platform.environment['USERPROFILE'] ?? '.'}/lingbi_skills';
+      }
     }
     final dir = Directory(_installDir!);
     if (!await dir.exists()) {
@@ -207,33 +334,174 @@ class SkillMarketplace {
 
   /// 安装 Skill (下载 SKILL.md 并保存到本地)
   Future<bool> install(SkillEntry skill) async {
+    // Legacy registry entries do not carry a signed package manifest. They are
+    // deliberately refused instead of treating a URL or author string as trust.
+    return false;
+  }
+
+  Future<bool> installOfflinePackage(OfflineSkillPackage package) {
+    return _installPackage(
+      manifest: package.manifest,
+      files: package.files,
+      source: SkillInstallSource.offlinePackage,
+      sourceUri: package.packagePath,
+      verifier: _manifestVerifier,
+    );
+  }
+
+  Future<bool> installDistilledSkill({
+    required String skillId,
+    required String projectId,
+    required String content,
+    String version = '0.1.0-dev',
+  }) {
+    final bytes = utf8.encode(content);
+    final manifest = SkillPackageManifest(
+      skillId: skillId,
+      version: version,
+      files: {'SKILL.md': sha256.convert(bytes).toString()},
+      capabilities: {
+        'project:$projectId',
+        'canon.read',
+        'document.read',
+      },
+      signerId: null,
+      signature: null,
+      state: SkillPackageState.development,
+    );
+    return _installPackage(
+      manifest: manifest,
+      files: {'SKILL.md': bytes},
+      source: SkillInstallSource.distilled,
+      sourceUri: 'project:$projectId',
+      verifier: const SkillManifestVerifier.development(),
+    );
+  }
+
+  Future<bool> _installPackage({
+    required SkillPackageManifest manifest,
+    required Map<String, List<int>> files,
+    required SkillInstallSource source,
+    required String sourceUri,
+    required SkillManifestVerifier verifier,
+  }) async {
     try {
-      final dir = await getInstallDir();
-
-      // 优先从本地 community/skills/ 目录读取
-      final localFile = File('community/skills/${skill.id}/SKILL.md');
-      String content;
-      if (await localFile.exists()) {
-        content = await localFile.readAsString();
-      } else if (skill.downloadUrl.isNotEmpty) {
-        final response = await _client
-            .get(Uri.parse(skill.downloadUrl))
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 200) return false;
-        content = response.body;
-      } else {
-        return false;
-      }
-
-      await _writeSkillFile(dir, skill.id, content);
-      _installedIds.add(skill.id);
-      _eventController.add(
-        SkillMarketEvent(type: SkillMarketEventType.installed, skillId: skill.id),
+      final current = await readInstallMetadata(manifest.skillId);
+      final verification = verifier.verify(
+        manifest: manifest,
+        packageFiles: files,
+        installedVersion: current?.version,
       );
+      if (!verification.isValid) return false;
+
+      final installDir = await getInstallDir();
+      final skillDir = Directory('$installDir/${manifest.skillId}');
+      final stagingDir = Directory('$installDir/.${manifest.skillId}.staging');
+      if (await stagingDir.exists()) await stagingDir.delete(recursive: true);
+      await stagingDir.create(recursive: true);
+      for (final entry in files.entries) {
+        final target = File('${stagingDir.path}/${entry.key}');
+        await target.parent.create(recursive: true);
+        await target.writeAsBytes(entry.value, flush: true);
+      }
+      await File('${stagingDir.path}/manifest.json').writeAsString(
+        jsonEncode(manifest.toJson()),
+        flush: true,
+      );
+
+      final previousPermissions = current?.permissions ?? const <String>{};
+      final metadata = SkillInstallMetadata(
+        skillId: manifest.skillId,
+        version: manifest.version,
+        source: source,
+        sourceUri: sourceUri,
+        signerId: manifest.signerId,
+        signatureStatus: verification.signatureStatus,
+        permissions: manifest.capabilities,
+        permissionDiff: SkillPermissionDiff(
+          added: manifest.capabilities.difference(previousPermissions),
+          removed: previousPermissions.difference(manifest.capabilities),
+        ),
+        packageHash: _packageHash(manifest),
+        installedAt: _clock().toUtc(),
+        packageState: manifest.state,
+      );
+      await File('${stagingDir.path}/install-metadata.json').writeAsString(
+        jsonEncode(metadata.toJson()),
+        flush: true,
+      );
+
+      if (await skillDir.exists()) {
+        final rollbackDir = Directory(
+          '$installDir/.rollback/${manifest.skillId}/${current!.version}',
+        );
+        if (await rollbackDir.exists()) {
+          await rollbackDir.delete(recursive: true);
+        }
+        await _copyDirectory(skillDir, rollbackDir);
+        await skillDir.delete(recursive: true);
+      }
+      await stagingDir.rename(skillDir.path);
+      notifyInstalled(manifest.skillId);
       return true;
     } catch (_) {
       return false;
     }
+  }
+
+  Future<SkillInstallMetadata?> readInstallMetadata(String skillId) async {
+    try {
+      final dir = await getInstallDir();
+      final file = File('$dir/$skillId/install-metadata.json');
+      if (!await file.exists()) return null;
+      return SkillInstallMetadata.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> rollback(String skillId) async {
+    try {
+      final installDir = await getInstallDir();
+      final root = Directory('$installDir/.rollback/$skillId');
+      if (!await root.exists()) return false;
+      final snapshots = await root
+          .list()
+          .where((entry) => entry is Directory)
+          .cast<Directory>()
+          .toList();
+      if (snapshots.isEmpty) return false;
+      snapshots.sort((a, b) => a.path.compareTo(b.path));
+      final snapshot = snapshots.last;
+      final current = Directory('$installDir/$skillId');
+      if (await current.exists()) await current.delete(recursive: true);
+      await snapshot.rename(current.path);
+      notifyInstalled(skillId);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<void> _copyDirectory(
+    Directory source,
+    Directory destination,
+  ) async {
+    await destination.create(recursive: true);
+    await for (final entity in source.list(recursive: false)) {
+      final name = entity.path.split(RegExp(r'[/\\]')).last;
+      if (entity is Directory) {
+        await _copyDirectory(entity, Directory('${destination.path}/$name'));
+      } else if (entity is File) {
+        await entity.copy('${destination.path}/$name');
+      }
+    }
+  }
+
+  static String _packageHash(SkillPackageManifest manifest) {
+    return sha256.convert(utf8.encode(manifest.canonicalPayload)).toString();
   }
 
   /// 写入技能文件（原子写）

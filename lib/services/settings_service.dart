@@ -127,7 +127,6 @@ class OnboardingState {
 /// - 公开构建中禁止把 API Key 回退保存到明文 JSON
 /// - 安全存储失败时：提示无法安全保存，允许本次会话临时使用，不得静默持久化
 class SettingsService extends ChangeNotifier implements ISettingsService {
-
   SettingsService({required AIService aiService})
       : _aiService = aiService,
         _secureStorage = const FlutterSecureStorage();
@@ -200,8 +199,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   bool get isInitialized => _initialized;
 
   /// 获取自定义端点列表（只读）
-  List<EndpointConfig> get customEndpoints =>
-      List.unmodifiable(_endpoints);
+  List<EndpointConfig> get customEndpoints => List.unmodifiable(_endpoints);
 
   @override
   String getApiKey(String provider) =>
@@ -251,6 +249,33 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     _selectedModelIds[provider] = modelId;
     notifyListeners();
     _save();
+  }
+
+  /// Persist a model selection only after the runtime has validated it.
+  ///
+  /// Unlike the legacy synchronous setters, this method surfaces disk errors
+  /// so the runtime transaction can roll back instead of reporting a false
+  /// success to the user.
+  Future<void> commitRuntimeSelection(
+    String provider,
+    String modelId,
+  ) async {
+    final previousProvider = _selectedProvider;
+    final previousModel = _selectedModelIds[provider];
+    _selectedProvider = provider;
+    _selectedModelIds[provider] = modelId;
+    try {
+      await _save(rethrowOnError: true);
+    } catch (_) {
+      _selectedProvider = previousProvider;
+      if (previousModel == null) {
+        _selectedModelIds.remove(provider);
+      } else {
+        _selectedModelIds[provider] = previousModel;
+      }
+      rethrow;
+    }
+    notifyListeners();
   }
 
   /// 初始化 & 加载持久化设置
@@ -303,8 +328,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     } else {
       // 安全存储不可用 → 会话临时
       _sessionOnlyKeys[provider] = key;
-      secureStorageWarning =
-          '安全存储不可用，API Key 仅在本次会话有效，不会保存到磁盘。';
+      secureStorageWarning = '安全存储不可用，API Key 仅在本次会话有效，不会保存到磁盘。';
     }
 
     notifyListeners();
@@ -417,7 +441,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
       for (final provider in envMappings.keys) {
         final value =
             await _secureStorage.read(key: '$_secureKeyPrefix$provider');
-        if (value != null && value.isNotEmpty && !_apiKeys.containsKey(provider)) {
+        if (value != null &&
+            value.isNotEmpty &&
+            !_apiKeys.containsKey(provider)) {
           _apiKeys[provider] = value;
         }
       }
@@ -448,7 +474,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
           if (json['apiKeys'] is Map) {
             (json['apiKeys'] as Map).forEach((k, v) {
               final keyStr = k.toString();
-              if (v is String && v.isNotEmpty && !_apiKeys.containsKey(keyStr)) {
+              if (v is String &&
+                  v.isNotEmpty &&
+                  !_apiKeys.containsKey(keyStr)) {
                 legacyApiKeys[keyStr] = v;
               }
             });
@@ -467,8 +495,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
           }
           // 加载 WebDAV 配置
           if (json['webdav'] is Map<String, dynamic>) {
-            _webDavConfig = WebDavConfig.fromJson(
-                json['webdav'] as Map<String, dynamic>);
+            _webDavConfig =
+                WebDavConfig.fromJson(json['webdav'] as Map<String, dynamic>);
           }
           // 加载匿名数据贡献配置
           if (json['analyticsConsent'] is Map<String, dynamic>) {
@@ -505,7 +533,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     }
 
     // 5. 自动切换到环境变量提供的 provider（当当前 provider 无有效 key 时）
-    if (_selectedProvider == 'free' || !_apiKeys.containsKey(_selectedProvider)) {
+    if (_selectedProvider == 'free' ||
+        !_apiKeys.containsKey(_selectedProvider)) {
       for (final entry in envMappings.entries) {
         final envVal = env[entry.value];
         if (envVal != null && envVal.isNotEmpty) {
@@ -521,13 +550,21 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     for (final entry in _apiKeys.entries) {
       _aiService.configureApiKey(entry.key, entry.value);
     }
+
+    // Restore the selected model onto each configured runtime endpoint.
+    for (final entry in _selectedModelIds.entries) {
+      final endpoint = _aiService.getEndpoint(entry.key);
+      if (endpoint != null) {
+        _aiService.addEndpoint(endpoint.copyWith(modelId: entry.value));
+      }
+    }
     _aiService.setProvider(_selectedProvider);
 
     // 7. 将自定义端点注册到 AI 服务
     _endpoints.forEach(_aiService.addEndpoint);
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool rethrowOnError = false}) async {
     if (_settingsPath == null) return;
     try {
       // API Keys 仅写入安全存储；禁止明文 JSON 回退
@@ -544,8 +581,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
             debugPrint('SettingsService: 写入安全存储失败 — $e');
             // 不 fallback 到 JSON，标记为会话临时
             _sessionOnlyKeys[entry.key] = entry.value;
-            secureStorageWarning =
-                '部分 API Key 无法安全保存，仅在本次会话有效。';
+            secureStorageWarning = '部分 API Key 无法安全保存，仅在本次会话有效。';
           }
         }
       }
@@ -573,7 +609,9 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         // 禁止在 JSON 中写入 apiKeys
       };
       await file.writeAsString(jsonEncode(data));
-    } catch (_) {}
+    } catch (_) {
+      if (rethrowOnError) rethrow;
+    }
   }
 
   ThemeMode _parseThemeMode(String? name) {

@@ -8,7 +8,6 @@
 /// - 全部使用用户自己的 API Key 调用 LLM 完成分析
 library;
 
-
 import 'package:http/http.dart' as http;
 
 import 'package:lingbi/core/ai/ai_provider.dart';
@@ -17,7 +16,10 @@ import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 // ─── 数据模型 ───
 
 /// 参考书来源类型
-enum ReferenceSourceType { url, file, manual;
+enum ReferenceSourceType {
+  url,
+  file,
+  manual;
 
   static ReferenceSourceType fromString(String s) {
     return ReferenceSourceType.values.firstWhere(
@@ -28,7 +30,12 @@ enum ReferenceSourceType { url, file, manual;
 }
 
 /// 爬取状态
-enum CrawlStatus { idle, crawling, paused, completed, failed;
+enum CrawlStatus {
+  idle,
+  crawling,
+  paused,
+  completed,
+  failed;
 
   static CrawlStatus fromString(String s) {
     return CrawlStatus.values.firstWhere(
@@ -122,8 +129,7 @@ class ReferenceBook {
       crawledChapters: json['crawled_chapters'] as int? ?? 0,
       content: json['content'] as String? ?? '',
       analysis: json['analysis'] != null
-          ? BookAnalysis.fromJson(
-              json['analysis'] as Map<String, dynamic>)
+          ? BookAnalysis.fromJson(json['analysis'] as Map<String, dynamic>)
           : const BookAnalysis(),
       addedAt: json['added_at'] as String? ?? '',
       updatedAt: json['updated_at'] as String? ?? '',
@@ -203,7 +209,9 @@ class ReferenceBookService {
         _client = client ?? http.Client();
 
   final IProjectMetaRepository _metaRepository;
-  final AIProvider _aiProvider;
+  AIProvider _aiProvider;
+
+  set aiProvider(AIProvider provider) => _aiProvider = provider;
   final http.Client _client;
 
   static const _indexFile = 'references_index.json';
@@ -299,14 +307,12 @@ class ReferenceBookService {
 
     final contentBuffer = StringBuffer(book.content);
     final startChapter = book.crawledChapters;
-    final endChapter = book.totalChapters > 0
-        ? book.totalChapters
-        : maxChapters;
+    final endChapter =
+        book.totalChapters > 0 ? book.totalChapters : maxChapters;
 
     try {
       for (var i = startChapter; i < endChapter; i++) {
-        final chapterContent =
-            await effectiveFetch(book.sourceUrl, i);
+        final chapterContent = await effectiveFetch(book.sourceUrl, i);
         if (chapterContent.isEmpty) break;
 
         contentBuffer.writeln('\n--- 第${i + 1}章 ---');
@@ -431,15 +437,15 @@ class ReferenceBookService {
   /// 将所有已分析参考书的核心发现汇总为 prompt 文本。
   Future<String> buildContextText(String projectId) async {
     final books = await listBooks(projectId);
-    final analyzed =
-        books.where((b) => b.analysis.isComplete).toList();
+    final analyzed = books.where((b) => b.analysis.isComplete).toList();
     if (analyzed.isEmpty) return '';
 
     final buffer = StringBuffer();
     buffer.writeln('【参考书分析（拆书知识库）】');
     for (final book in analyzed.take(3)) {
       buffer.writeln();
-      buffer.writeln('《${book.title}》${book.author.isNotEmpty ? ' — ${book.author}' : ''}');
+      buffer.writeln(
+          '《${book.title}》${book.author.isNotEmpty ? ' — ${book.author}' : ''}');
       buffer.writeln('风格: ${_truncate(book.analysis.style, 100)}');
       buffer.writeln('人物: ${_truncate(book.analysis.characters, 100)}');
       buffer.writeln('情节: ${_truncate(book.analysis.plot, 100)}');
@@ -450,8 +456,7 @@ class ReferenceBookService {
 
   // ─── 辅助方法 ───
 
-  Future<void> _saveIndex(
-      String projectId, List<ReferenceBook> books) async {
+  Future<void> _saveIndex(String projectId, List<ReferenceBook> books) async {
     await _metaRepository.write(projectId, _indexFile, {
       'books': books.map((b) => b.toJson()).toList(),
       'updated_at': DateTime.now().toIso8601String(),
@@ -481,10 +486,8 @@ class ReferenceBookService {
       final result = await _aiProvider.chatSync(
         messages: [
           ChatMessage(
-              role: 'system',
-              content: '你是文学分析专家，擅长小说$dimension分析。只输出分析结论。'),
-          ChatMessage(
-              role: 'user', content: '$instruction\n\n文本：\n$text'),
+              role: 'system', content: '你是文学分析专家，擅长小说$dimension分析。只输出分析结论。'),
+          ChatMessage(role: 'user', content: '$instruction\n\n文本：\n$text'),
         ],
       );
       return result.trim();
