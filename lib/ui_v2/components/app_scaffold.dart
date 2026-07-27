@@ -17,6 +17,7 @@ import '../pages/editor_page.dart';
 import '../pages/storyboard_page.dart';
 import '../pages/import_export_page.dart';
 import '../pages/project_overview_page.dart';
+import '../pages/project_onboarding_page.dart';
 import '../pages/skill_market_page.dart';
 import 'toolbox_page.dart';
 import 'project_brief_sheet.dart';
@@ -39,6 +40,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _aiPanelVisible = true;
   bool _hasProject = false;
   bool _showingSkillMarket = false;
+  bool _showProjectOnboarding = false;
   int _sidebarIndex = 0;
   ProjectTab _currentTab = ProjectTab.overview;
   Project? _currentProject;
@@ -75,6 +77,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       setState(() {
         _hasProject = false;
         _showingSkillMarket = false;
+        _showProjectOnboarding = false;
         _currentProject = null;
         _currentDocument = null;
       });
@@ -100,6 +103,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     setState(() {
       _hasProject = false;
       _showingSkillMarket = false;
+      _showProjectOnboarding = false;
       _currentProject = null;
       _currentDocument = null;
     });
@@ -128,6 +132,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           _hasProject = true;
           _currentProject = project;
           _currentTab = ProjectTab.overview;
+          _showProjectOnboarding = true;
         });
       } catch (e) {
         if (mounted) {
@@ -166,6 +171,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           _hasProject = true;
           _currentProject = result.project;
           _currentTab = ProjectTab.overview;
+          _showProjectOnboarding = false;
         });
 
         if (mounted) {
@@ -265,7 +271,10 @@ class _AppScaffoldState extends State<AppScaffold> {
           ),
           ProjectNavigationBar(
             currentTab: _currentTab,
-            onTabChanged: (tab) => setState(() => _currentTab = tab),
+            onTabChanged: (tab) => setState(() {
+              _currentTab = tab;
+              _showProjectOnboarding = false;
+            }),
             onCollapse: _collapseNavigation,
           ),
           Expanded(
@@ -298,15 +307,31 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Widget _buildPage() {
+    if (_showProjectOnboarding) {
+      return ProjectOnboardingPage(
+        projectId: _currentProject!.id,
+        workflow: ServiceLocator.instance.projectOnboardingWorkflow,
+        onCompleted: () => setState(() {
+          _showProjectOnboarding = false;
+          _currentTab = ProjectTab.overview;
+        }),
+        onManualWriting: () => setState(() {
+          _showProjectOnboarding = false;
+          _currentTab = ProjectTab.writing;
+        }),
+      );
+    }
     switch (_currentTab) {
       case ProjectTab.overview:
         return ProjectOverviewPage(
           project: _currentProject!,
           repository: ServiceLocator.instance.projectAssetRepository,
           onAssetSelected: (asset) => setState(() {
-            _currentTab = asset.type == ProjectAssetType.firstChapter
-                ? ProjectTab.writing
-                : ProjectTab.ideation;
+            if (asset.type == ProjectAssetType.firstChapter) {
+              _currentTab = ProjectTab.writing;
+            } else {
+              _showProjectOnboarding = true;
+            }
           }),
         );
       case ProjectTab.writing:
