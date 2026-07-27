@@ -14,7 +14,6 @@ const int currentMetaSchemaVersion = 1;
 /// 每次写入自动在 Canon 创建/更新索引条目。
 /// 每次删除自动清理 Canon 索引。
 class ProjectMetaRepository implements IProjectMetaRepository {
-
   ProjectMetaRepository({
     required ProjectService projectService,
     required CanonService canonService,
@@ -103,17 +102,46 @@ class ProjectMetaRepository implements IProjectMetaRepository {
     String fileName,
     Map<String, dynamic> data,
   ) async {
-    // 注入 schema 版本
-    data[_schemaField] = currentMetaSchemaVersion;
+    // Work on a copy so callers never observe repository bookkeeping fields.
+    final persisted = Map<String, dynamic>.from(data)
+      ..[_schemaField] = currentMetaSchemaVersion;
 
     final dir = await _ensureMetaDir(projectId);
     final sep = Platform.pathSeparator;
     final file = File('${dir.path}$sep$fileName');
-    await file.writeAsString(jsonEncode(data));
+    final temp = File('${file.path}.tmp');
+    final backup = File('${file.path}.bak');
+    await temp.writeAsString(jsonEncode(persisted), flush: true);
+    try {
+      if (await backup.exists()) await backup.delete();
+      if (await file.exists()) await file.rename(backup.path);
+      await temp.rename(file.path);
+      if (await backup.exists()) await backup.delete();
+    } catch (_) {
+      if (await temp.exists()) await temp.delete();
+      if (!await file.exists() && await backup.exists()) {
+        await backup.rename(file.path);
+      }
+      rethrow;
+    }
 
-    // 自动在 Canon 创建/更新索引条目
-    final indexEntry = _buildCanonIndex(projectId, fileName, data);
-    await _canonService.create(indexEntry);
+    // Keep exactly one Canon index per metadata file.
+    final indexEntry = _buildCanonIndex(projectId, fileName, persisted);
+    final entries = await _canonService.list(projectId, indexEntry.type);
+    final existing = entries.where((entry) => entry.name == indexEntry.name);
+    if (existing.isEmpty) {
+      await _canonService.create(indexEntry);
+    } else {
+      await _canonService.update(
+        existing.first.copyWith(
+          description: indexEntry.description,
+          attributes: indexEntry.attributes,
+        ),
+      );
+      for (final duplicate in existing.skip(1)) {
+        await _canonService.delete(duplicate);
+      }
+    }
   }
 
   @override

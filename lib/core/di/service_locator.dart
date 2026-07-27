@@ -22,6 +22,7 @@ import '../../services/skills/kehuan_flow_skill.dart';
 import '../../services/skills/lishi_flow_skill.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../services/project_meta_repository.dart';
+import '../../services/project_asset_repository.dart';
 import '../../services/project_service.dart';
 import '../../services/project_tab_controller.dart';
 import '../../services/quota_service.dart';
@@ -115,6 +116,7 @@ class ServiceLocator {
 
   /// ——— 项目元数据 + 引导流程 ———
   late final ProjectMetaRepository projectMetaRepository;
+  late final ProjectAssetRepository projectAssetRepository;
   late final GuidedFlowEngine guidedFlowEngine;
   late final GuidedFlowSkillLoader guidedFlowSkillLoader;
   late final AntiHallucinationService antiHallucinationService;
@@ -193,6 +195,9 @@ class ServiceLocator {
       locator.projectMetaRepository = ProjectMetaRepository(
         projectService: locator.projectService,
         canonService: locator.canonService,
+      );
+      locator.projectAssetRepository = ProjectAssetRepository(
+        metaRepository: locator.projectMetaRepository,
       );
       locator.guidedFlowEngine = GuidedFlowEngine(
         metaRepository: locator.projectMetaRepository,

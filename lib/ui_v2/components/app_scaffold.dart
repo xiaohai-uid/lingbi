@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/domain/project/project_asset.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
 import 'package:lingbi/utils/paths.dart';
 import '../theme/tokens.dart';
@@ -13,11 +14,9 @@ import 'ai_assistant.dart';
 import 'project_tabs.dart';
 import '../pages/welcome_page.dart';
 import '../pages/editor_page.dart';
-import '../pages/canon_page.dart';
 import '../pages/storyboard_page.dart';
-import '../pages/version_history_page.dart';
 import '../pages/import_export_page.dart';
-import '../pages/settings_page.dart';
+import '../pages/project_overview_page.dart';
 import '../pages/skill_market_page.dart';
 import 'toolbox_page.dart';
 import 'project_brief_sheet.dart';
@@ -41,7 +40,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _hasProject = false;
   bool _showingSkillMarket = false;
   int _sidebarIndex = 0;
-  ProjectTab _currentTab = ProjectTab.editor;
+  ProjectTab _currentTab = ProjectTab.overview;
   Project? _currentProject;
   Document? _currentDocument;
 
@@ -128,7 +127,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = project;
-          _currentTab = ProjectTab.editor;
+          _currentTab = ProjectTab.overview;
         });
       } catch (e) {
         if (mounted) {
@@ -166,6 +165,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = result.project;
+          _currentTab = ProjectTab.overview;
         });
 
         if (mounted) {
@@ -299,28 +299,28 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   Widget _buildPage() {
     switch (_currentTab) {
-      case ProjectTab.editor:
+      case ProjectTab.overview:
+        return ProjectOverviewPage(
+          project: _currentProject!,
+          repository: ServiceLocator.instance.projectAssetRepository,
+          onAssetSelected: (asset) => setState(() {
+            _currentTab = asset.type == ProjectAssetType.firstChapter
+                ? ProjectTab.writing
+                : ProjectTab.ideation;
+          }),
+        );
+      case ProjectTab.writing:
         return EditorPage(
           projectId: _currentProject?.id,
           documentId: _currentDocument?.id,
           documentTitle: _currentDocument?.title,
         );
-      case ProjectTab.canon:
-        return CanonPage(projectId: _currentProject?.id);
-      case ProjectTab.storyboard:
+      case ProjectTab.ideation:
         return StoryboardPage(projectId: _currentProject?.id);
-      case ProjectTab.toolbox:
+      case ProjectTab.review:
         return ToolboxPage(projectId: _currentProject?.id);
-      case ProjectTab.history:
-        return VersionHistoryPage(
-          projectId: _currentProject?.id,
-          projectDir: _currentProject?.directoryPath,
-          docId: _currentDocument?.id,
-        );
-      case ProjectTab.importExport:
+      case ProjectTab.publish:
         return ImportExportPage(projectId: _currentProject?.id);
-      case ProjectTab.settings:
-        return const SettingsPage();
     }
   }
 }
