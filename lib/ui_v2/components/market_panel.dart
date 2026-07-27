@@ -16,10 +16,16 @@ import '../theme/lingbi_icons.dart';
 
 /// 市场情报面板 — 嵌入写作页右侧或 AI 面板 Tab
 class MarketPanel extends StatefulWidget {
-  const MarketPanel({super.key, this.onContextGenerated});
+  const MarketPanel({super.key, this.onContextGenerated, this.projectGenre, this.projectPlatform});
 
   /// 市场上下文生成回调（供外部注入 AI pipeline）
   final void Function(String marketContext)? onContextGenerated;
+
+  /// 当前项目已选题材（自动预选，无需用户重复选择）
+  final String? projectGenre;
+
+  /// 当前项目目标平台
+  final String? projectPlatform;
 
   @override
   State<MarketPanel> createState() => _MarketPanelState();
@@ -29,8 +35,8 @@ class _MarketPanelState extends State<MarketPanel> {
   static const _platforms = ['起点', '番茄', '七猫'];
   static const _genres = ['玄幻', '都市', '悬疑', '言情', '科幻', '历史'];
 
-  String _selectedPlatform = '起点';
-  String _selectedGenre = '玄幻';
+  late String _selectedPlatform;
+  late String _selectedGenre;
   bool _loading = false;
   bool _injectToContext = false;
   MarketIntelSnapshot? _snapshot;
@@ -39,6 +45,15 @@ class _MarketPanelState extends State<MarketPanel> {
   @override
   void initState() {
     super.initState();
+    // 优先使用项目已选的平台/题材，避免用户重复选择
+    _selectedPlatform = (widget.projectPlatform != null &&
+            _platforms.contains(widget.projectPlatform))
+        ? widget.projectPlatform!
+        : '起点';
+    _selectedGenre = (widget.projectGenre != null &&
+            _genres.contains(widget.projectGenre))
+        ? widget.projectGenre!
+        : '玄幻';
     _fetchTrends();
   }
 
