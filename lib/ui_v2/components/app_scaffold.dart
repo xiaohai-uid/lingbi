@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/models/project.dart';
@@ -19,8 +20,11 @@ import '../pages/import_export_page.dart';
 import '../pages/project_overview_page.dart';
 import '../pages/project_onboarding_page.dart';
 import '../pages/skill_market_page.dart';
+import '../pages/settings_page.dart';
+import '../services/command_palette_service.dart';
 import 'toolbox_page.dart';
 import 'project_brief_sheet.dart';
+import 'command_palette.dart';
 
 class AppScaffold extends StatefulWidget {
   const AppScaffold({
@@ -40,11 +44,13 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _aiPanelVisible = true;
   bool _hasProject = false;
   bool _showingSkillMarket = false;
+  bool _showingSettings = false;
   bool _showProjectOnboarding = false;
   int _sidebarIndex = 0;
   ProjectTab _currentTab = ProjectTab.overview;
   Project? _currentProject;
   Document? _currentDocument;
+  final CommandPaletteService _commandService = CommandPaletteService();
 
   @override
   void initState() {
@@ -55,6 +61,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   void dispose() {
     ServiceLocator.instance.projectTabController.removeListener(_onTabsChanged);
+    _commandService.dispose();
     super.dispose();
   }
 
@@ -94,8 +101,10 @@ class _AppScaffoldState extends State<AppScaffold> {
   void _toggleSidebar() => setState(() => _sidebarVisible = !_sidebarVisible);
   void _toggleAiPanel() => setState(() => _aiPanelVisible = !_aiPanelVisible);
 
-  void _openSkillMarket() =>
-      setState(() => _showingSkillMarket = !_showingSkillMarket);
+  void _openSkillMarket() => setState(() {
+        _showingSettings = false;
+        _showingSkillMarket = !_showingSkillMarket;
+      });
 
   /// Collapse all project tabs → back to welcome screen
   void _collapseNavigation() {
@@ -103,10 +112,70 @@ class _AppScaffoldState extends State<AppScaffold> {
     setState(() {
       _hasProject = false;
       _showingSkillMarket = false;
+      _showingSettings = false;
       _showProjectOnboarding = false;
       _currentProject = null;
       _currentDocument = null;
     });
+  }
+
+  void _executeCommand(AppCommand command) {
+    switch (command) {
+      case AppCommand.newProject:
+        _collapseNavigation();
+        return;
+      case AppCommand.openProject:
+        _openProject();
+        return;
+      case AppCommand.commandPalette:
+        CommandPalette.show(context, onSelected: _executeCommand);
+        return;
+      case AppCommand.toggleAi:
+        _toggleAiPanel();
+        return;
+      case AppCommand.settings:
+        setState(() {
+          _showingSkillMarket = false;
+          _showingSettings = true;
+        });
+        return;
+      case AppCommand.save:
+        _commandService.dispatch(AppCommand.save);
+        return;
+      case AppCommand.dismiss:
+        if (_showingSettings || _showingSkillMarket) {
+          setState(() {
+            _showingSettings = false;
+            _showingSkillMarket = false;
+          });
+        }
+        return;
+    }
+  }
+
+  Widget _commandShell(Widget child) {
+    final bindings = <ShortcutActivator, VoidCallback>{
+      const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+          _executeCommand(AppCommand.newProject),
+      const SingleActivator(LogicalKeyboardKey.keyO, control: true): () =>
+          _executeCommand(AppCommand.openProject),
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+          _executeCommand(AppCommand.commandPalette),
+      const SingleActivator(LogicalKeyboardKey.keyA,
+          control: true,
+          shift: true): () => _executeCommand(AppCommand.toggleAi),
+      const SingleActivator(LogicalKeyboardKey.comma, control: true): () =>
+          _executeCommand(AppCommand.settings),
+      const SingleActivator(LogicalKeyboardKey.keyS, control: true): () =>
+          _executeCommand(AppCommand.save),
+      if (_showingSettings || _showingSkillMarket)
+        const SingleActivator(LogicalKeyboardKey.escape): () =>
+            _executeCommand(AppCommand.dismiss),
+    };
+    return CallbackShortcuts(
+      bindings: bindings,
+      child: Focus(autofocus: true, child: child),
+    );
   }
 
   Future<void> _createProject(ProjectTemplate template) async {
@@ -196,24 +265,23 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
-
-    if (!_hasProject && !_showingSkillMarket) {
-      return Material(
+    late final Widget content;
+    if (_showingSettings) {
+      content = Material(
         color: c.bg,
         child: Column(
           children: [
-            TopBar(
-              isDarkMode: widget.isDarkMode,
-              aiPanelVisible: _aiPanelVisible,
-              sidebarVisible: _sidebarVisible,
-              onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-              onToggleAiPanel: _toggleAiPanel,
-              onToggleSidebar: _toggleSidebar,
-              onSkillMarket: _openSkillMarket,
-              onSearch: _onSearch,
-              onProjectSwitch: _onProjectSwitch,
-              onCloseTab: _onCloseTab,
-            ),
+            _buildTopBar(),
+            const Expanded(child: SettingsPage()),
+          ],
+        ),
+      );
+    } else if (!_hasProject && !_showingSkillMarket) {
+      content = Material(
+        color: c.bg,
+        child: Column(
+          children: [
+            _buildTopBar(),
             Expanded(
               child: WelcomePage(
                 onCreateProject: _createProject,
@@ -224,25 +292,12 @@ class _AppScaffoldState extends State<AppScaffold> {
           ],
         ),
       );
-    }
-
-    if (_showingSkillMarket) {
-      return Material(
+    } else if (_showingSkillMarket) {
+      content = Material(
         color: c.bg,
         child: Column(
           children: [
-            TopBar(
-              isDarkMode: widget.isDarkMode,
-              aiPanelVisible: _aiPanelVisible,
-              sidebarVisible: _sidebarVisible,
-              onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-              onToggleAiPanel: _toggleAiPanel,
-              onToggleSidebar: _toggleSidebar,
-              onSkillMarket: _openSkillMarket,
-              onSearch: _onSearch,
-              onProjectSwitch: _onProjectSwitch,
-              onCloseTab: _onCloseTab,
-            ),
+            _buildTopBar(),
             Expanded(
               child: SkillMarketPage(
                 onBack: () => setState(() => _showingSkillMarket = false),
@@ -251,58 +306,105 @@ class _AppScaffoldState extends State<AppScaffold> {
           ],
         ),
       );
-    }
-
-    return Material(
-      color: c.bg,
-      child: Column(
-        children: [
-          TopBar(
-            isDarkMode: widget.isDarkMode,
-            aiPanelVisible: _aiPanelVisible,
-            sidebarVisible: _sidebarVisible,
-            onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
-            onToggleAiPanel: _toggleAiPanel,
-            onToggleSidebar: _toggleSidebar,
-            onSkillMarket: _openSkillMarket,
-            onSearch: _onSearch,
-            onProjectSwitch: _onProjectSwitch,
-            onCloseTab: _onCloseTab,
-          ),
-          ProjectNavigationBar(
-            currentTab: _currentTab,
-            onTabChanged: (tab) => setState(() {
-              _currentTab = tab;
-              _showProjectOnboarding = false;
-            }),
-            onCollapse: _collapseNavigation,
-          ),
-          Expanded(
-            child: Row(
-              children: [
-                if (_sidebarVisible)
-                  Sidebar(
-                    selectedIndex: _sidebarIndex,
-                    onItemSelected: (i) => setState(() => _sidebarIndex = i),
-                    projectId: _currentProject?.id,
-                    projectName: _currentProject?.name,
-                    projectDirectoryPath: _currentProject?.directoryPath,
-                    onDocumentSelected: (doc) =>
-                        setState(() => _currentDocument = doc),
-                    onDocumentCreated: (doc) =>
-                        setState(() => _currentDocument = doc),
-                  ),
-                Expanded(child: _buildPage()),
-                if (_aiPanelVisible)
-                  AiAssistantPanel(
-                    projectId: _currentProject?.id,
-                    projectName: _currentProject?.name,
-                  ),
-              ],
+    } else {
+      content = Material(
+        color: c.bg,
+        child: Column(
+          children: [
+            _buildTopBar(),
+            ProjectNavigationBar(
+              currentTab: _currentTab,
+              onTabChanged: (tab) => setState(() {
+                _currentTab = tab;
+                _showProjectOnboarding = false;
+              }),
+              onCollapse: _collapseNavigation,
             ),
+            Expanded(child: _buildResponsiveWorkspace()),
+          ],
+        ),
+      );
+    }
+    return _commandShell(
+      Semantics(label: '灵笔 Windows 主工作区', container: true, child: content),
+    );
+  }
+
+  Widget _buildTopBar() {
+    return TopBar(
+      isDarkMode: widget.isDarkMode,
+      aiPanelVisible: _aiPanelVisible,
+      sidebarVisible: _sidebarVisible,
+      onToggleTheme: () => widget.onToggleTheme(!widget.isDarkMode),
+      onToggleAiPanel: _toggleAiPanel,
+      onToggleSidebar: _toggleSidebar,
+      onSkillMarket: _openSkillMarket,
+      onSearch: _onSearch,
+      onProjectSwitch: _onProjectSwitch,
+      onCloseTab: _onCloseTab,
+    );
+  }
+
+  Widget _buildResponsiveWorkspace() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final policy = WorkspaceLayoutPolicy.forWidth(constraints.maxWidth);
+        final aiDocked =
+            _aiPanelVisible && policy.aiPresentation != AiPresentation.overlay;
+        final sidebarHasRoom = !aiDocked || constraints.maxWidth >= 1180;
+        final showSidebar =
+            _sidebarVisible && sidebarHasRoom && constraints.maxWidth >= 900;
+        final editor = Expanded(
+          child: Semantics(
+            label: '项目内容区',
+            container: true,
+            child: _buildPage(),
           ),
-        ],
-      ),
+        );
+        final base = Row(
+          children: [
+            if (showSidebar)
+              Sidebar(
+                selectedIndex: _sidebarIndex,
+                onItemSelected: (i) => setState(() => _sidebarIndex = i),
+                projectId: _currentProject?.id,
+                projectName: _currentProject?.name,
+                projectDirectoryPath: _currentProject?.directoryPath,
+                onDocumentSelected: (doc) =>
+                    setState(() => _currentDocument = doc),
+                onDocumentCreated: (doc) =>
+                    setState(() => _currentDocument = doc),
+              ),
+            editor,
+            if (aiDocked)
+              AiAssistantPanel(
+                projectId: _currentProject?.id,
+                projectName: _currentProject?.name,
+              ),
+          ],
+        );
+        if (!_aiPanelVisible ||
+            policy.aiPresentation != AiPresentation.overlay) {
+          return base;
+        }
+        return Stack(
+          children: [
+            base,
+            Positioned(
+              top: 0,
+              right: 0,
+              bottom: 0,
+              child: Material(
+                elevation: 12,
+                child: AiAssistantPanel(
+                  projectId: _currentProject?.id,
+                  projectName: _currentProject?.name,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -340,6 +442,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           projectDirectoryPath: _currentProject?.directoryPath,
           documentId: _currentDocument?.id,
           documentTitle: _currentDocument?.title,
+          commandService: _commandService,
         );
       case ProjectTab.ideation:
         return StoryboardPage(projectId: _currentProject?.id);

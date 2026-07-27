@@ -19,6 +19,7 @@ import '../components/slash_command_menu.dart';
 import '../components/candidate_panel.dart';
 import '../components/model_status_bar.dart';
 import '../components/error_banner.dart';
+import '../services/command_palette_service.dart';
 import '../../services/clarity_check_service.dart';
 
 class EditorPage extends StatefulWidget {
@@ -28,11 +29,13 @@ class EditorPage extends StatefulWidget {
     this.documentId,
     this.documentTitle,
     this.projectDirectoryPath,
+    this.commandService,
   });
   final String? projectId;
   final String? documentId;
   final String? documentTitle;
   final String? projectDirectoryPath;
+  final CommandPaletteService? commandService;
 
   @override
   State<EditorPage> createState() => _EditorPageState();
@@ -76,7 +79,14 @@ class _EditorPageState extends State<EditorPage> {
     _quillFocusNode = FocusNode();
     _quillController = QuillController.basic();
     _subscribeChanges();
+    widget.commandService?.events.addListener(_onAppCommand);
     _loadDocument();
+  }
+
+  void _onAppCommand() {
+    if (widget.commandService?.events.value == AppCommand.save) {
+      _save();
+    }
   }
 
   void _subscribeChanges() {
@@ -145,6 +155,10 @@ class _EditorPageState extends State<EditorPage> {
   @override
   void didUpdateWidget(covariant EditorPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.commandService != widget.commandService) {
+      oldWidget.commandService?.events.removeListener(_onAppCommand);
+      widget.commandService?.events.addListener(_onAppCommand);
+    }
     if (oldWidget.projectId != widget.projectId ||
         oldWidget.projectDirectoryPath != widget.projectDirectoryPath) {
       _chapterWorkflow = null;
@@ -158,6 +172,7 @@ class _EditorPageState extends State<EditorPage> {
   void _loadQuillContent(String content) {
     _contentLoaded = false;
     _changesSubscription?.cancel();
+    widget.commandService?.events.removeListener(_onAppCommand);
     final oldController = _quillController;
     final doc = Document()..insert(0, content);
     _quillController = QuillController(
