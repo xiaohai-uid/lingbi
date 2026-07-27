@@ -5,9 +5,10 @@ import 'package:lingbi/core/models/project.dart';
 import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/database/zvec_service.dart';
 import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/domain/project/project_brief.dart';
+import 'package:lingbi/services/project_brief_repository.dart';
 
 class ProjectService implements IProjectService {
-
   ProjectService({ZVecService? zvecService, FileService? fileService})
       : _zvec = zvecService,
         _fileService = fileService ?? FileService();
@@ -17,21 +18,42 @@ class ProjectService implements IProjectService {
   /// 创建便携项目 — 先在磁盘建立目录和 .lingbi/project.json，
   /// 再写入 ZVec（若可用）。
   Future<Project> createPortableProject({
-    required String name,
+    String? name,
     required String directoryPath,
     String description = '',
+    ProjectBrief? brief,
   }) async {
+    if (brief == null && (name == null || name.trim().isEmpty)) {
+      throw ArgumentError('name or brief is required');
+    }
+    final requestedBrief = brief ??
+        ProjectBrief(
+          title: name!.trim(),
+          genreId: '',
+          templateId: '',
+          premise: description,
+        );
     final project = Project(
-      name: name,
-      description: description,
+      name: requestedBrief.title,
+      description: requestedBrief.premise ?? description,
       directoryPath: directoryPath,
+      targetPlatform: requestedBrief.targetPlatform ?? '',
+      genre: requestedBrief.genreId,
+      audience: requestedBrief.audience ?? '',
+      templateId: requestedBrief.templateId,
+      targetLength: requestedBrief.targetLength,
+      premise: requestedBrief.premise ?? '',
+      briefRevision: 1,
     );
     await Directory(directoryPath).create(recursive: true);
     final lingbiDir = Directory('$directoryPath/.lingbi');
     await lingbiDir.create();
-    await File('$directoryPath/.lingbi/project.json').writeAsString(
-      jsonEncode(project.toJson()),
+    final committedBrief = await ProjectBriefRepository(directoryPath).write(
+      requestedBrief,
+      expectedRevision: 0,
+      baseMetadata: project.toJson(),
     );
+    project.briefRevision = committedBrief.revision;
     await _zvec?.upsert('projects', project.id, project.toJson());
     return project;
   }
