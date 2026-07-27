@@ -8,8 +8,6 @@
 /// - Canon 引用（角色/设定/世界观要素）
 library;
 
-import 'dart:io';
-
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/models/canon_entry.dart';
 import 'package:lingbi/services/ai_service.dart';
@@ -106,12 +104,18 @@ class DistillationService {
           : '${config.projectName}风格';
       final skillId = _slugify(skillName);
 
-      // 5. 写入磁盘（复用 SkillMarketplace 的安装目录）
-      final installDir = await _marketplace.getInstallDir();
-      await _writeSkillMd(installDir, skillId, skillMdContent);
-
-      // 6. 通知 Marketplace 触发事件（SkillLoader 会自动加载）
-      _marketplace.notifyInstalled(skillId);
+      // 5. 以明确的 development 状态安装，并记录项目范围与来源元数据。
+      final installed = await _marketplace.installDistilledSkill(
+        skillId: skillId,
+        projectId: config.projectId,
+        content: skillMdContent,
+      );
+      if (!installed) {
+        return const DistillationResult(
+          success: false,
+          error: '蒸馏结果未通过本地 Skill 安全校验。',
+        );
+      }
 
       return DistillationResult(
         success: true,
@@ -254,15 +258,6 @@ class DistillationService {
       cleaned = cleaned.trim();
     }
     return cleaned;
-  }
-
-  /// 写入 SKILL.md 到安装目录
-  Future<void> _writeSkillMd(
-      String installDir, String skillId, String content) async {
-    final skillDir = Directory('$installDir/$skillId');
-    await skillDir.create(recursive: true);
-    final file = File('${skillDir.path}/SKILL.md');
-    await file.writeAsString(content);
   }
 
   /// 将名称转为合法的目录名（slug）
