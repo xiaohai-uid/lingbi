@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
-import 'package:lingbi/core/ai/ai_response_normalizer.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/core/errors/ai_error.dart';
 import 'package:lingbi/core/models/document.dart' as app;
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
+import 'package:lingbi/modules/pipeline/novel_application_service.dart';
 import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
+import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
+import 'package:lingbi/workflows/first_chapter/first_chapter_workflow.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import '../components/writing_toolbar.dart';
@@ -19,16 +22,17 @@ import '../components/error_banner.dart';
 import '../../services/clarity_check_service.dart';
 
 class EditorPage extends StatefulWidget {
-
   const EditorPage({
     super.key,
     this.projectId,
     this.documentId,
     this.documentTitle,
+    this.projectDirectoryPath,
   });
   final String? projectId;
   final String? documentId;
   final String? documentTitle;
+  final String? projectDirectoryPath;
 
   @override
   State<EditorPage> createState() => _EditorPageState();
@@ -59,6 +63,7 @@ class _EditorPageState extends State<EditorPage> {
   String? _aiError;
   CandidateEntry? _currentCandidate;
   bool _showCandidatePanel = false;
+  FirstChapterWorkflowController? _chapterWorkflow;
 
   // T4: 清晰度检查状态
   final ClarityCheckService _clarityCheck = ClarityCheckService();
@@ -140,7 +145,12 @@ class _EditorPageState extends State<EditorPage> {
   @override
   void didUpdateWidget(covariant EditorPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.documentId != widget.documentId) {
+    if (oldWidget.projectId != widget.projectId ||
+        oldWidget.projectDirectoryPath != widget.projectDirectoryPath) {
+      _chapterWorkflow = null;
+    }
+    if (oldWidget.documentId != widget.documentId ||
+        oldWidget.projectId != widget.projectId) {
       _loadDocument();
     }
   }
@@ -164,6 +174,7 @@ class _EditorPageState extends State<EditorPage> {
   Future<void> _loadDocument() async {
     if (widget.documentId == null) {
       setState(() {
+        _document = null;
         _title = widget.documentTitle ?? '';
         _content = '';
       });
@@ -172,11 +183,11 @@ class _EditorPageState extends State<EditorPage> {
       return;
     }
     try {
-      final doc =
-          await ServiceLocator.instance.documentService.getDocument(
-              widget.documentId!);
+      final doc = await ServiceLocator.instance.documentService
+          .getDocument(widget.documentId!);
       if (doc == null) {
         setState(() {
+          _document = null;
           _title = widget.documentTitle ?? '';
           _content = '';
         });
@@ -184,16 +195,18 @@ class _EditorPageState extends State<EditorPage> {
         _titleController.text = _title;
         return;
       }
-      final content =
-          await ServiceLocator.instance.documentService.readContent(doc.filePath);
+      final content = await ServiceLocator.instance.documentService
+          .readContent(doc.filePath);
       if (!mounted) return;
       setState(() {
+        _document = null;
         _document = doc;
         _title = widget.documentTitle ?? doc.title;
         _content = content;
       });
       _loadQuillContent(content);
       _titleController.text = _title;
+      await _restoreFirstChapterWorkflow();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -203,6 +216,55 @@ class _EditorPageState extends State<EditorPage> {
       _loadQuillContent('');
       _titleController.text = _title;
     }
+  }
+
+  FirstChapterWorkflowController? _createChapterWorkflow() {
+    final projectId = widget.projectId;
+    final projectDirectory = widget.projectDirectoryPath;
+    if (projectId == null ||
+        projectId.isEmpty ||
+        projectDirectory == null ||
+        projectDirectory.isEmpty) {
+      return null;
+    }
+    final locator = ServiceLocator.instance;
+    final application = NovelApplicationService(
+      projectDir: projectDirectory,
+      projectId: projectId,
+      documentService: locator.documentService,
+      canonService: locator.canonService,
+      aiService: locator.aiService,
+    );
+    return FirstChapterWorkflowController(
+      pipeline: NovelFirstChapterPipeline(application),
+      stateStore:
+          FileFirstChapterStateStore(projectDirectory: projectDirectory),
+    );
+  }
+
+  Future<void> _restoreFirstChapterWorkflow() async {
+    final projectId = widget.projectId;
+    if (projectId == null || _document == null) return;
+    _chapterWorkflow ??= _createChapterWorkflow();
+    final state = await _chapterWorkflow?.resume(projectId);
+    if (!mounted ||
+        state == null ||
+        state.chapterId != _document!.id ||
+        state.stage != FirstChapterStage.waitingForConfirmation ||
+        state.candidateId == null) {
+      return;
+    }
+    setState(() {
+      _currentCandidate = CandidateEntry(
+        id: state.candidateId!,
+        chapterId: state.chapterId,
+        content: state.candidateContent ?? '',
+        model: ServiceLocator.instance.aiService.currentProviderName,
+        createdAt: state.updatedAt,
+      );
+      _showCandidatePanel = true;
+      _aiError = state.error;
+    });
   }
 
   Future<void> _save() async {
@@ -309,6 +371,10 @@ class _EditorPageState extends State<EditorPage> {
     if (widget.documentId == null || widget.documentId!.isEmpty) {
       return '请先选择一个章节';
     }
+    if (widget.projectDirectoryPath == null ||
+        widget.projectDirectoryPath!.isEmpty) {
+      return '项目目录不可用，无法安全保存候选稿';
+    }
     return null;
   }
 
@@ -350,49 +416,47 @@ class _EditorPageState extends State<EditorPage> {
     });
 
     try {
-      final aiService = ServiceLocator.instance.aiService;
+      final workflow = _chapterWorkflow ??= _createChapterWorkflow();
+      final document = _document;
+      if (workflow == null || document == null) {
+        throw StateError('缺少项目目录或章节文件，无法启动安全生成');
+      }
       final buffer = StringBuffer();
-      final processBuffer = StringBuffer();
       final skillId = _selectedSkill?.id ?? 'smart-continuation';
-      final enrichedMessage = '技能: $skillId。\n$instruction';
+      final request = FirstChapterRequest(
+        projectId: widget.projectId!,
+        chapterId: document.id,
+        targetFilePath: document.filePath,
+        instruction: '技能: $skillId。\n$instruction',
+      );
 
-      await for (final event in aiService.normalizedChat(
-        message: enrichedMessage,
-        maxTokens: 4096,
-        treatAllAsCandidate: true,
-      )) {
+      await for (final event in workflow.start(request)) {
         if (!mounted) return;
-        switch (event) {
-          case NormalizerChunk(:final block):
-            if (block.type == NormalizedBlockType.process) {
-              processBuffer.write(block.text);
-              setState(() => _streamingProcess = processBuffer.toString());
-            } else {
-              // candidate / answer 块 → 正文预览
-              buffer.write(block.text);
-              setState(() => _streamingText = buffer.toString());
-            }
-          case NormalizerDone():
-            break;
-          case NormalizerError(:final message):
-            setState(() {
-              _isGenerating = false;
-              _aiError = 'AI 生成失败: $message';
-            });
-            return;
+        if (event.contentChunk != null) {
+          buffer.write(event.contentChunk);
+          setState(() => _streamingText = buffer.toString());
+        }
+        setState(() => _streamingProcess = event.message);
+        if (event.stage == FirstChapterStage.failed) {
+          setState(() {
+            _isGenerating = false;
+            _aiError = event.message;
+          });
+          return;
         }
       }
 
       if (mounted) {
+        final state = await workflow.resume(widget.projectId!);
+        if (!mounted || state?.candidateId == null) return;
         setState(() {
           _isGenerating = false;
-          // 生成完成，创建候选条目并显示 CandidatePanel
           _currentCandidate = CandidateEntry(
-            id: 'local-${DateTime.now().millisecondsSinceEpoch}',
-            chapterId: widget.documentId ?? '',
-            content: buffer.toString(),
-            model: aiService.currentProviderName,
-            createdAt: DateTime.now(),
+            id: state!.candidateId!,
+            chapterId: state.chapterId,
+            content: state.candidateContent ?? buffer.toString(),
+            model: ServiceLocator.instance.aiService.currentProviderName,
+            createdAt: state.updatedAt,
           );
           _showCandidatePanel = true;
         });
@@ -422,6 +486,7 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   void _cancelGeneration() {
+    _chapterWorkflow?.cancel();
     setState(() {
       _isGenerating = false;
       _streamingText = '';
@@ -455,50 +520,41 @@ class _EditorPageState extends State<EditorPage> {
   // 候选采纳（编辑器内存操作，进入撤销栈）
   // ---------------------------------------------------------------------------
 
-  void _handleAdopt(AdoptMode mode) {
+  Future<void> _handleAdopt(AdoptMode mode) async {
     final candidate = _currentCandidate;
-    if (candidate == null) return;
-    final text = candidate.content;
-
-    switch (mode) {
-      case AdoptMode.insertAtCursor:
-        final offset = _quillController.selection.start;
-        _quillController.replaceText(offset, 0, text, null);
-      case AdoptMode.replaceSelection:
-        final start = _quillController.selection.start;
-        final length = _quillController.selection.end - start;
-        _quillController.replaceText(start, length, text, null);
-      case AdoptMode.appendToEnd:
-        final docLength = _quillController.document.length;
-        // 在文档末尾插入（留一个换行）
-        _quillController.replaceText(docLength - 1, 0, '\n$text', null);
+    final workflow = _chapterWorkflow;
+    if (candidate == null || workflow == null) return;
+    final result = await workflow.adopt(candidate.id);
+    if (!mounted) return;
+    if (!result.isSuccess) {
+      setState(() => _aiError = result.message);
+      return;
     }
-
+    await _loadDocument();
+    if (!mounted) return;
     setState(() {
-      _content = _extractPlainText();
-      _isDirty = true;
+      _isDirty = false;
       _showCandidatePanel = false;
       _currentCandidate = null;
       _streamingText = '';
-    });
-    _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer(const Duration(seconds: 30), _save);
-  }
-
-  void _handleDiscard() {
-    setState(() {
-      _showCandidatePanel = false;
-      _currentCandidate = null;
-      _streamingText = '';
+      _aiError = null;
     });
   }
 
-  void _handleRegenerate() {
+  Future<void> _handleDiscard() async {
+    final candidate = _currentCandidate;
+    if (candidate != null) await _chapterWorkflow?.reject(candidate.id);
+    if (!mounted) return;
     setState(() {
       _showCandidatePanel = false;
       _currentCandidate = null;
       _streamingText = '';
     });
+  }
+
+  Future<void> _handleRegenerate() async {
+    await _handleDiscard();
+    if (!mounted) return;
     _startGeneration();
   }
 
@@ -526,6 +582,7 @@ class _EditorPageState extends State<EditorPage> {
                 child: CandidatePanel(
                   candidate: _currentCandidate!,
                   processBlocks: const [],
+                  safeReplaceOnly: true,
                   onAdopt: _handleAdopt,
                   onDiscard: _handleDiscard,
                   onRegenerate: _handleRegenerate,
@@ -563,11 +620,10 @@ class _EditorPageState extends State<EditorPage> {
                       left: 80,
                       top: 40,
                       child: SlashCommandMenu(
-                        skills: ServiceLocator.instance.skillActionService
-                            .registeredSkills,
+                        skills: ServiceLocator
+                            .instance.skillActionService.registeredSkills,
                         onSelected: _onSkillSelected,
-                        onDismiss: () =>
-                            setState(() => _showSlashMenu = false),
+                        onDismiss: () => setState(() => _showSlashMenu = false),
                       ),
                     ),
                 ],
@@ -661,14 +717,12 @@ class _EditorPageState extends State<EditorPage> {
               const SizedBox(width: 6),
               Text('AI 写作',
                   style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: c.fg)),
+                      fontSize: 13, fontWeight: FontWeight.w600, color: c.fg)),
               const Spacer(),
               if (_selectedSkill != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: c.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -700,8 +754,8 @@ class _EditorPageState extends State<EditorPage> {
               hintStyle: TextStyle(fontSize: 13, color: c.muted),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: BorderSide(
-                    color: c.borderOpaque.withValues(alpha: 0.3)),
+                borderSide:
+                    BorderSide(color: c.borderOpaque.withValues(alpha: 0.3)),
               ),
               contentPadding: const EdgeInsets.all(8),
             ),
@@ -768,8 +822,8 @@ class _EditorPageState extends State<EditorPage> {
               decoration: BoxDecoration(
                 color: c.bg,
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                    color: c.borderOpaque.withValues(alpha: 0.2)),
+                border:
+                    Border.all(color: c.borderOpaque.withValues(alpha: 0.2)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -778,7 +832,10 @@ class _EditorPageState extends State<EditorPage> {
                     if (_streamingProcess.isNotEmpty) ...[
                       Text(
                         '💭 ${_streamingProcess.length > 80 ? '${_streamingProcess.substring(0, 80)}...' : _streamingProcess}',
-                        style: TextStyle(fontSize: 11, color: c.muted, fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: c.muted,
+                            fontStyle: FontStyle.italic),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -787,7 +844,8 @@ class _EditorPageState extends State<EditorPage> {
                     if (_streamingText.isNotEmpty)
                       Text(
                         _streamingText,
-                        style: TextStyle(fontSize: 13, color: c.fg, height: 1.5),
+                        style:
+                            TextStyle(fontSize: 13, color: c.fg, height: 1.5),
                       ),
                   ],
                 ),
@@ -843,7 +901,9 @@ class _EditorPageState extends State<EditorPage> {
           Icon(
             LingBiIcons.check,
             size: 12,
-            color: _isDirty ? c.muted.withValues(alpha: 0.5) : LingBiTokens.success,
+            color: _isDirty
+                ? c.muted.withValues(alpha: 0.5)
+                : LingBiTokens.success,
           ),
         ],
       ),
@@ -909,9 +969,7 @@ class _EditorPageState extends State<EditorPage> {
                           fontWeight: option == '直接生成'
                               ? FontWeight.w600
                               : FontWeight.w400,
-                          color: option == '直接生成'
-                              ? c.accent
-                              : c.fgSecondary,
+                          color: option == '直接生成' ? c.accent : c.fgSecondary,
                         ),
                       ),
                     ),

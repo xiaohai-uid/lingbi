@@ -337,6 +337,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       case ProjectTab.writing:
         return EditorPage(
           projectId: _currentProject?.id,
+          projectDirectoryPath: _currentProject?.directoryPath,
           documentId: _currentDocument?.id,
           documentTitle: _currentDocument?.title,
         );

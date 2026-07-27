@@ -38,6 +38,7 @@ class CandidatePanel extends StatefulWidget {
     required this.candidate,
     required this.processBlocks,
     this.isStreaming = false,
+    this.safeReplaceOnly = false,
     this.onAdopt,
     this.onDiscard,
     this.onRegenerate,
@@ -52,6 +53,10 @@ class CandidatePanel extends StatefulWidget {
 
   /// 是否正在流式生成
   final bool isStreaming;
+
+  /// When true, adoption is routed through the transactional workflow and
+  /// replaces the chapter only after lock, source-version and snapshot checks.
+  final bool safeReplaceOnly;
 
   /// 采纳回调（返回采纳模式）
   final ValueChanged<AdoptMode>? onAdopt;
@@ -77,7 +82,9 @@ class _CandidatePanelState extends State<CandidatePanel> {
   void didUpdateWidget(CandidatePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     // 最终结果开始后自动折叠过程区
-    if (oldWidget.isStreaming && !widget.isStreaming && !_processAutoCollapsed) {
+    if (oldWidget.isStreaming &&
+        !widget.isStreaming &&
+        !_processAutoCollapsed) {
       _showProcess = false;
       _processAutoCollapsed = true;
     }
@@ -235,31 +242,40 @@ class _CandidatePanelState extends State<CandidatePanel> {
         spacing: 8,
         runSpacing: 4,
         children: [
-          // 采纳下拉按钮
-          PopupMenuButton<AdoptMode>(
-            tooltip: '采纳到编辑器',
-            offset: const Offset(0, -100),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: AdoptMode.insertAtCursor,
-                child: Text('插入光标处'),
+          if (widget.safeReplaceOnly)
+            FilledButton.icon(
+              onPressed: widget.onAdopt == null
+                  ? null
+                  : () => widget.onAdopt!(AdoptMode.replaceSelection),
+              icon: const Icon(Icons.verified_user_outlined, size: 16),
+              label: const Text('安全采纳到正文'),
+            )
+          else
+            // Legacy cursor modes are only safe for non-persistent previews.
+            PopupMenuButton<AdoptMode>(
+              tooltip: '采纳到编辑器',
+              offset: const Offset(0, -100),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: AdoptMode.insertAtCursor,
+                  child: Text('插入光标处'),
+                ),
+                const PopupMenuItem(
+                  value: AdoptMode.replaceSelection,
+                  child: Text('替换选区'),
+                ),
+                const PopupMenuItem(
+                  value: AdoptMode.appendToEnd,
+                  child: Text('追加到末尾'),
+                ),
+              ],
+              onSelected: (mode) => widget.onAdopt?.call(mode),
+              child: FilledButton.icon(
+                onPressed: null,
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('采纳'),
               ),
-              const PopupMenuItem(
-                value: AdoptMode.replaceSelection,
-                child: Text('替换选区'),
-              ),
-              const PopupMenuItem(
-                value: AdoptMode.appendToEnd,
-                child: Text('追加到末尾'),
-              ),
-            ],
-            onSelected: (mode) => widget.onAdopt?.call(mode),
-            child: FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.check, size: 16),
-              label: const Text('采纳'),
             ),
-          ),
           // 复制
           OutlinedButton.icon(
             onPressed: () {
