@@ -52,6 +52,9 @@ import '../../services/license_service.dart';
 import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../services/version_history_service.dart';
+import '../../services/atomic_file_store.dart';
+import '../../services/recovery_center_service.dart';
+import '../../services/portable_project_package_service.dart';
 import '../database/zvec_service.dart';
 import '../file_system/file_service.dart';
 import '../file_system/sync_service.dart';
@@ -94,6 +97,9 @@ class ServiceLocator {
   late final StorageService storageService;
   late final FileService fileService;
   late final QuotaService quotaService;
+  late final AtomicFileStore atomicFileStore;
+  late final RecoveryCenterService recoveryCenterService;
+  late final PortableProjectPackageService portableProjectPackageService;
 
   /// ——— 仓储 ———
   late final StoryBeatsRepository storyBeatsRepository;
@@ -168,6 +174,10 @@ class ServiceLocator {
       locator.storageService = StorageService();
       locator.fileService = FileService();
       locator.quotaService = QuotaService();
+      locator.atomicFileStore = AtomicFileStore();
+      locator.recoveryCenterService = RecoveryCenterService(
+        atomicStore: locator.atomicFileStore,
+      );
 
       // 层级 2: 依赖叶子服务
       locator.zvecService = ZVecService(storageService: locator.storageService);
@@ -180,6 +190,7 @@ class ServiceLocator {
       locator.documentService = DocumentService(
         zvecService: locator.zvecService,
         fileService: locator.fileService,
+        atomicStore: locator.atomicFileStore,
       );
       locator.canonService = CanonService(zvecService: locator.zvecService);
       locator.projectService = ProjectService(zvecService: locator.zvecService);
@@ -332,8 +343,31 @@ class ServiceLocator {
       }
 
       // 层级 6: 无依赖工具服务
-      locator.exportService = ExportService();
-      locator.versionHistoryService = VersionHistoryService();
+      locator.exportService =
+          ExportService(atomicStore: locator.atomicFileStore);
+      locator.versionHistoryService = VersionHistoryService(
+        atomicStore: locator.atomicFileStore,
+        recoveryCenter: locator.recoveryCenterService,
+      );
+      locator.portableProjectPackageService = PortableProjectPackageService(
+        atomicStore: locator.atomicFileStore,
+        rebuildIndexes: (directoryPath) async {
+          final opened =
+              await locator.projectService.openPortableProject(directoryPath);
+          await locator.zvecService.upsert(
+            'projects',
+            opened.project.id,
+            opened.project.toJson(),
+          );
+          for (final document in opened.documents) {
+            await locator.zvecService.upsert(
+              'documents',
+              document.id,
+              document.toJson(),
+            );
+          }
+        },
+      );
       locator.projectTabController = ProjectTabController();
 
       // 层级 7: 市场情报 + 云同步

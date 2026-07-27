@@ -21,6 +21,7 @@ dependencies:
   # 工具
   uuid: ^4.3.0
   crypto: ^3.0.7
+  archive: ^4.0.9
   # 导出
   pdf: ^3.11.0
   # YAML 解析（GuidedFlow 定义文件）

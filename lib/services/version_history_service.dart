@@ -1,10 +1,11 @@
 import 'package:lingbi/services/interfaces/i_version_history_service.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'atomic_file_store.dart';
+import 'recovery_center_service.dart';
 
 /// 版本快照元数据
 class VersionInfo {
-
   VersionInfo({
     required this.id,
     required this.docId,
@@ -37,7 +38,14 @@ class VersionInfo {
 
 /// 版本历史服务 - 文档快照存储与恢复
 class VersionHistoryService implements IVersionHistoryService {
-  VersionHistoryService();
+  VersionHistoryService({
+    AtomicFileStore? atomicStore,
+    RecoveryCenterService? recoveryCenter,
+  })  : _atomicStore = atomicStore ?? AtomicFileStore(),
+        _recoveryCenter = recoveryCenter ?? RecoveryCenterService();
+
+  final AtomicFileStore _atomicStore;
+  final RecoveryCenterService _recoveryCenter;
 
   /// 保存一个新版本快照
   @override
@@ -57,14 +65,16 @@ class VersionHistoryService implements IVersionHistoryService {
 
     // 保存内容快照
     final contentFile = File('${versionsDir.path}/$id.md');
-    await contentFile.writeAsString(content);
+    await _atomicStore.writeString(contentFile.path, content);
 
     // 更新元数据
     final metadataFile = File('${versionsDir.path}/metadata.json');
     List<VersionInfo> versions = [];
     if (await metadataFile.exists()) {
       final json = jsonDecode(await metadataFile.readAsString()) as List;
-      versions = json.map((j) => VersionInfo.fromJson(j as Map<String, dynamic>)).toList();
+      versions = json
+          .map((j) => VersionInfo.fromJson(j as Map<String, dynamic>))
+          .toList();
     }
 
     final wordCount = _countWords(content);
@@ -81,12 +91,17 @@ class VersionHistoryService implements IVersionHistoryService {
       final toRemove = versions.sublist(0, versions.length - 50);
       for (final old in toRemove) {
         final oldFile = File('${versionsDir.path}/${old.id}.md');
-        if (await oldFile.exists()) await oldFile.delete();
+        if (await oldFile.exists()) {
+          await _recoveryCenter.softDelete(projectDir, oldFile.path);
+        }
       }
       versions = versions.sublist(versions.length - 50);
     }
 
-    await metadataFile.writeAsString(jsonEncode(versions.map((v) => v.toJson()).toList()));
+    await _atomicStore.writeString(
+      metadataFile.path,
+      jsonEncode(versions.map((v) => v.toJson()).toList()),
+    );
   }
 
   /// 获取文档的所有版本列表（按时间倒序）
@@ -95,12 +110,15 @@ class VersionHistoryService implements IVersionHistoryService {
     required String projectDir,
     required String docId,
   }) async {
-    final metadataFile = File('$projectDir/.lingbi/versions/$docId/metadata.json');
+    final metadataFile =
+        File('$projectDir/.lingbi/versions/$docId/metadata.json');
     if (!await metadataFile.exists()) return [];
 
     try {
       final json = jsonDecode(await metadataFile.readAsString()) as List;
-      final versions = json.map((j) => VersionInfo.fromJson(j as Map<String, dynamic>)).toList();
+      final versions = json
+          .map((j) => VersionInfo.fromJson(j as Map<String, dynamic>))
+          .toList();
       versions.sort((a, b) => b.timestamp.compareTo(a.timestamp)); // 新版本在前
       return versions;
     } catch (_) {
@@ -138,7 +156,8 @@ class VersionHistoryService implements IVersionHistoryService {
 
   /// 生成变更摘要
   String _generateSummary(String content) {
-    final lines = content.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final lines =
+        content.split('\n').where((l) => l.trim().isNotEmpty).toList();
     if (lines.isEmpty) return '空文档';
     // 取第一个非空行作为摘要
     final first = lines.first.replaceAll(RegExp(r'^#+\s*'), '').trim();
