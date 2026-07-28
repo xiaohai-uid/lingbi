@@ -31,7 +31,9 @@ class SenseNovaProvider extends AIProvider {
   @override
   bool get isAvailable => _apiKey != null && _apiKey!.isNotEmpty;
 
-  String get _modelId => _modelOverride ?? 'sensenova-6.7-flash-lite';
+  // 默认使用 deepseek-v4-flash：推理模型 sensenova-6.7-flash-lite 会把有限的
+  // token 全部消耗在 <think> 过程文本上，可见正文为 0 字，开箱即坏。
+  String get _modelId => _modelOverride ?? 'deepseek-v4-flash';
 
   /// 将异常/状态码转换为用户友好的中文提示
   String _friendlyError(Object e, [int? statusCode]) {

@@ -91,7 +91,7 @@ class AIService implements IAIService {
         modelId: provider == 'openai' ? 'gpt-4o' : 
                  provider == 'claude' ? 'claude-sonnet-4-20250514' :
                  provider == 'deepseek' ? 'deepseek-chat' :
-                 provider == 'sensenova' ? 'sensenova-6.7-flash-lite' : 'gpt-4o',
+                 provider == 'sensenova' ? 'deepseek-v4-flash' : 'gpt-4o',
       ));
     }
   }

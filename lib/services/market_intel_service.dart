@@ -13,6 +13,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 
 import 'package:lingbi/core/ai/ai_provider.dart';
@@ -74,6 +75,7 @@ class MarketIntelSnapshot {
     this.trends = const [],
     this.avgChapterWords = 0,
     this.hotTags = const [],
+    this.source = 'api',
   });
 
   factory MarketIntelSnapshot.fromJson(Map<String, dynamic> json) {
@@ -88,6 +90,7 @@ class MarketIntelSnapshot {
           [],
       avgChapterWords: json['avg_chapter_words'] as int? ?? 0,
       hotTags: (json['hot_tags'] as List?)?.cast<String>() ?? [],
+      source: json['source'] as String? ?? 'api',
     );
   }
 
@@ -98,6 +101,12 @@ class MarketIntelSnapshot {
   final int avgChapterWords;
   final List<String> hotTags;
 
+  /// 数据来源：`api`（用户自配）/`cache`（本地缓存）/`bundled`（内置样例）。
+  final String source;
+
+  /// 是否为随包内置的样例数据。
+  bool get isBundled => source == 'bundled';
+
   Map<String, dynamic> toJson() => {
         'platform': platform,
         'genre': genre,
@@ -105,6 +114,7 @@ class MarketIntelSnapshot {
         'trends': trends.map((e) => e.toJson()).toList(),
         'avg_chapter_words': avgChapterWords,
         'hot_tags': hotTags,
+        'source': source,
       };
 }
 
@@ -114,18 +124,24 @@ class MarketIntelService {
     required String cacheDir,
     http.Client? client,
     this.apiUrl = '',
+    Future<String> Function(String assetPath)? assetLoader,
   })  : _cacheDir = cacheDir,
-        _client = client ?? http.Client();
+        _client = client ?? http.Client(),
+        _assetLoader = assetLoader ?? rootBundle.loadString;
 
   final String _cacheDir;
   final http.Client _client;
+
+  /// 读取随包资产的函数（可注入以便单测）。
+  final Future<String> Function(String assetPath) _assetLoader;
 
   /// 用户配置的爬虫 API 地址（可选）
   final String apiUrl;
 
   /// 从远程 API 拉取市场数据
   ///
-  /// 如果 apiUrl 为空或请求失败，回退到本地缓存。
+  /// 优先级：用户自配 apiUrl > 本地缓存 > 随包内置样例数据。
+  /// 消除“默认无数据”：即使未配置 apiUrl 也能看到带标注的内置样例。
   Future<MarketIntelSnapshot?> fetchTrends({
     required String platform,
     required String genre,
@@ -146,7 +162,33 @@ class MarketIntelService {
         // 网络失败回退缓存
       }
     }
-    return loadCache(platform, genre);
+    final cached = await loadCache(platform, genre);
+    if (cached != null) return cached;
+    return loadBundled(platform: platform, genre: genre);
+  }
+
+  /// 从随包内置资产加载样例榜单（`assets/market/rankings/`）。
+  Future<MarketIntelSnapshot?> loadBundled({
+    required String platform,
+    required String genre,
+  }) async {
+    try {
+      final indexRaw =
+          await _assetLoader('assets/market/rankings/index.json');
+      final files = (jsonDecode(indexRaw) as List).cast<String>();
+      MarketIntelSnapshot? genreMatch;
+      for (final name in files) {
+        final raw = await _assetLoader('assets/market/rankings/$name');
+        final snap = MarketIntelSnapshot.fromJson(
+            jsonDecode(raw) as Map<String, dynamic>);
+        if (snap.genre != genre) continue;
+        genreMatch ??= snap;
+        if (platform.isEmpty || snap.platform == platform) return snap;
+      }
+      return genreMatch;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 保存快照到本地缓存
@@ -187,6 +229,12 @@ class MarketIntelService {
 
     final sb = StringBuffer();
     sb.writeln('【市场情报】');
+    if (snapshot.isBundled) {
+      final d = snapshot.fetchedAt;
+      final date =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      sb.writeln('数据来源: 内置样例数据（最后更新 $date）');
+    }
     sb.writeln('平台: ${snapshot.platform} | 题材: ${snapshot.genre}');
 
     if (snapshot.avgChapterWords > 0) {

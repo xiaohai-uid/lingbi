@@ -131,6 +131,19 @@ class AiResponseNormalizer {
         ));
       }
 
+      // 推理模型兜底：可见正文为空但存在过程文本（<think>/<analysis>），
+      // 提示用户当前模型为推理模型，建议切换，避免“转半天没字”。
+      if (_shouldWarnReasoningOnly()) {
+        const warn = NormalizedBlock(
+          type: NormalizedBlockType.warning,
+          text: '当前模型疑似为推理模型：全部输出都在思考过程中，可见正文为空。'
+              '建议在设置中切换为非推理模型（如 deepseek-v4-flash）后重试。',
+          isComplete: true,
+        );
+        _completedBlocks.add(warn);
+        yield const NormalizerChunk(block: warn);
+      }
+
       yield NormalizerDone(blocks: List.unmodifiable(_completedBlocks));
     } catch (e) {
       yield NormalizerError(
@@ -190,6 +203,21 @@ class AiResponseNormalizer {
     return treatAllAsCandidate
         ? NormalizedBlockType.candidate
         : NormalizedBlockType.answer;
+  }
+
+  /// 判断是否应给出“推理模型可见正文为空”的兜底提示。
+  bool _shouldWarnReasoningOnly() {
+    final hasProcess = _completedBlocks.any(
+      (b) => b.type == NormalizedBlockType.process && b.text.trim().isNotEmpty,
+    );
+    if (!hasProcess) return false;
+    final hasVisible = _completedBlocks.any(
+      (b) =>
+          (b.type == NormalizedBlockType.answer ||
+              b.type == NormalizedBlockType.candidate) &&
+          b.text.trim().isNotEmpty,
+    );
+    return !hasVisible;
   }
 
   /// 处理缓冲区，识别标签边界

@@ -1,0 +1,98 @@
+[
+  {
+    "id": "xuanhuan-flow",
+    "name": "玄幻长篇引导",
+    "description": "玄幻题材专属引导：修炼体系→宗门势力→地理种族→核心角色，四步搭好长篇世界观。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/xuanhuan-flow/SKILL.md",
+    "tags": ["玄幻", "世界观", "修炼体系", "长篇"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "xianxia-flow",
+    "name": "仙侠长篇引导",
+    "description": "仙侠题材引导：道法体系、仙门宗派、天地灵韵与主角道途设计。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/xianxia-flow/SKILL.md",
+    "tags": ["仙侠", "修真", "世界观"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "dushi-flow",
+    "name": "都市长篇引导",
+    "description": "都市题材引导：金手指设定、职场/商战格局、人物关系网与爽点节奏。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/dushi-flow/SKILL.md",
+    "tags": ["都市", "职场", "商战"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "kehuan-flow",
+    "name": "科幻长篇引导",
+    "description": "科幻题材引导：科技设定、世界规则、硬核逻辑与冲突升级。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/kehuan-flow/SKILL.md",
+    "tags": ["科幻", "设定", "硬科幻"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "lishi-flow",
+    "name": "历史长篇引导",
+    "description": "历史题材引导：时代背景、势力沿革、人物立场与史实/虚构边界。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/lishi-flow/SKILL.md",
+    "tags": ["历史", "架空", "权谋"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "xuanyi-flow",
+    "name": "悬疑长篇引导",
+    "description": "悬疑题材引导：核心谜题、线索布局、叙事诡计与反转设计。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/xuanyi-flow/SKILL.md",
+    "tags": ["悬疑", "推理", "反转"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "yanqing-flow",
+    "name": "言情长篇引导",
+    "description": "言情题材引导：情感张力、人物弧光、关系推进与情绪节点。",
+    "author": "lingbi-official",
+    "version": "1.0.0",
+    "category": "genre",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/yanqing-flow/SKILL.md",
+    "tags": ["言情", "情感", "关系"],
+    "download_count": 0,
+    "builtin": true
+  },
+  {
+    "id": "novel-writer-teaching",
+    "name": "小说连载写作法（教学）",
+    "description": "教学向 Skill：讲解读维护文档→读最近章→创作≥2000字→先展示后落盘→更新摘要的连载工作流。",
+    "author": "lingbi-community",
+    "version": "1.0.0",
+    "category": "teaching",
+    "download_url": "https://raw.githubusercontent.com/xiaohai-uid/lingbi/main/community/skills/novel-writer-teaching/SKILL.md",
+    "tags": ["教学", "连载", "工作流", "Agent"],
+    "download_count": 0,
+    "builtin": false
+  }
+]

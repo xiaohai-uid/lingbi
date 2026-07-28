@@ -8,6 +8,7 @@ import 'package:lingbi/core/errors/ai_error.dart';
 import 'package:lingbi/core/models/document.dart' as app;
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'package:lingbi/modules/pipeline/novel_application_service.dart';
+import 'package:lingbi/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
@@ -67,6 +68,9 @@ class _EditorPageState extends State<EditorPage> {
   CandidateEntry? _currentCandidate;
   bool _showCandidatePanel = false;
   FirstChapterWorkflowController? _chapterWorkflow;
+
+  // AI 续写下一章（NovelWritingLoop）：待确认候选，采纳后原子写入新章节文件
+  ChapterCandidate? _pendingLoopCandidate;
 
   // T4: 清晰度检查状态
   final ClarityCheckService _clarityCheck = ClarityCheckService();
@@ -509,6 +513,96 @@ class _EditorPageState extends State<EditorPage> {
     });
   }
 
+  /// AI 续写下一章（对标 OpenWrite）：调用 [NovelWritingLoop] 编排器，
+  /// 读维护文档+最近章节、经 ContextCompiler 压缩上下文后生成候选正文，
+  /// 不直接落盘——复用现有候选确认组件 [CandidatePanel]，采纳后写入新章节文件。
+  Future<void> _continueNextChapter() async {
+    final projectDirectory = widget.projectDirectoryPath;
+    if (projectDirectory == null || projectDirectory.isEmpty) {
+      setState(() => _aiError = '项目目录不可用，无法续写下一章');
+      return;
+    }
+    setState(() {
+      _isGenerating = true;
+      _aiError = null;
+      _streamingText = '';
+      _streamingProcess = '正在读取人物库/世界观与最近章节…';
+    });
+    try {
+      final locator = ServiceLocator.instance;
+      final loop = NovelWritingLoop(
+        provider: locator.aiService.currentProvider,
+        projectDir: projectDirectory,
+        canonService: locator.canonService,
+        projectId: widget.projectId,
+      );
+      final candidate = await loop.proposeNextChapter(
+        guidance: _instructionController.text.trim().isEmpty
+            ? null
+            : _instructionController.text.trim(),
+      );
+      if (!mounted) return;
+      if (candidate.isEmpty) {
+        setState(() {
+          _isGenerating = false;
+          _aiError = candidate.warnings.isNotEmpty
+              ? candidate.warnings.join('\n')
+              : '未生成可见正文，请重试或切换非推理模型';
+        });
+        return;
+      }
+      setState(() {
+        _isGenerating = false;
+        _pendingLoopCandidate = candidate;
+        _currentCandidate = CandidateEntry(
+          id: 'loop-ch${candidate.chapterNumber}',
+          chapterId: '第${candidate.chapterNumber}章',
+          content: candidate.content,
+          model: locator.aiService.currentProviderName,
+          createdAt: DateTime.now(),
+        );
+        _showCandidatePanel = true;
+        _aiError = candidate.warnings.isEmpty ? null : candidate.warnings.join('\n');
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isGenerating = false;
+        _aiError = '续写失败: $e';
+      });
+    }
+  }
+
+  /// 采纳续写候选：经 [NovelWritingLoop.commitChapter] 原子写入新章节文件。
+  Future<void> _commitLoopCandidate() async {
+    final candidate = _pendingLoopCandidate;
+    final projectDirectory = widget.projectDirectoryPath;
+    if (candidate == null || projectDirectory == null) return;
+    try {
+      final locator = ServiceLocator.instance;
+      final loop = NovelWritingLoop(
+        provider: locator.aiService.currentProvider,
+        projectDir: projectDirectory,
+        canonService: locator.canonService,
+        projectId: widget.projectId,
+      );
+      final result = await loop.commitChapter(candidate);
+      if (!mounted) return;
+      setState(() {
+        _pendingLoopCandidate = null;
+        _showCandidatePanel = false;
+        _currentCandidate = null;
+        _aiError = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已写入：${result.chapterPath}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _aiError = '章节落盘失败: $e');
+    }
+  }
+
   void _onSlashDetected() {
     final skills = ServiceLocator.instance.skillActionService.registeredSkills;
     if (skills.isNotEmpty) {
@@ -536,6 +630,11 @@ class _EditorPageState extends State<EditorPage> {
   // ---------------------------------------------------------------------------
 
   Future<void> _handleAdopt(AdoptMode mode) async {
+    // 续写下一章候选：写入新章节文件（不走编辑器内存采纳）。
+    if (_pendingLoopCandidate != null) {
+      await _commitLoopCandidate();
+      return;
+    }
     final candidate = _currentCandidate;
     final workflow = _chapterWorkflow;
     if (candidate == null || workflow == null) return;
@@ -557,6 +656,16 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _handleDiscard() async {
+    if (_pendingLoopCandidate != null) {
+      if (!mounted) return;
+      setState(() {
+        _pendingLoopCandidate = null;
+        _showCandidatePanel = false;
+        _currentCandidate = null;
+        _streamingText = '';
+      });
+      return;
+    }
     final candidate = _currentCandidate;
     if (candidate != null) await _chapterWorkflow?.reject(candidate.id);
     if (!mounted) return;
@@ -568,9 +677,14 @@ class _EditorPageState extends State<EditorPage> {
   }
 
   Future<void> _handleRegenerate() async {
+    final wasLoopCandidate = _pendingLoopCandidate != null;
     await _handleDiscard();
     if (!mounted) return;
-    _startGeneration();
+    if (wasLoopCandidate) {
+      _continueNextChapter();
+    } else {
+      _startGeneration();
+    }
   }
 
   @override
@@ -797,6 +911,14 @@ class _EditorPageState extends State<EditorPage> {
                     backgroundColor: c.accent,
                     foregroundColor: Colors.white,
                   ),
+                ),
+              const SizedBox(width: 8),
+              if (!_isGenerating)
+                OutlinedButton.icon(
+                  onPressed: _continueNextChapter,
+                  icon: const Icon(Icons.auto_stories, size: 16),
+                  label: const Text('AI 续写下一章'),
+                  style: OutlinedButton.styleFrom(foregroundColor: c.accent),
                 ),
               const SizedBox(width: 8),
               TextButton(

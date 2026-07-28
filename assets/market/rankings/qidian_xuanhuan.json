@@ -1,0 +1,15 @@
+{
+  "platform": "起点",
+  "genre": "玄幻",
+  "fetched_at": "2025-06-01T00:00:00.000Z",
+  "source": "bundled",
+  "avg_chapter_words": 3000,
+  "hot_tags": ["东方玄幻", "王朝争霸", "热血", "无敌流", "国运", "洪荒"],
+  "trends": [
+    {"title": "苍天霸体诀", "platform": "起点", "genre": "玄幻", "rank": 1, "heat_score": 9750, "tags": ["东方玄幻", "无敌流", "热血"], "author": "样例作者", "word_count": 4200000},
+    {"title": "开局一座镇魔塔", "platform": "起点", "genre": "玄幻", "rank": 2, "heat_score": 9520, "tags": ["种田", "势力", "养成"], "author": "样例作者", "word_count": 2600000},
+    {"title": "人族镇守使", "platform": "起点", "genre": "玄幻", "rank": 3, "heat_score": 9330, "tags": ["国运", "人族", "热血"], "author": "样例作者", "word_count": 2200000},
+    {"title": "洪荒之我为鲲鹏", "platform": "起点", "genre": "玄幻", "rank": 4, "heat_score": 9110, "tags": ["洪荒", "妖族", "长生"], "author": "样例作者", "word_count": 1900000},
+    {"title": "从散修到万界至尊", "platform": "起点", "genre": "玄幻", "rank": 5, "heat_score": 8900, "tags": ["散修", "升级流", "多界"], "author": "样例作者", "word_count": 1600000}
+  ]
+}

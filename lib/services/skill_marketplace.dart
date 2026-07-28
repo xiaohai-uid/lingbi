@@ -277,6 +277,14 @@ class SkillMarketplace {
     }
   }
 
+  /// 获取列表：优先真实拉取托管 registry，失败/空则离线回退到 bundled 注册表。
+  Future<List<SkillEntry>> fetchSkillsWithFallback() async {
+    final remote = await fetchSkills();
+    if (remote.isNotEmpty) return remote;
+    final local = await loadLocalRegistry();
+    return local;
+  }
+
   /// 从本地 JSON 加载技能列表
   Future<List<SkillEntry>> loadLocalRegistry() async {
     final candidates = [

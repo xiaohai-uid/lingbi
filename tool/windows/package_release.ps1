@@ -79,7 +79,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 $sourceRef = $env:GITHUB_REF_NAME
 if ([string]::IsNullOrWhiteSpace($sourceRef)) {
-    $sourceRef = (& git branch --show-current).Trim()
+    # `git branch --show-current` returns nothing on a detached HEAD (e.g. a
+    # worktree checkout), so guard against a null result before calling .Trim().
+    $branchRaw = (& git branch --show-current | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($branchRaw)) {
+        $abbrevRaw = (& git rev-parse --abbrev-ref HEAD | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($abbrevRaw) -or $abbrevRaw -eq 'HEAD') {
+            $sourceRef = 'detached'
+        } else {
+            $sourceRef = $abbrevRaw
+        }
+    } else {
+        $sourceRef = $branchRaw
+    }
 }
 $dirtyOutput = (& git status --porcelain) -join "`n"
 $provenance = [ordered]@{
