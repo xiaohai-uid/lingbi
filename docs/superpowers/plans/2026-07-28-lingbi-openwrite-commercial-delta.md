@@ -10,6 +10,16 @@
 
 **Baseline on 2026-07-28:** local `flutter test` passes 998 tests only because three required Dart files are ignored but present locally. `flutter analyze lib/` reports 24 issues, including 3 warnings. The release report overstates several unconnected capabilities. External evidence gates cannot truthfully be completed by code.
 
+## MVP scope amendment (user decision, 2026-07-28)
+
+This iteration is an initial Windows trial build, not the final security/compliance release. Product usability and feature closure take priority over defense-in-depth.
+
+- Keep only development-safety guardrails that prevent accidental local data loss (for example, release packaging may not recursively delete the repository or a drive root).
+- In Task 2, implement custom endpoint connection testing and reliable runtime model switching only.
+- Defer asymmetric commercial licensing, payment hardening, advanced diagnostic redaction, terminal sandboxing, code signing, legal/compliance review and adversarial security work to a dedicated later stream.
+- Execute product tasks in this order: Task 4 -> Task 5 -> Task 6 -> Task 3 -> Task 7 -> Task 8 -> the MVP portions of Tasks 9 and 10.
+- The MVP release report must label deferred items `DEFERRED_POST_MVP`; it must not spend implementation time pretending to complete them.
+
 ## Global constraints
 
 - Windows Desktop only; do not add mobile layouts or mobile platform code.
