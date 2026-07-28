@@ -11,6 +11,7 @@ class OnboardingQuestionCard extends StatelessWidget {
     required this.isSaving,
     required this.onSubmit,
     required this.onSkip,
+    this.genreLabel,
   });
 
   final OnboardingQuestion question;
@@ -18,12 +19,19 @@ class OnboardingQuestionCard extends StatelessWidget {
   final bool isSaving;
   final VoidCallback onSubmit;
   final VoidCallback onSkip;
+  final String? genreLabel;
 
   String get _title => switch (question) {
         OnboardingQuestion.protagonistGoal => '主角最想实现什么？',
         OnboardingQuestion.coreObstacle => '什么阻碍了主角？',
         OnboardingQuestion.openingEvent => '故事开场发生什么？',
       };
+
+  String get _displayTitle => genreLabel == null ||
+          genreLabel!.isEmpty ||
+          question != OnboardingQuestion.protagonistGoal
+      ? _title
+      : '$genreLabel开局：$_title';
 
   String get _hint => switch (question) {
         OnboardingQuestion.protagonistGoal => '例：在七天内找到失踪的妹妹',
@@ -45,13 +53,22 @@ class OnboardingQuestionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _title,
+            _displayTitle,
             style: TextStyle(
               color: colors.fg,
               fontSize: 22,
               fontWeight: FontWeight.w700,
             ),
           ),
+          if (genreLabel != null &&
+              genreLabel!.isNotEmpty &&
+              question == OnboardingQuestion.protagonistGoal) ...[
+            const SizedBox(height: LingBiTokens.space2),
+            TextButton(
+              onPressed: () => controller.text = '守护宗族',
+              child: const Text('守护宗族'),
+            ),
+          ],
           const SizedBox(height: LingBiTokens.space3),
           TextField(
             controller: controller,

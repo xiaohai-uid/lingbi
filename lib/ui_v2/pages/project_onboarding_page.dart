@@ -13,6 +13,9 @@ class ProjectOnboardingPage extends StatefulWidget {
     required this.onCompleted,
     required this.onManualWriting,
     this.modelSelector,
+    this.genreId,
+    this.modelReady,
+    this.onConfigureModel,
   });
 
   final String projectId;
@@ -20,6 +23,9 @@ class ProjectOnboardingPage extends StatefulWidget {
   final VoidCallback onCompleted;
   final VoidCallback onManualWriting;
   final Widget? modelSelector;
+  final String? genreId;
+  final bool? modelReady;
+  final VoidCallback? onConfigureModel;
 
   @override
   State<ProjectOnboardingPage> createState() => _ProjectOnboardingPageState();
@@ -98,6 +104,23 @@ class _ProjectOnboardingPageState extends State<ProjectOnboardingPage> {
         OnboardingQuestion.openingEvent => '开场事件',
       };
 
+  Widget _buildModelControl() {
+    if (widget.modelReady != null) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.modelReady! ? '模型已配置' : '模型未配置'),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: widget.onConfigureModel,
+            child: Text(widget.modelReady! ? '更换模型' : '配置模型'),
+          ),
+        ],
+      );
+    }
+    return widget.modelSelector ?? const ModelSelector();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = LingBiColors.of(context);
@@ -143,7 +166,7 @@ class _ProjectOnboardingPageState extends State<ProjectOnboardingPage> {
                         ],
                       ),
                     ),
-                    widget.modelSelector ?? const ModelSelector(),
+                    _buildModelControl(),
                   ],
                 ),
                 const SizedBox(height: LingBiTokens.space6),
@@ -158,6 +181,9 @@ class _ProjectOnboardingPageState extends State<ProjectOnboardingPage> {
                         isSaving: _saving,
                         onSubmit: _submit,
                         onSkip: _skip,
+                        genreLabel: widget.genreId == null
+                            ? null
+                            : _genreLabel(widget.genreId!),
                       ),
                     ),
                     const SizedBox(width: LingBiTokens.space5),
@@ -228,5 +254,17 @@ class _ProjectOnboardingPageState extends State<ProjectOnboardingPage> {
         ),
       ),
     );
+  }
+
+  String _genreLabel(String genreId) {
+    const labels = {
+      'xuanhuan': '玄幻',
+      'urban': '都市',
+      'suspense': '悬疑',
+      'romance': '言情',
+      'scifi': '科幻',
+      'history': '历史',
+    };
+    return labels[genreId] ?? genreId;
   }
 }
