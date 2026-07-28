@@ -120,10 +120,8 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
-        enabled: true,
       );
 
       final json = config.toJson();
@@ -173,7 +171,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       ).toJson());
@@ -191,7 +188,7 @@ void main() {
 
     test('未启用时返回空字符串', () async {
       await metaRepo.write('proj1', 'strand_weave.json', const StrandWeaveConfig(
-        strands: [Strand(name: '主线', ratio: 1.0)],
+        strands: [Strand(name: '主线', ratio: 1)],
         enabled: false,
       ).toJson());
 
@@ -269,7 +266,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       );
@@ -301,7 +297,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       );
@@ -441,7 +436,6 @@ void main() {
         'proj1',
         strandName: '主线',
         description: '连续3章不得无主线推进',
-        maxConsecutiveAbsence: 3,
       );
       expect(config.redLines.length, 1);
 

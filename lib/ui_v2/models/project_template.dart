@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A user-facing starting point. The IDs are persisted and must remain stable
-/// even when labels or descriptions change.
+/// A user-facing starting point. IDs are persisted and must remain stable.
 final class ProjectTemplate {
   const ProjectTemplate({
     required this.templateId,
@@ -30,7 +29,7 @@ final class ProjectTemplate {
       templateId: 'genre:xuanhuan',
       genreId: 'xuanhuan',
       genreLabel: '玄幻',
-      description: '神秘大陆、修仙之路',
+      description: '神秘大陆、修行之路',
       icon: Icons.auto_stories_outlined,
     ),
     ProjectTemplate(

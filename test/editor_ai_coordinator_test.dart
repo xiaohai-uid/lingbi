@@ -59,7 +59,7 @@ class FakePipelineApi implements NovelPipelineApi {
     int maxTokens = 4096,
   }) {
     generateCalled = true;
-    return generateStream ?? Stream.empty();
+    return generateStream ?? const Stream.empty();
   }
 
   @override
@@ -217,8 +217,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: '生成内容',
-          status: CandidateStatus.pending),
+          content: '生成内容'),
     ];
 
     final coordinator = createCoordinator();
@@ -249,8 +248,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
 
     final coordinator = createCoordinator();
@@ -313,8 +311,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
 
     final coordinator = createCoordinator();
@@ -348,8 +345,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
     fakeApi.adoptResult = const PipelineResult.failure(PipelineError(
       PipelineError.sourceVersionConflict,

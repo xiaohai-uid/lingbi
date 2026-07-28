@@ -15,11 +15,8 @@ import 'package:lingbi/modules/pipeline/book_state.dart';
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'package:lingbi/modules/pipeline/context_assembler.dart';
 import 'package:lingbi/modules/pipeline/creative_compass.dart';
-import 'package:lingbi/modules/pipeline/generation_context.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
 import 'package:lingbi/modules/pipeline/project_data_source.dart';
 import 'package:lingbi/modules/pipeline/write_lock_service.dart';
-import 'package:lingbi/modules/pipeline/writing_pipeline_state.dart';
 
 void main() {
   late Directory tempDir;
@@ -131,7 +128,7 @@ void main() {
 
     // 验证 ContextFragment 追踪
     final fragments = [
-      ContextFragment(
+      const ContextFragment(
         type: 'canon_character',
         sourceId: 'char_001',
         content: '林远: 主角，25岁，性格坚韧',

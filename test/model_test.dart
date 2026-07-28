@@ -34,7 +34,7 @@ void main() {
     });
 
     test('copyWith preserves unchanged fields', () {
-      final beat = StoryBeat(projectId: 'proj-1', title: '开场', description: '开始', colorIndex: 0);
+      final beat = StoryBeat(projectId: 'proj-1', title: '开场', description: '开始');
       final updated = beat.copyWith(description: '新的开始');
       expect(updated.title, '开场');
       expect(updated.description, '新的开始');

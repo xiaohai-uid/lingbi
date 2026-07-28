@@ -52,7 +52,7 @@ void main() {
     test('failed migration rolls back to backup', () async {
       final projectDir = Directory('${tempDir.path}/proj-3/.lingbi');
       await projectDir.create(recursive: true);
-      final originalContent = '{"title": "Fragile", "genre": "urban"}';
+      const originalContent = '{"title": "Fragile", "genre": "urban"}';
       await File('${projectDir.path}/project.json').writeAsString(originalContent);
 
       // Inject a failing migration

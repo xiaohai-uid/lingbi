@@ -1,182 +1,113 @@
 import 'package:flutter/material.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
-import '../models/project_template.dart';
 
-class WelcomePage extends StatelessWidget {
+import '../../core/models/project.dart';
+import '../models/project_template.dart';
+import '../theme/lingbi_icons.dart';
+import '../theme/tokens.dart';
+
+class WelcomePage extends StatefulWidget {
   const WelcomePage({
     super.key,
     required this.onCreateProject,
     required this.onOpenProject,
     required this.onOpenSkillMarket,
+    this.recentProjects = const [],
+    this.onResumeProject,
   });
+
   final ValueChanged<ProjectTemplate> onCreateProject;
   final VoidCallback onOpenProject;
   final VoidCallback onOpenSkillMarket;
+  final List<Project> recentProjects;
+  final ValueChanged<Project>? onResumeProject;
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  ProjectTemplate? _selectedTemplate;
 
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
-    return Center(
+    return ColoredBox(
+      color: c.bg,
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(
           horizontal: LingBiTokens.space6,
-          vertical: LingBiTokens.space16,
+          vertical: LingBiTokens.space12,
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLogo(c),
-              const SizedBox(height: LingBiTokens.space6),
-              Text(
-                '欢迎来到灵笔',
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w700,
-                  color: c.fg,
-                  letterSpacing: -1.5 / 48 * 40,
-                ),
-              ),
-              const SizedBox(height: LingBiTokens.space3),
-              Text(
-                'AI 驱动的小说创作平台\n让灵感流淌，让故事成真',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w400,
-                  color: c.fgSecondary,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: LingBiTokens.space10),
-              _buildPrimaryButton(c),
-              const SizedBox(height: LingBiTokens.space12),
-              _buildSectionLabel('从模板开始', c),
-              const SizedBox(height: LingBiTokens.space4),
-              _buildTemplateGrid(c),
-              const SizedBox(height: LingBiTokens.space12),
-              _buildQuickActions(c),
-            ],
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHero(context, c),
+                if (widget.recentProjects.isNotEmpty) ...[
+                  const SizedBox(height: LingBiTokens.space10),
+                  _buildSectionTitle(context, '最近项目'),
+                  const SizedBox(height: LingBiTokens.space3),
+                  _buildRecentProjects(c),
+                ],
+                const SizedBox(height: LingBiTokens.space10),
+                _buildSectionTitle(context, '选择题材'),
+                const SizedBox(height: LingBiTokens.space3),
+                _buildTemplateGrid(c),
+                if (_selectedTemplate != null) ...[
+                  const SizedBox(height: LingBiTokens.space5),
+                  _buildSelectedAction(c),
+                ],
+                const SizedBox(height: LingBiTokens.space8),
+                _buildQuickActions(c),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLogo(LingBiColors c) {
-    return Container(
-      width: 72,
-      height: 72,
-      decoration: BoxDecoration(
-        color: c.accent,
-        borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: c.accent.withValues(alpha: 0.2),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Text(
-          '灵',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrimaryButton(LingBiColors c) {
-    return SizedBox(
-      height: 48,
-      child: ElevatedButton.icon(
-        onPressed: () => onCreateProject(ProjectTemplate.freeform),
-        icon: const Icon(LingBiIcons.add, size: 20),
-        label: const Text('新建项目'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: c.accent,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(
-            horizontal: LingBiTokens.space8,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(String label, LingBiColors c) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: c.muted,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTemplateGrid(LingBiColors c) {
-    return Wrap(
-      spacing: LingBiTokens.space3,
-      runSpacing: LingBiTokens.space3,
-      children:
-          ProjectTemplate.values.map((t) => _buildTemplateCard(t, c)).toList(),
-    );
-  }
-
-  Widget _buildTemplateCard(ProjectTemplate t, LingBiColors c) {
-    return InkWell(
-      onTap: () => onCreateProject(t),
-      borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-      child: Container(
-        width: 220,
-        padding: const EdgeInsets.all(LingBiTokens.space4),
-        decoration: BoxDecoration(
-          color: c.surface,
-          borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-          border: Border.all(
-            color: c.borderOpaque.withValues(alpha: 0.4),
-          ),
-        ),
+  Widget _buildHero(BuildContext context, LingBiColors c) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 260),
+      child: Align(
+        alignment: Alignment.topLeft,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(t.icon, size: 24, color: c.accent),
-            const SizedBox(height: LingBiTokens.space3),
             Text(
-              t.genreLabel,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: c.fg,
-              ),
+              '灵笔',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: c.accent,
+                    letterSpacing: 2,
+                  ),
             ),
-            const SizedBox(height: LingBiTokens.space1),
+            const SizedBox(height: LingBiTokens.space5),
             Text(
-              t.description,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-                color: c.fgSecondary,
+              '把灵感写成长篇故事',
+              style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    color: c.fg,
+                    fontFamily: LingBiTokens.fontDisplay,
+                    height: 1.2,
+                  ),
+            ),
+            const SizedBox(height: LingBiTokens.space4),
+            Text(
+              '从题材和三条关键设定开始，资产、章节与候选稿都保存在本地。',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: c.fgSecondary,
+                    fontFamily: LingBiTokens.fontBody,
+                  ),
+            ),
+            const SizedBox(height: LingBiTokens.space6),
+            FilledButton.icon(
+              onPressed: () => setState(
+                () => _selectedTemplate = ProjectTemplate.freeform,
               ),
+              icon: const Icon(LingBiIcons.add, size: 18),
+              label: const Text('新建自由项目'),
             ),
           ],
         ),
@@ -184,35 +115,173 @@ class WelcomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActions(LingBiColors c) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildActionChip(c, LingBiIcons.upload, '导入已有作品', onTap: onOpenProject),
-        const SizedBox(width: LingBiTokens.space3),
-        _buildActionChip(c, LingBiIcons.skillMarket, '浏览技能市场',
-            onTap: onOpenSkillMarket),
-      ],
+  Widget _buildSectionTitle(BuildContext context, String label) => Text(
+        label,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontFamily: LingBiTokens.fontDisplay,
+              fontWeight: FontWeight.w700,
+            ),
+      );
+
+  Widget _buildRecentProjects(LingBiColors c) {
+    return Wrap(
+      spacing: LingBiTokens.space3,
+      runSpacing: LingBiTokens.space3,
+      children: widget.recentProjects
+          .map(
+            (project) => SizedBox(
+              width: 300,
+              child: OutlinedButton(
+                onPressed: widget.onResumeProject == null
+                    ? null
+                    : () => widget.onResumeProject!(project),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: c.fg,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.all(LingBiTokens.space4),
+                  side: BorderSide(color: c.borderOpaque),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      project.name,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: LingBiTokens.space1),
+                    Text(
+                      project.directoryPath,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 12, color: c.muted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 
-  Widget _buildActionChip(LingBiColors c, IconData icon, String label,
-      {VoidCallback? onTap}) {
-    return OutlinedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: c.fgSecondary,
-        side: BorderSide(color: c.borderOpaque),
-        padding: const EdgeInsets.symmetric(
-          horizontal: LingBiTokens.space4,
-          vertical: LingBiTokens.space2,
-        ),
+  Widget _buildTemplateGrid(LingBiColors c) => Wrap(
+        spacing: LingBiTokens.space3,
+        runSpacing: LingBiTokens.space3,
+        children: ProjectTemplate.values
+            .map(
+              (template) => _buildTemplateCard(
+                template,
+                c,
+                selected: _selectedTemplate?.templateId == template.templateId,
+              ),
+            )
+            .toList(),
+      );
+
+  Widget _buildTemplateCard(
+    ProjectTemplate template,
+    LingBiColors c, {
+    required bool selected,
+  }) {
+    return SizedBox(
+      width: 300,
+      child: Material(
+        color: c.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+          side: BorderSide(
+            color: selected ? c.accent : c.borderOpaque,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: InkWell(
+          onTap: () => setState(() => _selectedTemplate = template),
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+          child: Padding(
+            padding: const EdgeInsets.all(LingBiTokens.space5),
+            child: Row(
+              children: [
+                Icon(
+                  selected ? Icons.check_circle_outline : template.icon,
+                  size: 22,
+                  color: selected ? c.accent : c.fgSecondary,
+                ),
+                const SizedBox(width: LingBiTokens.space3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        template.genreLabel,
+                        style: TextStyle(
+                          color: c.fg,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: LingBiTokens.space1),
+                      Text(
+                        template.description,
+                        style: TextStyle(
+                          color: c.fgSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildSelectedAction(LingBiColors c) {
+    final selected = _selectedTemplate!;
+    return Container(
+      padding: const EdgeInsets.all(LingBiTokens.space4),
+      decoration: BoxDecoration(
+        color: c.accent.withValues(alpha: 0.07),
+        border: Border.all(color: c.accent.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '已选择${selected.genreLabel}',
+              style: TextStyle(color: c.fg, fontWeight: FontWeight.w700),
+            ),
+          ),
+          FilledButton(
+            key: const ValueKey('continue-with-template'),
+            onPressed: () => widget.onCreateProject(selected),
+            child: const Text('填写项目简报'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(LingBiColors c) => Row(
+        children: [
+          OutlinedButton.icon(
+            onPressed: widget.onOpenProject,
+            icon: const Icon(LingBiIcons.upload, size: 18),
+            label: const Text('打开本地项目'),
+          ),
+          const SizedBox(width: LingBiTokens.space3),
+          TextButton.icon(
+            onPressed: widget.onOpenSkillMarket,
+            icon: const Icon(LingBiIcons.skillMarket, size: 18),
+            label: const Text('浏览技能市场'),
+            style: TextButton.styleFrom(foregroundColor: c.fgSecondary),
+          ),
+        ],
+      );
 }

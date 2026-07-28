@@ -44,18 +44,23 @@ void main() {
       theme: ThemeData(extensions: const [LingBiColors.light]),
       home: ProjectOnboardingPage(
         projectId: 'p1',
+        genreId: 'xuanhuan',
         workflow: workflow,
-        modelSelector: const SizedBox(key: Key('model-selector')),
+        modelReady: false,
+        onConfigureModel: () {},
         onManualWriting: () => manualWriting = true,
         onCompleted: () {},
       ),
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('主角最想实现什么？'), findsOneWidget);
+    expect(find.text('玄幻开局：主角最想实现什么？'), findsOneWidget);
+    expect(find.text('守护宗族'), findsOneWidget);
+    expect(find.text('灵根被夺'), findsNothing);
     expect(find.text('跳过这题'), findsOneWidget);
     expect(find.text('直接写作'), findsOneWidget);
-    expect(find.byKey(const Key('model-selector')), findsOneWidget);
+    expect(find.text('模型未配置'), findsOneWidget);
+    expect(find.text('配置模型'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '救回故乡');
     await tester.tap(find.text('保存并继续'));

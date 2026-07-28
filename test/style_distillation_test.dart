@@ -138,8 +138,8 @@ void main() {
         ],
         description: '文风古朴，善用短句和武侠意象',
         sourceWordCount: 8000,
-        createdAt: DateTime(2026, 1, 1),
-        updatedAt: DateTime(2026, 1, 1),
+        createdAt: DateTime(2026),
+        updatedAt: DateTime(2026),
       );
 
       final json = profile.toJson();
@@ -353,8 +353,8 @@ void main() {
       final profile = StyleProfile(
         id: 'sp_400',
         name: '原始',
-        createdAt: DateTime(2020, 1, 1),
-        updatedAt: DateTime(2020, 1, 1),
+        createdAt: DateTime(2020),
+        updatedAt: DateTime(2020),
       );
       await service.saveProfile('proj1', profile);
 
@@ -364,7 +364,7 @@ void main() {
       );
 
       expect(updated.name, '微调后');
-      expect(updated.updatedAt!.isAfter(DateTime(2020, 1, 1)), true);
+      expect(updated.updatedAt!.isAfter(DateTime(2020)), true);
 
       // 验证持久化
       final loaded = await service.getProfile('proj1', 'sp_400');

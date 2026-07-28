@@ -12,7 +12,6 @@ void main() {
         maxOutputTokens: 16384,
         category: '主力',
         recommended: true,
-        deprecated: false,
       );
       expect(info.id, 'gpt-4o');
       expect(info.displayName, 'GPT-4o');
@@ -52,7 +51,6 @@ void main() {
         providerId: 'openai',
         contextWindow: 128000,
         category: '轻量',
-        recommended: false,
       );
       final json = info.toJson();
       expect(json['id'], 'gpt-4o-mini');
@@ -90,8 +88,6 @@ void main() {
         contextWindow: 65536,
         maxOutputTokens: 8192,
         category: '推理',
-        recommended: false,
-        metadataSource: MetadataSource.builtin,
       );
       final restored = ModelInfo.fromJson(original.toJson());
       expect(restored.id, original.id);
@@ -120,7 +116,6 @@ void main() {
           ModelInfo(id: 'gpt-4o-mini', displayName: 'GPT-4o Mini', providerId: 'openai'),
         ],
         baseUrl: 'https://api.openai.com/v1',
-        authHeader: 'authorization',
       );
       expect(config.id, 'openai');
       expect(config.name, 'OpenAI');
@@ -312,7 +307,7 @@ void main() {
     });
 
     test('isKnown returns true when prices set', () {
-      const pricing = ModelPricing(inputPerMillion: 1.0, outputPerMillion: 2.0);
+      const pricing = ModelPricing(inputPerMillion: 1, outputPerMillion: 2);
       expect(pricing.isKnown, true);
     });
 
@@ -322,7 +317,7 @@ void main() {
     });
 
     test('formatCost calculates cost', () {
-      const pricing = ModelPricing(inputPerMillion: 10.0, outputPerMillion: 30.0);
+      const pricing = ModelPricing(inputPerMillion: 10, outputPerMillion: 30);
       final cost = pricing.formatCost(inputTokens: 1000000, outputTokens: 1000000);
       expect(cost.isNotEmpty, true);
       expect(cost, isNot(equals('费用未知')));

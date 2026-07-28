@@ -103,7 +103,6 @@ void main() {
             sourceDocumentId: 'chapter-2',
             sourceRange: SourceRange(start: 31, end: 36),
             confidence: 0.87,
-            confirmation: ConfirmationStatus.pending,
           ),
         );
 
@@ -147,7 +146,6 @@ void main() {
             sourceDocumentId: 'chapter-3',
             sourceRange: SourceRange(start: 8, end: 19),
             confidence: 0.92,
-            confirmation: ConfirmationStatus.pending,
           ),
         );
     await repository.save(graph);

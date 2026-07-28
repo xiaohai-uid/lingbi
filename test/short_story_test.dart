@@ -134,7 +134,6 @@ void main() {
         ],
         reversalIdea: '凶手是叙述者',
         draft: '初稿内容',
-        isComplete: false,
       );
 
       final json = state.toJson();

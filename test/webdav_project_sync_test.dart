@@ -60,7 +60,7 @@ void main() {
 
   group('three-way merge', () {
     test('detects no conflict when only one side changed', () {
-      final service = ThreeWayMergeService();
+      const service = ThreeWayMergeService();
       final result = service.merge(
         base: 'Original content',
         local: 'Local modified content',
@@ -72,7 +72,7 @@ void main() {
     });
 
     test('detects conflict when both sides changed differently', () {
-      final service = ThreeWayMergeService();
+      const service = ThreeWayMergeService();
       final result = service.merge(
         base: 'Original content',
         local: 'Local version',
@@ -86,7 +86,7 @@ void main() {
     });
 
     test('no conflict when both sides made identical changes', () {
-      final service = ThreeWayMergeService();
+      const service = ThreeWayMergeService();
       final result = service.merge(
         base: 'Original',
         local: 'Same change',
@@ -98,7 +98,7 @@ void main() {
     });
 
     test('never auto-resolves content conflicts silently', () {
-      final service = ThreeWayMergeService();
+      const service = ThreeWayMergeService();
       final result = service.merge(
         base: 'Base text',
         local: 'Local edit',

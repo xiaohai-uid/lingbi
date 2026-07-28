@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/workflows/review/book_review_workflow.dart';
-import 'package:lingbi/workflows/review/change_plan.dart';
 
 void main() {
   late Directory tempDir;
@@ -20,24 +19,24 @@ void main() {
   group('evidence-linked findings', () {
     test('each finding carries source location and evidence text', () {
       final findings = [
-        ReviewFinding(
+        const ReviewFinding(
           id: 'f-1',
           mode: ReviewMode.developmental,
           severity: FindingSeverity.high,
           description: 'Protagonist motivation unclear in act 2',
           evidence: 'Chapter 15: "He went to the mountain." No reason given.',
           sourceDocumentId: 'doc-ch15',
-          sourceRange: const TextRange(start: 0, end: 42),
+          sourceRange: TextRange(start: 0, end: 42),
           suggestedAction: 'Add internal monologue explaining the quest',
         ),
-        ReviewFinding(
+        const ReviewFinding(
           id: 'f-2',
           mode: ReviewMode.line,
           severity: FindingSeverity.medium,
           description: 'Repetitive sentence structure',
           evidence: 'Paragraph 3: five consecutive "He" subjects',
           sourceDocumentId: 'doc-ch03',
-          sourceRange: const TextRange(start: 100, end: 300),
+          sourceRange: TextRange(start: 100, end: 300),
           suggestedAction: 'Vary sentence openings',
         ),
       ];
@@ -67,23 +66,23 @@ void main() {
 
   group('selective diff application', () {
     test('applies only selected changes and preserves the rest', () async {
-      final original = 'The hero walked slowly to the gate.';
+      const original = 'The hero walked slowly to the gate.';
       final changes = [
-        ProposedChange(
+        const ProposedChange(
           id: 'c-1',
           findingId: 'f-1',
           documentId: 'doc-1',
           originalText: 'walked slowly',
           replacementText: 'strode',
-          range: const TextRange(start: 9, end: 22),
+          range: TextRange(start: 9, end: 22),
         ),
-        ProposedChange(
+        const ProposedChange(
           id: 'c-2',
           findingId: 'f-2',
           documentId: 'doc-1',
           originalText: 'the gate',
           replacementText: 'the ancient gate',
-          range: const TextRange(start: 27, end: 35),
+          range: TextRange(start: 27, end: 35),
         ),
       ];
 
@@ -105,23 +104,23 @@ void main() {
     });
 
     test('conflicting ranges are detected and rejected', () {
-      final original = 'AAAA BBBB CCCC';
+      const original = 'AAAA BBBB CCCC';
       final changes = [
-        ProposedChange(
+        const ProposedChange(
           id: 'c-1',
           findingId: 'f-1',
           documentId: 'doc-1',
           originalText: 'AAAA BBBB',
           replacementText: 'XXXX',
-          range: const TextRange(start: 0, end: 9),
+          range: TextRange(start: 0, end: 9),
         ),
-        ProposedChange(
+        const ProposedChange(
           id: 'c-2',
           findingId: 'f-2',
           documentId: 'doc-1',
           originalText: 'BBBB CCCC',
           replacementText: 'YYYY',
-          range: const TextRange(start: 5, end: 14),
+          range: TextRange(start: 5, end: 14),
         ),
       ];
 
@@ -141,7 +140,7 @@ void main() {
 
   group('change propagation safety', () {
     test('generates ordered impact plan from canon change', () {
-      final canonChange = CanonChange(
+      const canonChange = CanonChange(
         entityId: 'character:ye-lan',
         field: 'status',
         oldValue: 'alive',
@@ -150,9 +149,9 @@ void main() {
       );
 
       final affectedDocs = [
-        AffectedDocument(documentId: 'doc-ch51', mentionCount: 3),
-        AffectedDocument(documentId: 'doc-ch52', mentionCount: 1),
-        AffectedDocument(documentId: 'doc-ch55', mentionCount: 5),
+        const AffectedDocument(documentId: 'doc-ch51', mentionCount: 3),
+        const AffectedDocument(documentId: 'doc-ch52', mentionCount: 1),
+        const AffectedDocument(documentId: 'doc-ch55', mentionCount: 5),
       ];
 
       final impactPlan = workflow.buildImpactPlan(
@@ -168,7 +167,7 @@ void main() {
     });
 
     test('never performs silent batch edits', () {
-      final canonChange = CanonChange(
+      const canonChange = CanonChange(
         entityId: 'location:city',
         field: 'name',
         oldValue: 'Qingwu',
@@ -179,7 +178,7 @@ void main() {
       final impactPlan = workflow.buildImpactPlan(
         canonChange: canonChange,
         affectedDocuments: [
-          AffectedDocument(documentId: 'doc-1', mentionCount: 10),
+          const AffectedDocument(documentId: 'doc-1', mentionCount: 10),
         ],
       );
 
@@ -192,15 +191,15 @@ void main() {
 
   group('undo', () {
     test('reverts applied changes to original text', () async {
-      final original = 'The hero walked slowly.';
+      const original = 'The hero walked slowly.';
       final changes = [
-        ProposedChange(
+        const ProposedChange(
           id: 'c-1',
           findingId: 'f-1',
           documentId: 'doc-1',
           originalText: 'walked slowly',
           replacementText: 'ran',
-          range: const TextRange(start: 9, end: 22),
+          range: TextRange(start: 9, end: 22),
         ),
       ];
       final plan = ChangePlan(projectId: 'proj-1', changes: changes);

@@ -1,4 +1,5 @@
 /// 写作流水线模块单元测试
+library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

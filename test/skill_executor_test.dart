@@ -215,7 +215,7 @@ void main() {
     }
 
     test('轻量 Skill 走 prompt 路径，结果含 promptForAI', () async {
-      final skill = makeSkill(type: SkillType.lightweight);
+      final skill = makeSkill();
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
@@ -311,7 +311,7 @@ void main() {
       );
 
       // 轻量 Skill → prompt 路径
-      final lightweightSkill = makeSkill(type: SkillType.lightweight);
+      final lightweightSkill = makeSkill();
       final lightweightResult = await executor.execute(
         skill: lightweightSkill,
         context: context,
@@ -418,7 +418,6 @@ void main() {
 
 /// 辅助类：用于测试轻量 Skill 输入长度验证
 class _SkillWithMinInput extends DynamicPromptSkill {
-  final int minInputLength;
 
   _SkillWithMinInput({required this.minInputLength})
       : super(
@@ -429,6 +428,7 @@ class _SkillWithMinInput extends DynamicPromptSkill {
             promptTemplate: '请分析：{input}',
           ),
         );
+  final int minInputLength;
 
   @override
   ContextRequirements get contextRequirements => ContextRequirements(

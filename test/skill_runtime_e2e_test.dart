@@ -6,7 +6,6 @@ import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/services/skill/skill_executor.dart';
 import 'package:lingbi/services/skill/skill_loader.dart';
 import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 
 // ==================== Fake SkillApi ====================

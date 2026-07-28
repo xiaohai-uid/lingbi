@@ -50,8 +50,6 @@ void main() {
   group('testGeneration 与 chat 隔离', () {
     test('chat 消耗配额而 testGeneration 不消耗', () {
       final quotaService = QuotaService();
-      final aiService = AIService(quotaService: quotaService);
-
       // 记录初始配额
       final initialRemaining = quotaService.remaining;
 

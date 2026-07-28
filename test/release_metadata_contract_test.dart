@@ -307,7 +307,7 @@ List<String> _gitLines(Directory root, List<String> arguments) {
   return (result.stdout as String)
       .split(RegExp(r'\r?\n'))
       .where((line) => line.isNotEmpty)
-      .map((line) => line.replaceAll('\\', '/'))
+      .map((line) => line.replaceAll(r'\', '/'))
       .toList();
 }
 

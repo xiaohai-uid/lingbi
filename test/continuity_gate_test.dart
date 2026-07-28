@@ -4,9 +4,9 @@ import 'package:lingbi/modules/continuity/continuity_gate.dart';
 void main() {
   group('pre-generation constraints', () {
     test('emits hard constraints from confirmed story graph facts', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final facts = [
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-1',
           entityId: 'character:ye-lan',
           claim: 'Ye Lan lost her left arm in chapter 12',
@@ -15,7 +15,7 @@ void main() {
           confirmed: true,
           severity: ContinuitySeverity.critical,
         ),
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-2',
           entityId: 'location:qing-wu',
           claim: 'Qingwu City is destroyed in chapter 30',
@@ -24,7 +24,7 @@ void main() {
           confirmed: true,
           severity: ContinuitySeverity.high,
         ),
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-3',
           entityId: 'character:gu-chen',
           claim: 'Gu Chen might be a traitor (unconfirmed)',
@@ -50,9 +50,9 @@ void main() {
     });
 
     test('expired facts do not produce constraints', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final facts = [
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-old',
           entityId: 'character:hero',
           claim: 'Hero was weak',
@@ -74,9 +74,9 @@ void main() {
 
   group('post-generation issue detection', () {
     test('detects contradiction with confirmed critical fact', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final facts = [
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-arm',
           entityId: 'character:ye-lan',
           claim: 'Ye Lan lost her left arm in chapter 12',
@@ -86,14 +86,14 @@ void main() {
           severity: ContinuitySeverity.critical,
         ),
       ];
-      final generatedText = '叶澜伸出左手接住了飞剑。';
+      const generatedText = '叶澜伸出左手接住了飞剑。';
 
       final issues = gate.detectIssues(
         generatedText: generatedText,
         facts: facts,
         chapter: 20,
         entityMentions: [
-          EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
+          const EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
         ],
       );
 
@@ -105,9 +105,9 @@ void main() {
     });
 
     test('does not flag text that is consistent with facts', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final facts = [
-        ContinuityFact(
+        const ContinuityFact(
           id: 'fact-arm',
           entityId: 'character:ye-lan',
           claim: 'Ye Lan lost her left arm in chapter 12',
@@ -117,14 +117,14 @@ void main() {
           severity: ContinuitySeverity.critical,
         ),
       ];
-      final generatedText = '叶澜用右手握剑，空荡的左袖随风飘动。';
+      const generatedText = '叶澜用右手握剑，空荡的左袖随风飘动。';
 
       final issues = gate.detectIssues(
         generatedText: generatedText,
         facts: facts,
         chapter: 20,
         entityMentions: [
-          EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
+          const EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
         ],
       );
 
@@ -132,9 +132,9 @@ void main() {
     });
 
     test('high-risk issues block adoption without explicit override', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final issues = [
-        ContinuityIssue(
+        const ContinuityIssue(
           factId: 'fact-1',
           entityId: 'character:hero',
           description: 'Contradicts established death',
@@ -157,9 +157,9 @@ void main() {
     });
 
     test('low-severity issues produce warnings but do not block', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       final issues = [
-        ContinuityIssue(
+        const ContinuityIssue(
           factId: 'fact-2',
           entityId: 'location:city',
           description: 'Minor timeline inconsistency',
@@ -178,17 +178,17 @@ void main() {
 
   group('false positive budget', () {
     test('invention vs contradiction distinction', () {
-      final gate = ContinuityGate();
+      const gate = ContinuityGate();
       // A new fact not in the graph is an invention, not a contradiction
       final facts = <ContinuityFact>[];
-      final generatedText = '叶澜突然飞上了天空。';
+      const generatedText = '叶澜突然飞上了天空。';
 
       final issues = gate.detectIssues(
         generatedText: generatedText,
         facts: facts,
         chapter: 5,
         entityMentions: [
-          EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
+          const EntityMention(entityId: 'character:ye-lan', start: 0, end: 2),
         ],
       );
 

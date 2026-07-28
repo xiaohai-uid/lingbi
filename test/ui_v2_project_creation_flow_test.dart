@@ -6,7 +6,7 @@ import 'package:lingbi/ui_v2/models/project_template.dart';
 import 'package:lingbi/ui_v2/pages/welcome_page.dart';
 
 void main() {
-  testWidgets('genre card passes the selected template to creation',
+  testWidgets('genre card shows selection before the only continue action',
       (tester) async {
     ProjectTemplate? selected;
     await tester.binding.setSurfaceSize(const Size(1100, 1000));
@@ -23,6 +23,13 @@ void main() {
     ));
 
     await tester.tap(find.text('玄幻'));
+    await tester.pump();
+
+    expect(selected, isNull);
+    expect(find.text('已选择玄幻'), findsOneWidget);
+    expect(find.byKey(const ValueKey('continue-with-template')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('continue-with-template')));
 
     expect(selected?.genreId, 'xuanhuan');
     expect(selected?.templateId, 'genre:xuanhuan');

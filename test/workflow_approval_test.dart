@@ -105,7 +105,6 @@ void main() {
         targetId: 'ch_001',
         targetType: ApprovalTargetType.chapter,
         status: ApprovalStatus.pending,
-        feedback: '',
         content: '第一章内容',
         createdAt: '2026-01-01',
         updatedAt: '2026-01-02',
@@ -129,7 +128,6 @@ void main() {
       const draft = ApprovalRecord(
         targetId: 'b',
         targetType: ApprovalTargetType.blueprint,
-        status: ApprovalStatus.draft,
       );
 
       expect(approved.isApproved, isTrue);

@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/modules/context/context_compiler.dart';
-import 'package:lingbi/modules/context/context_manifest.dart';
 
 void main() {
   group('ContextCompiler budget allocation', () {
     test('allocates tokens by priority and never exceeds budget', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
+      const compiler = ContextCompiler(
+          config: CompilerConfig(
         tokenBudget: 4000,
       ));
       final entries = [
-        ContextEntry(
+        const ContextEntry(
           id: 'intent',
           source: 'compass',
           reason: 'Author intent is mandatory',
@@ -53,7 +53,8 @@ void main() {
     });
 
     test('time-aware facts prefer recent chapters over old ones', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
+      const compiler = ContextCompiler(
+          config: CompilerConfig(
         tokenBudget: 2000,
       ));
       final entries = [
@@ -79,11 +80,14 @@ void main() {
 
       final newEntry = result.entries.firstWhere((e) => e.id == 'new-fact');
       final oldEntry = result.entries.firstWhere((e) => e.id == 'old-fact');
-      expect(newEntry.allocatedTokens, greaterThanOrEqualTo(oldEntry.allocatedTokens));
+      expect(newEntry.allocatedTokens,
+          greaterThanOrEqualTo(oldEntry.allocatedTokens));
     });
 
-    test('mandatory constraints are never omitted even under extreme pressure', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
+    test('mandatory constraints are never omitted even under extreme pressure',
+        () {
+      const compiler = ContextCompiler(
+          config: CompilerConfig(
         tokenBudget: 500,
       ));
       final entries = [
@@ -113,18 +117,23 @@ void main() {
       expect(filler.truncationStatus, isNot(TruncationStatus.full));
     });
 
-    test('deterministic truncation produces identical output on repeated calls', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
+    test('deterministic truncation produces identical output on repeated calls',
+        () {
+      const compiler = ContextCompiler(
+          config: CompilerConfig(
         tokenBudget: 3000,
       ));
-      final entries = List.generate(10, (i) => ContextEntry(
-        id: 'entry-$i',
-        source: 'source-$i',
-        reason: 'Reason $i',
-        timePoint: i,
-        priority: ContextPriority.values[i % ContextPriority.values.length],
-        content: 'Content $i ' * 100,
-      ));
+      final entries = List.generate(
+          10,
+          (i) => ContextEntry(
+                id: 'entry-$i',
+                source: 'source-$i',
+                reason: 'Reason $i',
+                timePoint: i,
+                priority:
+                    ContextPriority.values[i % ContextPriority.values.length],
+                content: 'Content $i ' * 100,
+              ));
 
       final result1 = compiler.compile(entries, currentChapter: 5);
       final result2 = compiler.compile(entries, currentChapter: 5);
@@ -138,7 +147,8 @@ void main() {
     });
 
     test('omissions are recorded with reason and source', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
+      const compiler = ContextCompiler(
+          config: CompilerConfig(
         tokenBudget: 1000,
       ));
       final entries = [
@@ -162,11 +172,9 @@ void main() {
 
   group('ContextCompiler source display', () {
     test('every entry in the manifest has source, reason, and token cost', () {
-      final compiler = ContextCompiler(config: const CompilerConfig(
-        tokenBudget: 8000,
-      ));
+      const compiler = ContextCompiler(config: CompilerConfig());
       final entries = [
-        ContextEntry(
+        const ContextEntry(
           id: 'a',
           source: 'canon:character:hero',
           reason: 'Protagonist card',

@@ -2,6 +2,7 @@
 ///
 /// 覆盖：AiResponseNormalizer / AiErrorMapper / SkillActionService /
 /// IntentConfirmationService / GenerationTask
+library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -340,7 +341,7 @@ void main() {
     });
 
     test('selectionOrDocument 无选中 → 取全文', () {
-      const ctx = SkillContext(selectedText: '', fullDocument: '全文');
+      const ctx = SkillContext(fullDocument: '全文');
       expect(ctx.effectiveInput(InputScope.selectionOrDocument), '全文');
     });
   });

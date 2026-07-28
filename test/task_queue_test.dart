@@ -36,7 +36,6 @@ void main() {
       final item = TaskQueueItem(
         id: 't',
         type: TaskType.custom,
-        maxRetries: 3,
       );
       expect(item.canRetry, isTrue);
 
@@ -70,7 +69,7 @@ void main() {
     test('提交任务并执行完成', () async {
       service.registerExecutor(TaskType.custom, (task, report) async {
         report(0.5);
-        report(1.0);
+        report(1);
         return '执行结果';
       });
 
@@ -273,7 +272,7 @@ void main() {
       service.registerExecutor(TaskType.singleChapter, (task, report) async {
         report(0.5);
         await Future.delayed(const Duration(milliseconds: 5));
-        report(1.0);
+        report(1);
         final chId = task.metadata['chapter_id'] as String;
         completed.add(chId);
         return 'done_$chId';
@@ -320,7 +319,7 @@ void main() {
         report(0.25);
         report(0.5);
         report(0.75);
-        report(1.0);
+        report(1);
         return 'ok';
       });
 

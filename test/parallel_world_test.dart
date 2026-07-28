@@ -104,7 +104,6 @@ void main() {
         name: '黑暗线',
         forkPoint: '第3章结尾',
         parentBranchId: 'main',
-        status: BranchStatus.active,
         tags: ['黑暗', '反转'],
       );
 

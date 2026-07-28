@@ -71,8 +71,8 @@ class _GoldenPathHarness extends StatefulWidget {
 
 class _GoldenPathHarnessState extends State<_GoldenPathHarness> {
   _GoldenStage _stage = _GoldenStage.welcome;
-  ProjectTemplate? _template;
-  Project? _project;
+  late ProjectTemplate? _template;
+  late Project? _project;
 
   late final ProjectAssetRepository _assets = ProjectAssetRepository(
     metaRepository: widget.metaRepository,

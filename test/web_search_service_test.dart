@@ -51,7 +51,6 @@ void main() {
     test('fromJson / toJson 往返一致', () {
       const config = SearchBackendConfig(
         baseUrl: 'http://searxng.local',
-        backendType: SearchBackendType.searxng,
         apiKey: 'test-key',
         maxResults: 8,
         timeoutSeconds: 15,

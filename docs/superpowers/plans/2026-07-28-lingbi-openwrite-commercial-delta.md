@@ -19,6 +19,7 @@ This iteration is an initial Windows trial build, not the final security/complia
 - Defer asymmetric commercial licensing, payment hardening, advanced diagnostic redaction, terminal sandboxing, code signing, legal/compliance review and adversarial security work to a dedicated later stream.
 - Execute product tasks in this order: Task 4 -> Task 5 -> Task 6 -> Task 3 -> Task 7 -> Task 8 -> the MVP portions of Tasks 9 and 10.
 - The MVP release report must label deferred items `DEFERRED_POST_MVP`; it must not spend implementation time pretending to complete them.
+- Unit/widget tests are necessary but not sufficient. Before publication, run product-manager UAT on realistic, multi-asset Chinese-fiction projects (at minimum fantasy, urban/romance and mystery) through creation, 10+ chapter continuity, rewrite, candidate approval, Skill, restart recovery and export. Record both automated evidence and human content/UI review; a green test suite cannot override a failed real workflow.
 
 ## Global constraints
 
@@ -121,6 +122,18 @@ This iteration is an initial Windows trial build, not the final security/complia
 - [ ] Make whole-book review persist evidence-linked change plans, validate source versions and support restart-safe undo.
 - [ ] Add a licensed connector registry and evidence schema. Unsourced/stale/unlicensed market claims are rejected and never injected; no connector means `BLOCKED_EXTERNAL`.
 - [ ] Implement a bounded live-provider harness with atomic request/token budgets and redacted evidence; without credentials it remains `BLOCKED_EXTERNAL`.
+
+### Task 9A: Real-novel product-manager UAT (MVP hard gate)
+
+**Data:** Freeze public-domain Chinese works with source page/revision/license/SHA256 manifests: `西游记` for fantasy continuity, `红楼梦` for urban/romance relationship continuity, and `狄公传` or `三侠五义` for mystery clues. CI keeps a 10-chapter smoke subset; the Windows UAT artifact contains 20-30+ chapters per project.
+
+**Files:** `tool/uat/fetch_public_domain_corpus.dart`, `tool/uat/build_novel_projects.dart`, `tool/uat/run_real_novel_uat.dart`, `test/fixtures/real_novels/*/manifest.json`, `test/real_app_golden_path_test.dart`, `test/real_novel_import_roundtrip_test.dart`, `integration_test/windows_real_novel_journey_test.dart`, `docs/qa/real-novel-uat-rubric.md`, `docs/qa/real-novel-uat-results.json`.
+
+- [ ] Use real `AppScaffold`, DI and temp project directories; a handwritten stage harness does not count as product evidence.
+- [ ] For each genre: select genre, complete genre-specific onboarding, import 20-30 chapters, continue/rewrite 10 chapters, approve/reject candidates, restart/recover, selectively export and reimport.
+- [ ] Record actual chapter/character counts, provider/model, timing and the exact failed step. Missing credentials are `BLOCKED`, never `PASS`.
+- [ ] Automated thresholds: no pre-approval disk mutation; save/recovery/export round trip 100%; preceding-five-chapter recall >=90%; hard timeline conflicts 0; naming consistency >=95%; chapter length 1800-3000 Chinese characters; direct adoption >=70% after human review.
+- [ ] Human review: at least two blinded reviewers per genre score UI task clarity, character voice, continuity, pacing and genre fit. Mean genre-fit >=4/5 and lightly-editable-or-better >=90% are required for the commercial-trial label.
 
 ## Task 10: Final Windows commercial verification and GitHub publication (P3)
 

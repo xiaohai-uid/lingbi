@@ -187,7 +187,7 @@ void main() {
         metaRepository: metaRepo,
         aiProvider: aiProvider,
         topK: 3,
-        similarityThreshold: 0.0,
+        similarityThreshold: 0,
       );
     });
 

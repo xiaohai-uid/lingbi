@@ -7,12 +7,10 @@
 /// 4. 旧版 ProjectPage 和 NovelWritingPanel 不在当前用户路径中
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/core/di/service_locator.dart';
 import 'package:lingbi/main.dart';
 import 'package:lingbi/ui_v2/feature_flag.dart';
-import 'package:lingbi/ui_v2/app.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';
 
 void main() {

@@ -1,17 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
 
 void main() {
   group('WorldConstitution', () {
     test('creates with default values', () {
-      final wc = WorldConstitution();
+      const wc = WorldConstitution();
       expect(wc.hardInvariants, isEmpty);
       expect(wc.softGuidance, isEmpty);
     });
 
     test('creates with values', () {
-      final wc = WorldConstitution(
+      const wc = WorldConstitution(
         hardInvariants: ['主角不能死'],
         softGuidance: ['多使用对话推进剧情'],
       );
@@ -20,7 +19,7 @@ void main() {
     });
 
     test('serializes to JSON', () {
-      final wc = WorldConstitution(
+      const wc = WorldConstitution(
         hardInvariants: ['主角不能死', '力量体系不崩'],
         softGuidance: ['每章至少一个冲突'],
       );

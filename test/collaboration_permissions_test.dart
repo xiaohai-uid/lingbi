@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/domain/collaboration/role.dart';
 import 'package:lingbi/services/collaboration_service.dart';
 
 void main() {
@@ -19,7 +18,7 @@ void main() {
 
   group('role permissions', () {
     test('owner has full permissions', () {
-      final role = CollaborationRole.owner;
+      const role = CollaborationRole.owner;
       expect(role.canEdit, isTrue);
       expect(role.canReview, isTrue);
       expect(role.canApprove, isTrue);
@@ -28,7 +27,7 @@ void main() {
     });
 
     test('editor can edit but not manage roles or delete', () {
-      final role = CollaborationRole.editor;
+      const role = CollaborationRole.editor;
       expect(role.canEdit, isTrue);
       expect(role.canReview, isTrue);
       expect(role.canApprove, isFalse);
@@ -37,7 +36,7 @@ void main() {
     });
 
     test('reviewer can review and comment but not edit', () {
-      final role = CollaborationRole.reviewer;
+      const role = CollaborationRole.reviewer;
       expect(role.canEdit, isFalse);
       expect(role.canReview, isTrue);
       expect(role.canApprove, isTrue);
@@ -46,7 +45,7 @@ void main() {
     });
 
     test('viewer has read-only access', () {
-      final role = CollaborationRole.viewer;
+      const role = CollaborationRole.viewer;
       expect(role.canEdit, isFalse);
       expect(role.canReview, isFalse);
       expect(role.canApprove, isFalse);

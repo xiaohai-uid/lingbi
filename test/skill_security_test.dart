@@ -115,7 +115,6 @@ void main() {
         delegate: _FakeSkillApi(),
         projectId: 'project-a',
         skillId: 'malicious-skill',
-        capabilities: const {},
         externalAccess: external,
         auditLog: audit,
       );
@@ -137,7 +136,6 @@ void main() {
         delegate: _FakeSkillApi(),
         projectId: 'project-a',
         skillId: 'malicious-skill',
-        capabilities: const {},
         externalAccess: external,
       );
 
@@ -262,8 +260,8 @@ void main() {
 
 String _digest(String value) => sha256.convert(utf8.encode(value)).toString();
 
-SkillManifestVerifier _testVerifier() => SkillManifestVerifier(
-      trustedSigners: const {
+SkillManifestVerifier _testVerifier() => const SkillManifestVerifier(
+      trustedSigners: {
         'test-root': SkillTrustedSigner.testOnly(
           id: 'test-root',
           key: 'lingbi-test-signing-key-not-for-production',

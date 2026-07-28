@@ -391,7 +391,6 @@ void main() {
           doc2.id: '# 第2章\n\n内容2',
         },
         outputDir: outputDir,
-        format: 'md',
       );
 
       expect(Directory(outputDir).existsSync(), true);
@@ -475,7 +474,7 @@ void main() {
   // 默认本地写作目录解析
   // ──────────────────────────────────────────────
   group('resolveDefaultLocalDir', () {
-    test('返回 %USERPROFILE%\\Documents\\灵笔', () {
+    test(r'返回 %USERPROFILE%\Documents\灵笔', () {
       final dir = resolveDefaultLocalDir(userProfile: r'C:\Users\testuser');
       expect(dir, r'C:\Users\testuser\Documents\灵笔');
     });
@@ -496,17 +495,15 @@ void main() {
   group('T2: 便携项目与章节文件契约', () {
     test('创建→重开→删除.lingbi/→内容完整可读写', () async {
       final projectService = ProjectService(
-        zvecService: null,
         fileService: FileService(),
       );
       final docService = DocumentService(
         fileService: FileService(),
-        zvecService: null,
       );
 
       final projectDir = '${tempDir.path}/test_novel';
-      final chapter1Content = '# 第1章\n\n这是开头。';
-      final chapter2Content = '# 第2章\n\n这是发展。';
+      const chapter1Content = '# 第1章\n\n这是开头。';
+      const chapter2Content = '# 第2章\n\n这是发展。';
 
       // 1. 创建便携项目（写入磁盘 .lingbi/project.json）
       final project = await projectService.createPortableProject(
@@ -547,7 +544,7 @@ void main() {
       expect(result1.documents.any((d) => d.title == '第2章'), true);
 
       // 5. 验证内容可读取
-      var content1 =
+      final content1 =
           await docService.readContent(result1.documents[0].filePath);
       expect(content1, contains('开头'));
 
@@ -568,7 +565,7 @@ void main() {
       }
 
       // 编辑保存功能正常
-      final edited = '# 第1章 修改版\n\n已修改。';
+      const edited = '# 第1章 修改版\n\n已修改。';
       await docService.saveDocument(result2.documents[0], edited);
       final saved = File(result2.documents[0].filePath).readAsStringSync();
       expect(saved, edited);
@@ -587,10 +584,9 @@ void main() {
     test('Windows 非法字符安全处理', () async {
       final docService = DocumentService(
         fileService: FileService(),
-        zvecService: null,
       );
 
-      const unsafeTitle = '章:节/测\\试|名?称*';
+      const unsafeTitle = r'章:节/测\试|名?称*';
       final doc = await docService.createDocument(
         projectId: 'proj-1',
         title: unsafeTitle,
@@ -607,7 +603,6 @@ void main() {
     test('重命名以文件系统为准', () async {
       final docService = DocumentService(
         fileService: FileService(),
-        zvecService: null,
       );
 
       final doc = await docService.createDocument(
@@ -657,8 +652,8 @@ void _localModeWidgetTests() {
       expect(find.byKey(const ValueKey('newChapterBtn')), findsOneWidget);
 
       // === 场景 1: 打开已有文件并修改 ===
-      final pn = testDir.path.replaceAll('\\', '/');
-      await tester.tap(find.byKey(ValueKey('file_${pn}/existing.md')));
+      final pn = testDir.path.replaceAll(r'\', '/');
+      await tester.tap(find.byKey(ValueKey('file_$pn/existing.md')));
       await tester.pump();
 
       final editorField = find.byKey(const ValueKey('editorField'));
@@ -686,7 +681,7 @@ void _localModeWidgetTests() {
 
       // 验证文件出现在列表中
       expect(
-        find.byKey(ValueKey('file_${pn}/新章.md')),
+        find.byKey(ValueKey('file_$pn/新章.md')),
         findsOneWidget,
       );
 

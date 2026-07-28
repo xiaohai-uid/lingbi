@@ -8,7 +8,6 @@
 @Timeout(Duration(seconds: 30))
 library;
 
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

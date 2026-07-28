@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/domain/planning/scene_card.dart';
 import 'package:lingbi/services/planning_matrix_service.dart';
 
 void main() {
@@ -109,19 +108,19 @@ void main() {
 
       final byPov = await service.getCards(
         'proj-1',
-        filter: SceneFilter(povCharacter: 'character:ye-lan'),
+        filter: const SceneFilter(povCharacter: 'character:ye-lan'),
       );
       expect(byPov, hasLength(2));
 
       final byLocation = await service.getCards(
         'proj-1',
-        filter: SceneFilter(location: 'location:mountain'),
+        filter: const SceneFilter(location: 'location:mountain'),
       );
       expect(byLocation, hasLength(2));
 
       final bySubplot = await service.getCards(
         'proj-1',
-        filter: SceneFilter(subplot: 'romance'),
+        filter: const SceneFilter(subplot: 'romance'),
       );
       expect(bySubplot, hasLength(1));
       expect(bySubplot.first.title, 'Romance');
@@ -189,7 +188,7 @@ void main() {
         await service.createCard(
           projectId: 'proj-big',
           title: 'Chapter ${i + 1}',
-          povCharacter: i % 2 == 0 ? 'character:a' : 'character:b',
+          povCharacter: i.isEven ? 'character:a' : 'character:b',
           chapterIndex: i + 1,
         );
       }
@@ -199,7 +198,7 @@ void main() {
 
       final filtered = await service.getCards(
         'proj-big',
-        filter: SceneFilter(povCharacter: 'character:a'),
+        filter: const SceneFilter(povCharacter: 'character:a'),
       );
       expect(filtered, hasLength(50));
 

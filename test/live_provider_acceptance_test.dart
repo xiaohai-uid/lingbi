@@ -70,7 +70,7 @@ void main() {
 
   group('user journey structure', () {
     test('defines all required journey checkpoints', () {
-      final journeys = UserJourneyCheckpoints.all;
+      const journeys = UserJourneyCheckpoints.all;
 
       expect(journeys, contains('first_launch'));
       expect(journeys, contains('project_creation'));

@@ -111,7 +111,7 @@ void main() {
         relationType: RelationType.lover,
         description: '青梅竹马',
         sinceChapter: 3,
-        weight: 2.0,
+        weight: 2,
       );
 
       final json = rel.toJson();
@@ -380,7 +380,7 @@ void main() {
               fromId: 'a',
               toId: 'b',
               relationType: RelationType.friend,
-              weight: 2.0,
+              weight: 2,
             ),
           ),
         ],

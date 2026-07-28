@@ -221,7 +221,6 @@ void main() {
 
       final result = await service.convert(
         novelText: '林逸站在山巅，远眺云海。苏瑶从林中走出。',
-        style: VisualStyle.guoman,
       );
 
       expect(result.isSuccess, isTrue);

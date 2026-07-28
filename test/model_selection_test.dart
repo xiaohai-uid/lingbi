@@ -61,8 +61,7 @@ void main() {
         providerId: 'openai',
         contextWindow: 128000,
         maxOutputTokens: 16384,
-        pricing: ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70.0),
-        metadataSource: MetadataSource.builtin,
+        pricing: ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70),
       );
       final snapshot = ModelSnapshot.fromModelInfo(info);
       expect(snapshot.providerId, 'openai');
@@ -82,8 +81,7 @@ void main() {
         displayName: 'DeepSeek V3',
         contextWindow: 65536,
         maxOutputTokens: 8192,
-        pricing: const ModelPricing(inputPerMillion: 1.0, outputPerMillion: 2.0),
-        metadataSource: MetadataSource.builtin,
+        pricing: const ModelPricing(inputPerMillion: 1, outputPerMillion: 2),
         capturedAt: DateTime(2026, 7, 24, 10, 30),
       );
       final json = original.toJson();
@@ -123,7 +121,7 @@ void main() {
         providerId: 'test',
         modelId: 'test',
         displayName: 'Test',
-        pricing: const ModelPricing(inputPerMillion: 1.0, outputPerMillion: 2.0),
+        pricing: const ModelPricing(inputPerMillion: 1, outputPerMillion: 2),
         capturedAt: DateTime.now(),
       );
       expect(withPricing.pricingLabel, contains('¥'));
@@ -143,7 +141,7 @@ void main() {
         modelId: 'gpt-4o',
         displayName: 'GPT-4o',
         contextWindow: 128000,
-        pricing: const ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70.0),
+        pricing: const ModelPricing(inputPerMillion: 17.5, outputPerMillion: 70),
         capturedAt: DateTime.now(),
       );
       expect(snapshot.summary, contains('GPT-4o'));

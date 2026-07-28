@@ -9,7 +9,6 @@
 @Timeout(Duration(seconds: 30))
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -296,8 +295,6 @@ void main() {
     test('SyncStatus 状态模型', () {
       const status = SyncStatus(
         state: SyncState.idle,
-        lastSyncAt: null,
-        error: null,
       );
       expect(status.state, SyncState.idle);
       expect(status.isIdle, true);
@@ -365,7 +362,7 @@ void main() {
     });
 
     test('AnalyticsConsent JSON 序列化', () {
-      final consent = AnalyticsConsent(enabled: true);
+      final consent = AnalyticsConsent();
       final json = consent.toJson();
       expect(json['enabled'], true);
       expect(json['anonymousId'], isNotEmpty);
@@ -376,7 +373,7 @@ void main() {
     });
 
     test('AnalyticsPayload 只含匿名统计', () {
-      final payload = AnalyticsPayload(
+      const payload = AnalyticsPayload(
         anonymousId: 'anon-123',
         genre: '玄幻',
         platform: '起点',

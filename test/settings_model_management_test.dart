@@ -52,7 +52,6 @@ void main() {
         completedAt: DateTime.now(),
         selectedProviderId: 'openai',
         selectedModelId: 'gpt-4o',
-        localOnlyMode: false,
         lastStep: 7,
       );
       expect(state.needsOnboarding, false);

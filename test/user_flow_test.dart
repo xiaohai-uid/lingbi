@@ -5,6 +5,7 @@
 /// 2. 环境变量自动加载 API Key 并切换 Provider
 /// 3. 切换文档后编辑仍能触发自动保存
 /// 4. AI 面板接收项目上下文（Canon 关联）
+library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -204,7 +205,7 @@ void main() {
   // ═══════════════════════════════════════════════════════════
   group('[用户流程] 编辑文档 → 切换文档 → 编辑新文档 → 自动保存触发', () {
     testWidgets('EditorPanel 加载初始内容并显示', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: EditorPanel(
             initialContent: '第一章\n\n这是第一个文档的内容。',
@@ -222,7 +223,7 @@ void main() {
 
     testWidgets('EditorPanel 文档切换后标题更新', (tester) async {
       // 第一阶段：显示文档 A
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: EditorPanel(
             initialContent: '文档A内容',
@@ -234,7 +235,7 @@ void main() {
       expect(find.text('文档A'), findsOneWidget);
 
       // 第二阶段：切换到文档 B（模拟 ProjectPage setState）
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: EditorPanel(
             initialContent: '文档B内容',
@@ -305,12 +306,11 @@ void main() {
     });
 
     testWidgets('EditorPanel onSave 为 null 时不崩溃', (tester) async {
-      await tester.pumpWidget(MaterialApp(
+      await tester.pumpWidget(const MaterialApp(
         home: Scaffold(
           body: EditorPanel(
             initialContent: '只读内容',
             documentTitle: '只读',
-            onSave: null, // 无保存回调
           ),
         ),
       ));

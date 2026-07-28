@@ -43,7 +43,7 @@ void main() {
 
   group('field allow-list', () {
     test('only allow-listed fields are collected', () {
-      final event = DiagnosticEvent(
+      const event = DiagnosticEvent(
         type: 'session_start',
         fields: {
           'app_version': '1.0.1',
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('secret redaction removes authorization patterns', () {
-      final event = DiagnosticEvent(
+      const event = DiagnosticEvent(
         type: 'api_call',
         fields: {
           'endpoint': 'https://api.example.com/v1/chat',
@@ -88,7 +88,7 @@ void main() {
       await collector.record(DiagnosticEvent(
         type: 'old_event',
         fields: {'data': 'old'},
-        timestamp: DateTime.utc(2026, 6, 1),
+        timestamp: DateTime.utc(2026, 6),
       ));
       await collector.record(DiagnosticEvent(
         type: 'recent_event',
@@ -109,7 +109,7 @@ void main() {
         clock: () => DateTime.utc(2026, 7, 28),
       );
 
-      await collector.record(DiagnosticEvent(
+      await collector.record(const DiagnosticEvent(
         type: 'session_start',
         fields: {'app_version': '1.0.1'},
       ));

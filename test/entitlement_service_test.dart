@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/services/entitlements/entitlement_service.dart';
-import 'package:lingbi/services/entitlements/license_signature_verifier.dart';
 import 'package:lingbi/services/billing/billing_gateway.dart';
 
 void main() {

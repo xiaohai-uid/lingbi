@@ -32,7 +32,6 @@ void main() {
         serverUrl: 'https://nextcloud.local/remote.php/dav/files/user',
         username: 'admin',
         password: 'secret',
-        syncProjects: true,
         syncSkills: false,
         syncConversations: true,
       );

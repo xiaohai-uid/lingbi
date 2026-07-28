@@ -1,10 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
 import 'package:lingbi/core/ai/models/endpoint_config.dart';
 import 'package:lingbi/core/ai/provider_factory.dart';
 import 'package:lingbi/core/ai/providers/openai_compatible_provider.dart';
 import 'package:lingbi/core/ai/providers/anthropic_provider.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
 
 void main() {
   group('Protocol', () {
@@ -30,7 +28,6 @@ void main() {
       protocol: Protocol.openai,
       modelId: 'gpt-4o',
       authStrategy: 'bearer',
-      isReasoningModel: false,
     );
 
     const anthropicConfig = EndpointConfig(
@@ -204,7 +201,7 @@ void main() {
 
   group('ProviderFactory', () {
     test('create returns OpenAICompatibleProvider for openai protocol', () {
-      final config = EndpointConfig(
+      const config = EndpointConfig(
         id: 'test',
         name: 'Test',
         baseUrl: 'https://api.test.com',
@@ -218,7 +215,7 @@ void main() {
     });
 
     test('create returns AnthropicProvider for anthropic protocol', () {
-      final config = EndpointConfig(
+      const config = EndpointConfig(
         id: 'test-claude',
         name: 'Test Claude',
         baseUrl: 'https://api.anthropic.com',
@@ -233,7 +230,7 @@ void main() {
   });
   group('ProviderFactory edge cases', () {
     test('discoverModels returns empty list for anthropic protocol', () async {
-      final config = EndpointConfig(
+      const config = EndpointConfig(
         id: 'test-claude',
         name: 'Test Claude',
         baseUrl: 'https://api.anthropic.com',
@@ -245,7 +242,7 @@ void main() {
     });
 
     test('discoverModels returns empty list for openai with no apiKey', () async {
-      final config = EndpointConfig(
+      const config = EndpointConfig(
         id: 'test-no-key',
         name: 'Test No Key',
         baseUrl: 'https://api.test.com',
@@ -258,7 +255,7 @@ void main() {
     });
 
     test('testConnection handles provider with no apiKey gracefully', () async {
-      final config = EndpointConfig(
+      const config = EndpointConfig(
         id: 'test-no-key',
         name: 'Test No Key',
         baseUrl: 'https://api.test.com',

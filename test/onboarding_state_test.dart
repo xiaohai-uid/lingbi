@@ -13,10 +13,9 @@ void main() {
       final state = OnboardingState(
         completed: true,
         schemaVersion: currentOnboardingSchemaVersion,
-        completedAt: DateTime(2026, 1, 1),
+        completedAt: DateTime(2026),
         selectedProviderId: 'sensenova',
         selectedModelId: 'sensenova-6.7-flash-lite',
-        localOnlyMode: false,
         lastStep: 7,
       );
       expect(state.needsOnboarding, false);
@@ -26,7 +25,7 @@ void main() {
       final state = OnboardingState(
         completed: true,
         schemaVersion: currentOnboardingSchemaVersion,
-        completedAt: DateTime(2026, 1, 1),
+        completedAt: DateTime(2026),
         localOnlyMode: true,
         lastStep: 1,
       );
@@ -35,7 +34,7 @@ void main() {
     });
 
     test('中途退出后保留 lastStep 用于恢复', () {
-      final state = OnboardingState(
+      const state = OnboardingState(
         completed: false,
         schemaVersion: currentOnboardingSchemaVersion,
         lastStep: 3,
@@ -48,10 +47,9 @@ void main() {
       final state = OnboardingState(
         completed: true,
         schemaVersion: currentOnboardingSchemaVersion - 1,
-        completedAt: DateTime(2026, 1, 1),
+        completedAt: DateTime(2026),
         selectedProviderId: 'openai',
         selectedModelId: 'gpt-4o',
-        localOnlyMode: false,
         lastStep: 7,
       );
       expect(state.needsOnboarding, true);
@@ -64,7 +62,6 @@ void main() {
         completedAt: DateTime(2026, 7, 24, 10, 30),
         selectedProviderId: 'deepseek',
         selectedModelId: 'deepseek-chat',
-        localOnlyMode: false,
         lastStep: 7,
       );
       final json = original.toJson();
@@ -106,10 +103,9 @@ void main() {
       final completed = OnboardingState(
         completed: true,
         schemaVersion: currentOnboardingSchemaVersion,
-        completedAt: DateTime(2026, 1, 1),
+        completedAt: DateTime(2026),
         selectedProviderId: 'openai',
         selectedModelId: 'gpt-4o',
-        localOnlyMode: false,
         lastStep: 7,
       );
       final reset = completed.reset();
