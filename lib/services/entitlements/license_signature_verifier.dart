@@ -39,16 +39,15 @@ class LicenseVerification {
 }
 
 class LicenseSignatureVerifier {
-  const LicenseSignatureVerifier._(this._key, this._mode);
+  const LicenseSignatureVerifier._(this._key);
 
   factory LicenseSignatureVerifier.testOnly({required String key}) =>
-      LicenseSignatureVerifier._(key, 'test');
+      LicenseSignatureVerifier._(key);
 
   factory LicenseSignatureVerifier.production() =>
-      LicenseSignatureVerifier._('', 'production');
+      const LicenseSignatureVerifier._('');
 
   final String _key;
-  final String _mode;
 
   /// Create a test license (never use in production).
   static SignedLicense createTestLicense({

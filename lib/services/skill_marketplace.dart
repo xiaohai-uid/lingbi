@@ -86,14 +86,6 @@ class SkillPermissionDiff {
   })  : added = Set.unmodifiable(added),
         removed = Set.unmodifiable(removed);
 
-  final Set<String> added;
-  final Set<String> removed;
-
-  Map<String, Object> toJson() => {
-        'added': added.toList()..sort(),
-        'removed': removed.toList()..sort(),
-      };
-
   factory SkillPermissionDiff.fromJson(Map<String, dynamic> json) {
     return SkillPermissionDiff(
       added: (json['added'] as List? ?? const [])
@@ -104,6 +96,14 @@ class SkillPermissionDiff {
           .toSet(),
     );
   }
+
+  final Set<String> added;
+  final Set<String> removed;
+
+  Map<String, Object> toJson() => {
+        'added': added.toList()..sort(),
+        'removed': removed.toList()..sort(),
+      };
 }
 
 class SkillInstallMetadata {
@@ -120,6 +120,28 @@ class SkillInstallMetadata {
     required this.installedAt,
     required this.packageState,
   }) : permissions = Set.unmodifiable(permissions);
+
+  factory SkillInstallMetadata.fromJson(Map<String, dynamic> json) {
+    return SkillInstallMetadata(
+      skillId: json['skill_id'] as String,
+      version: json['version'] as String,
+      source: SkillInstallSource.values.byName(json['source'] as String),
+      sourceUri: json['source_uri'] as String? ?? '',
+      signerId: json['signer_id'] as String?,
+      signatureStatus: SkillSignatureStatus.values
+          .byName(json['signature_status'] as String),
+      permissions: (json['permissions'] as List)
+          .map((value) => value.toString())
+          .toSet(),
+      permissionDiff: SkillPermissionDiff.fromJson(
+        Map<String, dynamic>.from(json['permission_diff'] as Map),
+      ),
+      packageHash: json['package_hash'] as String,
+      installedAt: DateTime.parse(json['installed_at'] as String).toUtc(),
+      packageState: SkillPackageState.values
+          .byName(json['package_state'] as String),
+    );
+  }
 
   final String skillId;
   final String version;
@@ -146,28 +168,6 @@ class SkillInstallMetadata {
         'installed_at': installedAt.toUtc().toIso8601String(),
         'package_state': packageState.name,
       };
-
-  factory SkillInstallMetadata.fromJson(Map<String, dynamic> json) {
-    return SkillInstallMetadata(
-      skillId: json['skill_id'] as String,
-      version: json['version'] as String,
-      source: SkillInstallSource.values.byName(json['source'] as String),
-      sourceUri: json['source_uri'] as String? ?? '',
-      signerId: json['signer_id'] as String?,
-      signatureStatus: SkillSignatureStatus.values
-          .byName(json['signature_status'] as String),
-      permissions: (json['permissions'] as List)
-          .map((value) => value.toString())
-          .toSet(),
-      permissionDiff: SkillPermissionDiff.fromJson(
-        Map<String, dynamic>.from(json['permission_diff'] as Map),
-      ),
-      packageHash: json['package_hash'] as String,
-      installedAt: DateTime.parse(json['installed_at'] as String).toUtc(),
-      packageState: SkillPackageState.values
-          .byName(json['package_state'] as String),
-    );
-  }
 }
 
 class OfflineSkillPackage {
@@ -490,7 +490,7 @@ class SkillMarketplace {
     Directory destination,
   ) async {
     await destination.create(recursive: true);
-    await for (final entity in source.list(recursive: false)) {
+    await for (final entity in source.list()) {
       final name = entity.path.split(RegExp(r'[/\\]')).last;
       if (entity is Directory) {
         await _copyDirectory(entity, Directory('${destination.path}/$name'));

@@ -14,6 +14,17 @@ class ConsentStatus {
     this.revokedAt,
   });
 
+  factory ConsentStatus.fromJson(Map<String, dynamic> json) => ConsentStatus(
+        telemetryEnabled: json['telemetry_enabled'] as bool? ?? false,
+        consentGiven: json['consent_given'] as bool? ?? false,
+        consentTimestamp: json['consent_timestamp'] != null
+            ? DateTime.parse(json['consent_timestamp'] as String)
+            : null,
+        revokedAt: json['revoked_at'] != null
+            ? DateTime.parse(json['revoked_at'] as String)
+            : null,
+      );
+
   final bool telemetryEnabled;
   final bool consentGiven;
   final DateTime? consentTimestamp;
@@ -25,17 +36,6 @@ class ConsentStatus {
         'consent_timestamp': consentTimestamp?.toUtc().toIso8601String(),
         'revoked_at': revokedAt?.toUtc().toIso8601String(),
       };
-
-  factory ConsentStatus.fromJson(Map<String, dynamic> json) => ConsentStatus(
-        telemetryEnabled: json['telemetry_enabled'] as bool? ?? false,
-        consentGiven: json['consent_given'] as bool? ?? false,
-        consentTimestamp: json['consent_timestamp'] != null
-            ? DateTime.parse(json['consent_timestamp'] as String)
-            : null,
-        revokedAt: json['revoked_at'] != null
-            ? DateTime.parse(json['revoked_at'] as String)
-            : null,
-      );
 }
 
 class PrivacyPreferences {

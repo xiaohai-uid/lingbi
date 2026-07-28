@@ -13,6 +13,12 @@ class SyncAsset {
     this.isProtected = false,
   });
 
+  factory SyncAsset.fromJson(Map<String, dynamic> json) => SyncAsset(
+        path: json['path'] as String,
+        hash: json['hash'] as String,
+        isProtected: json['is_protected'] as bool? ?? false,
+      );
+
   final String path;
   final String hash;
   final bool isProtected;
@@ -22,12 +28,6 @@ class SyncAsset {
         'hash': hash,
         'is_protected': isProtected,
       };
-
-  factory SyncAsset.fromJson(Map<String, dynamic> json) => SyncAsset(
-        path: json['path'] as String,
-        hash: json['hash'] as String,
-        isProtected: json['is_protected'] as bool? ?? false,
-      );
 }
 
 /// Diff between two manifests.

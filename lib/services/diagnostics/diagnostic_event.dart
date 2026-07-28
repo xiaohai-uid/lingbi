@@ -43,6 +43,16 @@ class DiagnosticEvent {
     this.timestamp,
   });
 
+  factory DiagnosticEvent.fromJson(Map<String, dynamic> json) =>
+      DiagnosticEvent(
+        type: json['type'] as String,
+        fields: (json['fields'] as Map<String, dynamic>)
+            .map((k, v) => MapEntry(k, v.toString())),
+        timestamp: json['timestamp'] != null
+            ? DateTime.parse(json['timestamp'] as String)
+            : null,
+      );
+
   final String type;
   final Map<String, String> fields;
   final DateTime? timestamp;
@@ -68,16 +78,6 @@ class DiagnosticEvent {
         'fields': fields,
         'timestamp': (timestamp ?? DateTime.now().toUtc()).toIso8601String(),
       };
-
-  factory DiagnosticEvent.fromJson(Map<String, dynamic> json) =>
-      DiagnosticEvent(
-        type: json['type'] as String,
-        fields: (json['fields'] as Map<String, dynamic>)
-            .map((k, v) => MapEntry(k, v.toString())),
-        timestamp: json['timestamp'] != null
-            ? DateTime.parse(json['timestamp'] as String)
-            : null,
-      );
 }
 
 /// Collects, stores, purges, and exports diagnostic events.
@@ -136,7 +136,7 @@ class DiagnosticCollector {
       return;
     }
     await file.writeAsString(
-      kept.map((e) => jsonEncode(e.toJson())).join('\n') + '\n',
+      '${kept.map((e) => jsonEncode(e.toJson())).join('\n')}\n',
       flush: true,
     );
   }

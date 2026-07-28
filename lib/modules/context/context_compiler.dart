@@ -70,8 +70,7 @@ class ContextCompiler {
       return a.entry.id.compareTo(b.entry.id);
     });
 
-    // Phase 1: mandatory entries get full allocation (up to reserve)
-    final mandatoryReserve = (budget * config.mandatoryReserveRatio).ceil();
+    // Phase 1: mandatory entries get first access to the available budget.
     var remaining = budget;
     final allocations = <String, int>{};
     final statuses = <String, TruncationStatus>{};

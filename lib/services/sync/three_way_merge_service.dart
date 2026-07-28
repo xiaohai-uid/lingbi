@@ -82,7 +82,6 @@ class ThreeWayMergeService {
       base: base,
       local: local,
       remote: remote,
-      autoResolved: false,
     );
   }
 }

@@ -18,6 +18,25 @@ class SceneCard {
     this.updatedAt,
   });
 
+  factory SceneCard.fromJson(Map<String, dynamic> json) => SceneCard(
+        id: json['id'] as String,
+        projectId: json['project_id'] as String,
+        title: json['title'] as String,
+        chapterIndex: json['chapter_index'] as int,
+        revision: json['revision'] as int,
+        povCharacter: json['pov_character'] as String?,
+        location: json['location'] as String?,
+        subplot: json['subplot'] as String?,
+        summary: json['summary'] as String?,
+        beats: (json['beats'] as List? ?? const []).cast<String>(),
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+      );
+
+  factory SceneCard.deserialize(String raw) =>
+      SceneCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+
   final String id;
   final String projectId;
   final String title;
@@ -70,26 +89,7 @@ class SceneCard {
         'updated_at': updatedAt?.toUtc().toIso8601String(),
       };
 
-  factory SceneCard.fromJson(Map<String, dynamic> json) => SceneCard(
-        id: json['id'] as String,
-        projectId: json['project_id'] as String,
-        title: json['title'] as String,
-        chapterIndex: json['chapter_index'] as int,
-        revision: json['revision'] as int,
-        povCharacter: json['pov_character'] as String?,
-        location: json['location'] as String?,
-        subplot: json['subplot'] as String?,
-        summary: json['summary'] as String?,
-        beats: (json['beats'] as List? ?? const []).cast<String>(),
-        updatedAt: json['updated_at'] != null
-            ? DateTime.parse(json['updated_at'] as String)
-            : null,
-      );
-
   String serialize() => jsonEncode(toJson());
-
-  factory SceneCard.deserialize(String raw) =>
-      SceneCard.fromJson(jsonDecode(raw) as Map<String, dynamic>);
 }
 
 class RevisionConflictException implements Exception {

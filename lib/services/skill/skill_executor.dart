@@ -193,7 +193,7 @@ class SandboxedSkillApi implements SkillApi {
   bool _isSafeRelativePath(String value) {
     if (value.isEmpty || path.isAbsolute(value)) return false;
     return !value
-        .replaceAll('\\', '/')
+        .replaceAll(r'\', '/')
         .split('/')
         .any((segment) => segment == '..' || segment.isEmpty);
   }

@@ -10,6 +10,7 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 *.lock
+!pubspec.lock
 
 # IDE
 .idea/
@@ -46,10 +47,12 @@ skills-lock.json
 litellm_config.yaml
 
 # Incomplete sub-projects (not required to run the app)
-lingbi_server/
-services/
-launcher/
-docs/
+/lingbi_server/
+/services/
+/launcher/
+/docs/*
+!/docs/qa/
+!/docs/qa/**
 
 # Docker (not a runtime prerequisite)
 Dockerfile

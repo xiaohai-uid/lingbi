@@ -34,6 +34,13 @@ class ReferenceInsight {
     required this.content,
   });
 
+  factory ReferenceInsight.fromJson(Map<String, dynamic> json) =>
+      ReferenceInsight(
+        sourceLocator: json['source_locator'] as String,
+        category: json['category'] as String,
+        content: json['content'] as String,
+      );
+
   final String sourceLocator;
   final String category;
   final String content;
@@ -43,13 +50,6 @@ class ReferenceInsight {
         'category': category,
         'content': content,
       };
-
-  factory ReferenceInsight.fromJson(Map<String, dynamic> json) =>
-      ReferenceInsight(
-        sourceLocator: json['source_locator'] as String,
-        category: json['category'] as String,
-        content: json['content'] as String,
-      );
 }
 
 /// Result of an ingestion attempt.
@@ -88,6 +88,13 @@ class IngestionCheckpoint {
     required this.processedChars,
   });
 
+  factory IngestionCheckpoint.fromJson(Map<String, dynamic> json) =>
+      IngestionCheckpoint(
+        projectId: json['project_id'] as String,
+        sourcePath: json['source_path'] as String,
+        processedChars: json['processed_chars'] as int,
+      );
+
   final String projectId;
   final String sourcePath;
   final int processedChars;
@@ -97,13 +104,6 @@ class IngestionCheckpoint {
         'source_path': sourcePath,
         'processed_chars': processedChars,
       };
-
-  factory IngestionCheckpoint.fromJson(Map<String, dynamic> json) =>
-      IngestionCheckpoint(
-        projectId: json['project_id'] as String,
-        sourcePath: json['source_path'] as String,
-        processedChars: json['processed_chars'] as int,
-      );
 }
 
 class ReferenceSourcePolicy {
@@ -239,7 +239,7 @@ class ReferenceSourcePolicy {
       insights.add(ReferenceInsight(
         sourceLocator: locator,
         category: 'style',
-        content: 'Sentence rhythm: $style (avg ${avgLen} chars/sentence)',
+        content: 'Sentence rhythm: $style (avg $avgLen chars/sentence)',
       ));
     }
 

@@ -22,6 +22,19 @@ class ParallelBranch {
     this.revertedAt,
   });
 
+  factory ParallelBranch.fromJson(Map<String, dynamic> json) => ParallelBranch(
+        id: json['id'] as String,
+        projectId: json['project_id'] as String,
+        divergenceChapter: json['divergence_chapter'] as int,
+        branchName: json['branch_name'] as String,
+        premise: json['premise'] as String,
+        status: BranchStatus.values.byName(json['status'] as String),
+        createdAt: DateTime.parse(json['created_at'] as String),
+        revertedAt: json['reverted_at'] != null
+            ? DateTime.parse(json['reverted_at'] as String)
+            : null,
+      );
+
   final String id;
   final String projectId;
   final int divergenceChapter;
@@ -56,19 +69,6 @@ class ParallelBranch {
         'created_at': createdAt.toUtc().toIso8601String(),
         'reverted_at': revertedAt?.toUtc().toIso8601String(),
       };
-
-  factory ParallelBranch.fromJson(Map<String, dynamic> json) => ParallelBranch(
-        id: json['id'] as String,
-        projectId: json['project_id'] as String,
-        divergenceChapter: json['divergence_chapter'] as int,
-        branchName: json['branch_name'] as String,
-        premise: json['premise'] as String,
-        status: BranchStatus.values.byName(json['status'] as String),
-        createdAt: DateTime.parse(json['created_at'] as String),
-        revertedAt: json['reverted_at'] != null
-            ? DateTime.parse(json['reverted_at'] as String)
-            : null,
-      );
 }
 
 /// Main timeline state (unaffected by branches).

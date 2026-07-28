@@ -30,7 +30,6 @@ jobs:
   build:
     needs: analyze-and-test
     runs-on: windows-2022
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
       - uses: actions/checkout@v4
@@ -46,8 +45,19 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Upload artifacts
+      - name: Package release with checksums and provenance
+        shell: powershell
+        run: tool/windows/package_release.ps1 -SkipBuild
+
+      - name: Verify release evidence
+        shell: powershell
+        run: |
+          Get-Item build/windows/release-package/SHA256SUMS.txt
+          Get-Item build/windows/release-package/PROVENANCE.json
+
+      - name: Upload packaged artifact and evidence
         uses: actions/upload-artifact@v4
         with:
-          name: lingbi-windows-release
-          path: build/windows/x64/runner/Release/
+          name: lingbi-windows-${{ github.sha }}
+          path: build/windows/release-package/
+          if-no-files-found: error

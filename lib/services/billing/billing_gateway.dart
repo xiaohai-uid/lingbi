@@ -25,8 +25,6 @@ class PurchaseResult {
 }
 
 class BillingGateway {
-  const BillingGateway._(this._enabled, this.disabledReason);
-
   /// Production gateway: disabled until real merchant credentials exist.
   const BillingGateway.production()
       : _enabled = false,

@@ -19,6 +19,12 @@ class ProjectMember {
     required this.assignedAt,
   });
 
+  factory ProjectMember.fromJson(Map<String, dynamic> json) => ProjectMember(
+        userId: json['user_id'] as String,
+        role: CollaborationRole.values.byName(json['role'] as String),
+        assignedAt: DateTime.parse(json['assigned_at'] as String),
+      );
+
   final String userId;
   final CollaborationRole role;
   final DateTime assignedAt;
@@ -28,12 +34,6 @@ class ProjectMember {
         'role': role.name,
         'assigned_at': assignedAt.toUtc().toIso8601String(),
       };
-
-  factory ProjectMember.fromJson(Map<String, dynamic> json) => ProjectMember(
-        userId: json['user_id'] as String,
-        role: CollaborationRole.values.byName(json['role'] as String),
-        assignedAt: DateTime.parse(json['assigned_at'] as String),
-      );
 }
 
 /// An audit log entry.
@@ -44,6 +44,14 @@ class AuditEntry {
     required this.action,
     required this.details,
   });
+
+  factory AuditEntry.fromJson(Map<String, dynamic> json) => AuditEntry(
+        timestamp: DateTime.parse(json['timestamp'] as String),
+        userId: json['user_id'] as String,
+        action: json['action'] as String,
+        details: (json['details'] as Map<String, dynamic>)
+            .map((k, v) => MapEntry(k, v.toString())),
+      );
 
   final DateTime timestamp;
   final String userId;
@@ -56,14 +64,6 @@ class AuditEntry {
         'action': action,
         'details': details,
       };
-
-  factory AuditEntry.fromJson(Map<String, dynamic> json) => AuditEntry(
-        timestamp: DateTime.parse(json['timestamp'] as String),
-        userId: json['user_id'] as String,
-        action: json['action'] as String,
-        details: (json['details'] as Map<String, dynamic>)
-            .map((k, v) => MapEntry(k, v.toString())),
-      );
 }
 
 class CollaborationService {

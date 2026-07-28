@@ -4,6 +4,7 @@
 
 param(
     [string]$OutputDir = "build/windows/release-package",
+    [string]$BuildDir = "build/windows/x64/runner/Release",
     [switch]$SkipBuild
 )
 
@@ -23,26 +24,68 @@ if (-not $SkipBuild) {
 
 # Step 2: Collect artifacts
 Write-Host "[2/4] Collecting artifacts..." -ForegroundColor Yellow
-$buildDir = "build/windows/x64/runner/Release"
-if (-not (Test-Path $buildDir)) {
-    $buildDir = "build/windows/runner/Release"
+$resolvedBuildDir = $BuildDir
+if (-not (Test-Path -LiteralPath $resolvedBuildDir) -and $BuildDir -eq "build/windows/x64/runner/Release") {
+    $resolvedBuildDir = "build/windows/runner/Release"
 }
-if (-not (Test-Path $buildDir)) {
-    Write-Error "Release build not found at $buildDir"
+if (-not (Test-Path -LiteralPath $resolvedBuildDir)) {
+    Write-Error "Release build not found at $resolvedBuildDir"
     exit 1
 }
 
-if (Test-Path $OutputDir) { Remove-Item -Recurse -Force $OutputDir }
+if (Test-Path -LiteralPath $OutputDir) { Remove-Item -Recurse -Force -LiteralPath $OutputDir }
 New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-Copy-Item -Recurse "$buildDir/*" $OutputDir
+Get-ChildItem -LiteralPath $resolvedBuildDir | Copy-Item -Destination $OutputDir -Recurse -Force
 
-# Step 3: Generate checksums
-Write-Host "[3/4] Generating checksums..." -ForegroundColor Yellow
-$checksumFile = "$OutputDir/SHA256SUMS.txt"
-Get-ChildItem $OutputDir -Recurse -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" } | ForEach-Object {
-    $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
-    "$hash  $($_.Name)" | Out-File -Append $checksumFile
+# Step 3: Generate provenance and relative-path checksums
+Write-Host "[3/4] Generating provenance and checksums..." -ForegroundColor Yellow
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$pubspec = Get-Content -Raw -LiteralPath "pubspec.yaml"
+$versionMatch = [regex]::Match($pubspec, '(?m)^version:\s*([^\s]+)')
+if (-not $versionMatch.Success) {
+    Write-Error "Unable to read version from pubspec.yaml"
+    exit 1
 }
+$sourceCommit = (& git rev-parse HEAD).Trim()
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Unable to resolve source commit"
+    exit 1
+}
+$sourceRef = $env:GITHUB_REF_NAME
+if ([string]::IsNullOrWhiteSpace($sourceRef)) {
+    $sourceRef = (& git branch --show-current).Trim()
+}
+$dirtyOutput = (& git status --porcelain) -join "`n"
+$provenance = [ordered]@{
+    schema_version = 1
+    application = "lingbi"
+    version = $versionMatch.Groups[1].Value
+    source_commit = $sourceCommit
+    source_ref = $sourceRef
+    source_dirty = -not [string]::IsNullOrWhiteSpace($dirtyOutput)
+    build_configuration = "release"
+    platform = "windows-x64"
+}
+$provenancePath = Join-Path $OutputDir "PROVENANCE.json"
+$provenanceJson = $provenance | ConvertTo-Json
+[System.IO.File]::WriteAllText($provenancePath, "$provenanceJson`n", $utf8NoBom)
+
+$resolvedOutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
+$outputUri = New-Object System.Uri(($resolvedOutputDir.TrimEnd('\') + '\'))
+$checksumLines = Get-ChildItem -LiteralPath $OutputDir -Recurse -File |
+    Where-Object { $_.Name -ne "SHA256SUMS.txt" } |
+    ForEach-Object {
+        $fileUri = New-Object System.Uri($_.FullName)
+        $relativePath = [System.Uri]::UnescapeDataString($outputUri.MakeRelativeUri($fileUri).ToString())
+        [pscustomobject]@{
+            Path = $relativePath
+            Line = "$(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  $relativePath"
+        }
+    } |
+    Sort-Object Path |
+    Select-Object -ExpandProperty Line
+$checksumFile = Join-Path $OutputDir "SHA256SUMS.txt"
+[System.IO.File]::WriteAllLines($checksumFile, [string[]]$checksumLines, $utf8NoBom)
 
 # Step 4: Code signing (BLOCKED)
 Write-Host "[4/4] Code signing..." -ForegroundColor Yellow
