@@ -12,6 +12,7 @@ abstract class IDocumentService {
   Future<String> readContent(String filePath);
   Future<Document> saveDocument(Document doc, String content);
   Future<List<Document>> getDocuments(String projectId);
+  Future<List<Document>> searchDocuments(String projectId, String query);
   Future<Document?> getDocument(String id);
   Future<void> deleteDocument(Document doc);
   Future<void> renameDocument(Document doc, String newTitle);

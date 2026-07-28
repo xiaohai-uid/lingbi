@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:lingbi/services/interfaces/i_document_service.dart';
 import 'package:lingbi/core/models/document.dart';
 import 'package:lingbi/core/database/zvec_service.dart';
@@ -72,6 +74,27 @@ class DocumentService implements IDocumentService {
     final results =
         await _zvec.query('documents', filter: {'projectId': projectId});
     return results.map((json) => Document.fromJson(json)).toList();
+  }
+
+  @override
+  Future<List<Document>> searchDocuments(String projectId, String query) async {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return [];
+    final documents = await getDocuments(projectId);
+    final matches = <Document>[];
+    for (final document in documents) {
+      if (document.title.toLowerCase().contains(normalized)) {
+        matches.add(document);
+        continue;
+      }
+      try {
+        final content = await readContent(document.filePath);
+        if (content.toLowerCase().contains(normalized)) matches.add(document);
+      } on FileSystemException {
+        // A stale index entry should not make global search fail.
+      }
+    }
+    return matches;
   }
 
   @override

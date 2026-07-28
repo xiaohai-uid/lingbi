@@ -25,6 +25,7 @@ import '../services/command_palette_service.dart';
 import 'toolbox_page.dart';
 import 'project_brief_sheet.dart';
 import 'command_palette.dart';
+import 'document_search_dialog.dart';
 
 class AppScaffold extends StatefulWidget {
   const AppScaffold({
@@ -91,11 +92,42 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
   }
 
-  void _onSearch(String query) {
-    // TODO: wire to DocumentService search across current project's documents
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('搜索：「$query」')),
-    );
+  Future<void> _onSearch(String query) async {
+    final project = _currentProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先打开一个项目再搜索')),
+      );
+      return;
+    }
+    try {
+      final results = await ServiceLocator.instance.documentService
+          .searchDocuments(project.id, query);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          insetPadding: const EdgeInsets.all(LingBiTokens.space8),
+          child: DocumentSearchDialog(
+            query: query,
+            results: results,
+            onSelected: (document) {
+              Navigator.of(dialogContext).pop();
+              setState(() {
+                _currentDocument = document;
+                _currentTab = ProjectTab.writing;
+              });
+            },
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('搜索失败: $error')),
+        );
+      }
+    }
   }
 
   void _toggleSidebar() => setState(() => _sidebarVisible = !_sidebarVisible);
