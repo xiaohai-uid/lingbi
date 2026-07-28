@@ -3,12 +3,42 @@
 # Code-signing is BLOCKED_EXTERNAL until a genuine certificate is provided.
 
 param(
-    [string]$OutputDir = "build/windows/release-package",
+    [string]$OutputDir,
     [string]$BuildDir = "build/windows/x64/runner/Release",
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [switch]$ValidateOnly
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "release_path_guard.ps1")
+
+$repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\\..")).Path
+if ([string]::IsNullOrWhiteSpace($OutputDir)) {
+    $OutputDir = Join-Path ([System.IO.Path]::GetTempPath()) "lingbi-release-package"
+}
+
+function Resolve-GitPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return Resolve-ReleaseAbsolutePath -Path $Path
+    }
+    return Resolve-ReleaseAbsolutePath -Path $Path -BasePath $repositoryRoot
+}
+
+$gitDir = Resolve-GitPath -Path ((& git -C $repositoryRoot rev-parse --git-dir).Trim())
+$gitCommonDir = Resolve-GitPath -Path ((& git -C $repositoryRoot rev-parse --git-common-dir).Trim())
+$requestedBuildDir = Resolve-ReleaseAbsolutePath -Path $BuildDir -BasePath $repositoryRoot
+$resolvedBuildDir = $requestedBuildDir
+if (-not (Test-Path -LiteralPath $resolvedBuildDir) -and $BuildDir -eq "build/windows/x64/runner/Release") {
+    $resolvedBuildDir = Resolve-ReleaseAbsolutePath -Path "build/windows/runner/Release" -BasePath $repositoryRoot
+}
+$resolvedOutputDir = Assert-SafeReleaseOutputPath -OutputDir $OutputDir -BuildDir $resolvedBuildDir -RepositoryRoot $repositoryRoot -GitDir $gitDir -GitCommonDir $gitCommonDir
+
+if ($ValidateOnly) {
+    Write-Host "Release output path is safe: $resolvedOutputDir"
+    exit 0
+}
 
 Write-Host "=== LingBi Windows Release Packaging ===" -ForegroundColor Cyan
 
@@ -24,18 +54,14 @@ if (-not $SkipBuild) {
 
 # Step 2: Collect artifacts
 Write-Host "[2/4] Collecting artifacts..." -ForegroundColor Yellow
-$resolvedBuildDir = $BuildDir
-if (-not (Test-Path -LiteralPath $resolvedBuildDir) -and $BuildDir -eq "build/windows/x64/runner/Release") {
-    $resolvedBuildDir = "build/windows/runner/Release"
-}
 if (-not (Test-Path -LiteralPath $resolvedBuildDir)) {
     Write-Error "Release build not found at $resolvedBuildDir"
     exit 1
 }
 
-if (Test-Path -LiteralPath $OutputDir) { Remove-Item -Recurse -Force -LiteralPath $OutputDir }
-New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-Get-ChildItem -LiteralPath $resolvedBuildDir | Copy-Item -Destination $OutputDir -Recurse -Force
+if (Test-Path -LiteralPath $resolvedOutputDir) { Remove-Item -Recurse -Force -LiteralPath $resolvedOutputDir }
+New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
+Get-ChildItem -LiteralPath $resolvedBuildDir | Copy-Item -Destination $resolvedOutputDir -Recurse -Force
 
 # Step 3: Generate provenance and relative-path checksums
 Write-Host "[3/4] Generating provenance and checksums..." -ForegroundColor Yellow
@@ -66,13 +92,12 @@ $provenance = [ordered]@{
     build_configuration = "release"
     platform = "windows-x64"
 }
-$provenancePath = Join-Path $OutputDir "PROVENANCE.json"
+$provenancePath = Join-Path $resolvedOutputDir "PROVENANCE.json"
 $provenanceJson = $provenance | ConvertTo-Json
 [System.IO.File]::WriteAllText($provenancePath, "$provenanceJson`n", $utf8NoBom)
 
-$resolvedOutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
 $outputUri = New-Object System.Uri(($resolvedOutputDir.TrimEnd('\') + '\'))
-$checksumLines = Get-ChildItem -LiteralPath $OutputDir -Recurse -File |
+$checksumLines = Get-ChildItem -LiteralPath $resolvedOutputDir -Recurse -File |
     Where-Object { $_.Name -ne "SHA256SUMS.txt" } |
     ForEach-Object {
         $fileUri = New-Object System.Uri($_.FullName)
@@ -84,7 +109,7 @@ $checksumLines = Get-ChildItem -LiteralPath $OutputDir -Recurse -File |
     } |
     Sort-Object Path |
     Select-Object -ExpandProperty Line
-$checksumFile = Join-Path $OutputDir "SHA256SUMS.txt"
+$checksumFile = Join-Path $resolvedOutputDir "SHA256SUMS.txt"
 [System.IO.File]::WriteAllLines($checksumFile, [string[]]$checksumLines, $utf8NoBom)
 
 # Step 4: Code signing (BLOCKED)
@@ -95,5 +120,5 @@ Write-Host "  ACTION: Provide a genuine EV/OV certificate to enable signing." -F
 Write-Host "  WARNING: Unsigned executables will trigger SmartScreen warnings." -ForegroundColor Red
 
 Write-Host ""
-Write-Host "=== Package ready at: $OutputDir ===" -ForegroundColor Green
+Write-Host "=== Package ready at: $resolvedOutputDir ===" -ForegroundColor Green
 Write-Host "=== Code signing: BLOCKED_EXTERNAL ===" -ForegroundColor Red

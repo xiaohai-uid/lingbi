@@ -26,19 +26,19 @@
 
 ## 开发与验证
 
-前置要求：Flutter 3.38、Windows 10/11 x64。
+前置要求：Flutter 3.44.6、Windows 10/11 x64。
 
 ```powershell
 git clone https://github.com/xiaohai-uid/lingbi.git
 cd lingbi
-flutter pub get
+flutter pub get --enforce-lockfile
 flutter analyze lib/
 flutter test
 flutter build windows --release
 tool/windows/package_release.ps1 -SkipBuild
 ```
 
-便携包输出到 `build/windows/release-package/`，其中：
+便携包输出到传入的 `-OutputDir`（未传入时为系统临时目录下的 `lingbi-release-package`）；CI 使用 runner 临时目录，其中：
 
 - `SHA256SUMS.txt` 使用包内相对路径，避免机器相关绝对路径；
 - `PROVENANCE.json` 记录应用版本、Git commit/ref、dirty 状态、构建配置和平台；
