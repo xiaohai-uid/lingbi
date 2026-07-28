@@ -96,6 +96,18 @@ $provenancePath = Join-Path $resolvedOutputDir "PROVENANCE.json"
 $provenanceJson = $provenance | ConvertTo-Json
 [System.IO.File]::WriteAllText($provenancePath, "$provenanceJson`n", $utf8NoBom)
 
+function Get-Sha256Hex {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($Path)
+        return ([System.BitConverter]::ToString($sha256.ComputeHash($bytes))).Replace('-', '')
+    } finally {
+        $sha256.Dispose()
+    }
+}
+
 $outputUri = New-Object System.Uri(($resolvedOutputDir.TrimEnd('\') + '\'))
 $checksumLines = Get-ChildItem -LiteralPath $resolvedOutputDir -Recurse -File |
     Where-Object { $_.Name -ne "SHA256SUMS.txt" } |
@@ -104,7 +116,7 @@ $checksumLines = Get-ChildItem -LiteralPath $resolvedOutputDir -Recurse -File |
         $relativePath = [System.Uri]::UnescapeDataString($outputUri.MakeRelativeUri($fileUri).ToString())
         [pscustomobject]@{
             Path = $relativePath
-            Line = "$(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256 | Select-Object -ExpandProperty Hash)  $relativePath"
+            Line = "$(Get-Sha256Hex -Path $_.FullName)  $relativePath"
         }
     } |
     Sort-Object Path |
