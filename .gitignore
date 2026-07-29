@@ -59,6 +59,10 @@ Dockerfile
 docker-compose.yml
 .dockerignore
 
+# External skills linked via junction (machine-local, do not commit)
+.claude/skills/*
+!.claude/skills/gitnexus-*/
+
 # Temp / dev scripts
 fix_*.js
 tmp_*.dart
