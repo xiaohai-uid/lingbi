@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:lingbi/features/onboarding/data/project_onboarding_workflow.dart';
 import 'package:lingbi/ui_v2/components/model_selector.dart';
-import 'package:lingbi/ui_v2/components/onboarding_question_card.dart';
+import 'package:lingbi/features/onboarding/ui/onboarding_question_card.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class ProjectOnboardingPage extends StatefulWidget {

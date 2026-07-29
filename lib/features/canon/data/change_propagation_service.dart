@@ -11,7 +11,7 @@ library;
 import 'dart:convert';
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/vector_knowledge_service.dart';
+import 'package:lingbi/features/knowledge/data/vector_knowledge_service.dart';
 
 // ─── 数据模型 ───
 

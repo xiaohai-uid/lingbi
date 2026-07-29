@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/collaboration_service.dart';
+import 'package:lingbi/features/collaboration/data/collaboration_service.dart';
 
 void main() {
   late Directory tempDir;

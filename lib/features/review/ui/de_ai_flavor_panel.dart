@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/de_ai_flavor_service.dart';
+import 'package:lingbi/features/review/data/de_ai_flavor_service.dart';
 
 class DeAiFlavorPanel extends StatefulWidget {
   const DeAiFlavorPanel({super.key, required this.projectId});

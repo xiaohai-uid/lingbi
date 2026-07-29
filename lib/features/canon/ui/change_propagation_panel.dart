@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/change_propagation_service.dart';
+import 'package:lingbi/features/canon/data/change_propagation_service.dart';
 
 class ChangePropagationPanel extends StatefulWidget {
   const ChangePropagationPanel({super.key, required this.projectId});

@@ -3,24 +3,24 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'anti_hallucination_panel.dart';
-import 'change_propagation_panel.dart';
-import 'character_relation_panel.dart';
-import 'clarity_check_panel.dart';
-import 'de_ai_flavor_panel.dart';
-import 'drama_conversion_panel.dart';
-import 'foreshadowing_panel.dart';
-import 'market_panel.dart';
-import 'model_router_panel.dart';
-import 'parallel_world_panel.dart';
-import 'reference_book_panel.dart';
-import 'short_story_panel.dart';
-import 'six_dimension_review_panel.dart';
-import 'strand_weave_panel.dart';
-import 'style_profile_panel.dart';
-import 'vector_knowledge_panel.dart';
-import 'web_search_panel.dart';
-import 'workflow_approval_panel.dart';
+import 'package:lingbi/features/review/ui/anti_hallucination_panel.dart';
+import 'package:lingbi/features/canon/ui/change_propagation_panel.dart';
+import 'package:lingbi/features/canon/ui/character_relation_panel.dart';
+import 'package:lingbi/features/review/ui/clarity_check_panel.dart';
+import 'package:lingbi/features/review/ui/de_ai_flavor_panel.dart';
+import 'package:lingbi/features/import_export/ui/drama_conversion_panel.dart';
+import 'package:lingbi/features/writing/ui/foreshadowing_panel.dart';
+import 'package:lingbi/features/skill/ui/market_panel.dart';
+import 'package:lingbi/features/settings/ui/model_router_panel.dart';
+import 'package:lingbi/features/parallel_world/ui/parallel_world_panel.dart';
+import 'package:lingbi/features/knowledge/ui/reference_book_panel.dart';
+import 'package:lingbi/features/writing/ui/short_story_panel.dart';
+import 'package:lingbi/features/review/ui/six_dimension_review_panel.dart';
+import 'package:lingbi/features/strand/ui/strand_weave_panel.dart';
+import 'package:lingbi/features/style/ui/style_profile_panel.dart';
+import 'package:lingbi/features/knowledge/ui/vector_knowledge_panel.dart';
+import 'package:lingbi/features/knowledge/ui/web_search_panel.dart';
+import 'package:lingbi/features/collaboration/ui/workflow_approval_panel.dart';
 
 class ToolboxPage extends StatefulWidget {
   const ToolboxPage({super.key, this.projectId});

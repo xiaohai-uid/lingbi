@@ -21,7 +21,7 @@ import 'candidate_panel.dart';
 import 'package:lingbi/ui_v2/components/model_status_bar.dart';
 import 'package:lingbi/ui_v2/components/error_banner.dart';
 import 'package:lingbi/ui_v2/services/command_palette_service.dart';
-import 'package:lingbi/services/clarity_check_service.dart';
+import 'package:lingbi/features/review/data/clarity_check_service.dart';
 
 class EditorPage extends StatefulWidget {
   const EditorPage({

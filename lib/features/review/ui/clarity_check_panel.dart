@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/services/clarity_check_service.dart';
+import 'package:lingbi/features/review/data/clarity_check_service.dart';
 
 class ClarityCheckPanel extends StatefulWidget {
   const ClarityCheckPanel({super.key});

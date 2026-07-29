@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/parallel_world_service.dart';
+import 'package:lingbi/features/parallel_world/data/parallel_world_service.dart';
 
 class ParallelWorldPanel extends StatefulWidget {
   const ParallelWorldPanel({super.key, required this.projectId});

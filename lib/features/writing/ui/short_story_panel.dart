@@ -5,7 +5,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/short_story_service.dart';
+import 'package:lingbi/features/writing/data/short_story_service.dart';
 
 class ShortStoryPanel extends StatefulWidget {
   const ShortStoryPanel({super.key, required this.projectId});

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'theme/app_theme.dart';
-import 'components/onboarding_gate.dart';
+import 'package:lingbi/features/onboarding/ui/onboarding_gate.dart';
 
 class LingBiAppV3 extends StatefulWidget {
 

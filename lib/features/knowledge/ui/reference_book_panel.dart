@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/reference_book_service.dart';
+import 'package:lingbi/features/knowledge/data/reference_book_service.dart';
 
 class ReferenceBookPanel extends StatefulWidget {
   const ReferenceBookPanel({super.key, required this.projectId});

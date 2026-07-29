@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/clarity_check_service.dart';
+import 'package:lingbi/features/review/data/clarity_check_service.dart';
 
 void main() {
   late ClarityCheckService service;

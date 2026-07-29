@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/drama_conversion_service.dart';
+import 'package:lingbi/features/import_export/data/drama_conversion_service.dart';
 
 class DramaConversionPanel extends StatefulWidget {
   const DramaConversionPanel({super.key, required this.projectId});

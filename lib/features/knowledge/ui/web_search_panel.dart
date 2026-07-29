@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/web_search_service.dart';
+import 'package:lingbi/features/knowledge/data/web_search_service.dart';
 
 class WebSearchPanel extends StatefulWidget {
   const WebSearchPanel({super.key, required this.projectId});

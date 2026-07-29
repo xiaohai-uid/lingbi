@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/parallel_world_service.dart';
+import 'package:lingbi/features/parallel_world/data/parallel_world_service.dart';
 import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 

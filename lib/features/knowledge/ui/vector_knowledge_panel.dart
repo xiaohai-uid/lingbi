@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/vector_knowledge_service.dart';
+import 'package:lingbi/features/knowledge/data/vector_knowledge_service.dart';
 
 class VectorKnowledgePanel extends StatefulWidget {
   const VectorKnowledgePanel({super.key, required this.projectId});

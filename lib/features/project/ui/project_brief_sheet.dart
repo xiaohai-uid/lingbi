@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 
-import '../models/project_template.dart';
-import '../theme/tokens.dart';
+import 'package:lingbi/ui_v2/models/project_template.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class ProjectBriefSheet extends StatefulWidget {
   const ProjectBriefSheet({

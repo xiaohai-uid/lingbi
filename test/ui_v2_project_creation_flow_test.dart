@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
-import 'package:lingbi/ui_v2/components/project_brief_sheet.dart';
+import 'package:lingbi/features/project/ui/project_brief_sheet.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
 import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 

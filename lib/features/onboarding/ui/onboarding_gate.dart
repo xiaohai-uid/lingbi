@@ -11,7 +11,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'onboarding_wizard.dart';
-import 'app_scaffold.dart';
+import 'package:lingbi/ui_v2/components/app_scaffold.dart';
 
 /// 引导门禁 — 根据 OnboardingState 决定显示向导或主界面
 class OnboardingGate extends StatefulWidget {

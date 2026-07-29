@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/character_relation_graph_service.dart';
+import 'package:lingbi/features/canon/data/character_relation_graph_service.dart';
 
 class CharacterRelationPanel extends StatefulWidget {
   const CharacterRelationPanel({super.key, required this.projectId});

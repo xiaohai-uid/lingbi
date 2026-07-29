@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/foreshadowing_service.dart';
+import 'package:lingbi/features/writing/data/foreshadowing_service.dart';
 
 class ForeshadowingPanel extends StatefulWidget {
   const ForeshadowingPanel({super.key, required this.projectId});

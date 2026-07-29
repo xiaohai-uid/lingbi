@@ -3,7 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/workflow_approval_service.dart';
+import 'package:lingbi/features/collaboration/data/workflow_approval_service.dart';
 
 class WorkflowApprovalPanel extends StatefulWidget {
   const WorkflowApprovalPanel({super.key, required this.projectId});

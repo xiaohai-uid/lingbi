@@ -23,7 +23,7 @@ import 'package:lingbi/features/skill/ui/skill_market_page.dart';
 import 'package:lingbi/features/settings/ui/settings_page.dart';
 import '../services/command_palette_service.dart';
 import 'toolbox_page.dart';
-import 'project_brief_sheet.dart';
+import 'package:lingbi/features/project/ui/project_brief_sheet.dart';
 import 'command_palette.dart';
 import 'document_search_dialog.dart';
 

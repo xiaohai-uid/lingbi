@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../domain/project/project_asset.dart';
-import '../theme/tokens.dart';
+import 'package:lingbi/domain/project/project_asset.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class ProjectAssetCard extends StatelessWidget {
   const ProjectAssetCard({

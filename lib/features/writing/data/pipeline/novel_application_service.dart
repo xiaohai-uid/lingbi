@@ -12,7 +12,7 @@ import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/market_intel_service.dart';
+import 'package:lingbi/features/skill/data/market_intel_service.dart';
 
 import 'book_state.dart';
 import 'candidate_service.dart';

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/domain/project/project_asset.dart';
 import 'package:lingbi/features/project/data/project_asset_repository.dart';
-import 'package:lingbi/ui_v2/components/project_asset_card.dart';
+import 'package:lingbi/features/project/ui/project_asset_card.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class ProjectOverviewPage extends StatefulWidget {

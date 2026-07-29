@@ -8,7 +8,7 @@ import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart'
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/agent_writing_service.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/clarity_check_service.dart';
+import 'package:lingbi/features/review/data/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import 'model_selector.dart';
