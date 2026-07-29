@@ -53,8 +53,9 @@ class ChapterReviewWorkspace {
     String? content,
   }) async {
     final sourceContent = content ?? await readDocument(document);
+    final documentKey = _documentKey(document);
     final report = await _reviewService.review(
-      chapterId: document.id,
+      chapterId: documentKey,
       content: sourceContent,
     );
     final reviewedAt = report.reviewedAt.toUtc();
@@ -64,7 +65,10 @@ class ChapterReviewWorkspace {
     final payload = const JsonEncoder.withIndent('  ').convert({
       'schema_version': 1,
       'project_id': projectId,
-      'document': document.toJson(),
+      'document': {
+        ...document.toJson(),
+        'document_key': documentKey,
+      },
       'report': report.toJson(),
     });
     await _store.writeString(reportPath, payload);
@@ -81,4 +85,15 @@ class ChapterReviewWorkspace {
         RegExp(r'\d+'),
         (match) => match.group(0)!.padLeft(12, '0'),
       );
+
+  String _documentKey(Document document) {
+    final root =
+        projectDir.replaceAll(r'\', '/').replaceFirst(RegExp(r'/$'), '');
+    final path = document.filePath.replaceAll(r'\', '/');
+    final prefix = '$root/';
+    if (path.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return path.substring(prefix.length);
+    }
+    return path;
+  }
 }

@@ -83,7 +83,7 @@ class _PanelWorkspace extends ChapterReviewWorkspace {
   }) async =>
       PersistedChapterReview(
         report: ReviewReport(
-          chapterId: document.id,
+          chapterId: '章节内容/第1章.md',
           scores: ReviewDimension.values
               .map((dimension) => DimensionScore(
                     dimension: dimension,
@@ -134,12 +134,12 @@ void main() {
     expect(await workspace.readDocument(documents.first), contains('开篇内容'));
   });
 
-  test('reviews with the document id and persists a traceable report',
+  test('reviews with a restart-stable path id and persists a traceable report',
       () async {
     final document = (await workspace.listDocuments()).first;
     final result = await workspace.reviewSelectedDocument(document);
 
-    expect(result.report.chapterId, document.id);
+    expect(result.report.chapterId, '章节内容/第1章.md');
     expect(result.report.overallScore, 8);
     expect(File(result.reportPath).existsSync(), isTrue);
 
@@ -147,7 +147,14 @@ void main() {
         as Map<String, dynamic>;
     expect(json['project_id'], 'project-1');
     expect(json['document']['title'], '第1章');
-    expect(json['report']['chapter_id'], document.id);
+    expect(json['document']['document_key'], '章节内容/第1章.md');
+    expect(json['report']['chapter_id'], '章节内容/第1章.md');
+
+    final rescannedDocument = (await workspace.listDocuments()).first;
+    expect(rescannedDocument.id, isNot(document.id));
+    final rescannedResult =
+        await workspace.reviewSelectedDocument(rescannedDocument);
+    expect(rescannedResult.report.chapterId, result.report.chapterId);
   });
 
   testWidgets('panel loads project documents and surfaces the saved report',
