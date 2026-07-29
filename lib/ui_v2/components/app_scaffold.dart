@@ -484,7 +484,10 @@ class _AppScaffoldState extends State<AppScaffold> {
       case ProjectTab.ideation:
         return StoryboardPage(projectId: _currentProject?.id);
       case ProjectTab.review:
-        return ToolboxPage(projectId: _currentProject?.id);
+        return ToolboxPage(
+          projectId: _currentProject?.id,
+          projectDirectoryPath: _currentProject?.directoryPath,
+        );
       case ProjectTab.publish:
         return ImportExportPage(projectId: _currentProject?.id);
     }

@@ -3,12 +3,21 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/services/chapter_review_workspace.dart';
 import 'package:lingbi/services/six_dimension_review_service.dart';
 
 class SixDimensionReviewPanel extends StatefulWidget {
-  const SixDimensionReviewPanel({super.key, required this.projectId});
+  const SixDimensionReviewPanel({
+    super.key,
+    required this.projectId,
+    this.projectDirectoryPath,
+    this.workspace,
+  });
 
   final String projectId;
+  final String? projectDirectoryPath;
+  final ChapterReviewWorkspace? workspace;
 
   @override
   State<SixDimensionReviewPanel> createState() =>
@@ -19,7 +28,12 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
   bool _loading = true;
   bool _reviewing = false;
   final TextEditingController _contentController = TextEditingController();
+  late ChapterReviewWorkspace? _workspace;
+  List<Document> _documents = const [];
+  Document? _selectedDocument;
   ReviewReport? _report;
+  String? _reportPath;
+  String? _error;
 
   static const _accentColor = Color(0xFFEA580C);
 
@@ -30,8 +44,8 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
         Color(0xFF2563EB)),
     _DimensionInfo(
         ReviewDimension.pacing, '节奏', Icons.speed_rounded, Color(0xFFD97706)),
-    _DimensionInfo(
-        ReviewDimension.ooc, 'OOC', Icons.person_off_rounded, Color(0xFFDC2626)),
+    _DimensionInfo(ReviewDimension.ooc, 'OOC', Icons.person_off_rounded,
+        Color(0xFFDC2626)),
     _DimensionInfo(ReviewDimension.continuity, '连续性', Icons.link_rounded,
         Color(0xFF0891B2)),
     _DimensionInfo(ReviewDimension.readability, '追读力',
@@ -45,25 +59,115 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
   }
 
   @override
+  void didUpdateWidget(covariant SixDimensionReviewPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.projectId != widget.projectId ||
+        oldWidget.projectDirectoryPath != widget.projectDirectoryPath ||
+        oldWidget.workspace != widget.workspace) {
+      _load();
+    }
+  }
+
+  @override
   void dispose() {
     _contentController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+        _report = null;
+        _reportPath = null;
+      });
+    }
+    final projectDir = widget.projectDirectoryPath;
+    if (widget.workspace == null &&
+        (projectDir == null ||
+            projectDir.isEmpty ||
+            widget.projectId.isEmpty)) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = '请先打开一个项目';
+        });
+      }
+      return;
+    }
+    if (widget.workspace != null) {
+      _workspace = widget.workspace;
+    } else {
+      final locator = ServiceLocator.instance;
+      _workspace = ChapterReviewWorkspace(
+        projectId: widget.projectId,
+        projectDir: projectDir!,
+        fileService: locator.fileService,
+        reviewService: locator.sixDimensionReviewService,
+        store: locator.atomicFileStore,
+      );
+    }
+    try {
+      final documents = await _workspace!.listDocuments();
+      final selected = documents.firstOrNull;
+      final content =
+          selected == null ? '' : await _workspace!.readDocument(selected);
+      if (!mounted) return;
+      setState(() {
+        _documents = documents;
+        _selectedDocument = selected;
+        _contentController.text = content;
+        _loading = false;
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = '加载项目文稿失败: $error';
+        });
+      }
+    }
+  }
+
+  Future<void> _selectDocument(Document? document) async {
+    if (document == null || _reviewing) return;
+    setState(() {
+      _selectedDocument = document;
+      _report = null;
+      _reportPath = null;
+      _error = null;
+    });
+    try {
+      final content = await _workspace!.readDocument(document);
+      if (mounted && _selectedDocument?.id == document.id) {
+        setState(() => _contentController.text = content);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = '读取文稿失败: $error');
+    }
   }
 
   Future<void> _runReview() async {
-    if (_contentController.text.trim().isEmpty) return;
-    setState(() => _reviewing = true);
+    final document = _selectedDocument;
+    if (document == null || _contentController.text.trim().isEmpty) return;
+    setState(() {
+      _reviewing = true;
+      _error = null;
+    });
     try {
-      final report = await ServiceLocator.instance.sixDimensionReviewService
-          .review(
-        chapterId: widget.projectId,
+      final result = await _workspace!.reviewSelectedDocument(
+        document,
         content: _contentController.text,
       );
-      if (mounted) setState(() => _report = report);
+      if (mounted) {
+        setState(() {
+          _report = result.report;
+          _reportPath = result.reportPath;
+        });
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = '审稿失败: $error');
     } finally {
       if (mounted) setState(() => _reviewing = false);
     }
@@ -92,22 +196,60 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
           title: '章节内容',
           icon: Icons.text_fields_rounded,
           accentColor: _accentColor,
-          child: TextField(
-            controller: _contentController,
-            maxLines: 8,
-            decoration: const InputDecoration(
-              labelText: '粘贴待审稿的章节内容',
-              hintText: '将章节全文粘贴到此处...',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<Document>(
+                key: ValueKey(_selectedDocument?.id),
+                initialValue: _selectedDocument,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: '选择项目文稿',
+                  border: OutlineInputBorder(),
+                ),
+                items: _documents
+                    .map(
+                      (document) => DropdownMenuItem(
+                        value: document,
+                        child: Text(
+                          document.title,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: _reviewing ? null : _selectDocument,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _contentController,
+                maxLines: 8,
+                decoration: const InputDecoration(
+                  labelText: '审稿内容',
+                  hintText: '项目中尚无可审稿的 Markdown 文稿',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+              ),
+            ],
           ),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            _error!,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ],
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: _reviewing ? null : _runReview,
+            onPressed: _reviewing ||
+                    _selectedDocument == null ||
+                    _contentController.text.trim().isEmpty
+                ? null
+                : _runReview,
             icon: _reviewing
                 ? const SizedBox(
                     width: 18,
@@ -120,6 +262,20 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
           ),
         ),
         if (_report != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.save_outlined, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '报告已保存：${_reportPath ?? ''}',
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
           _PanelSection(
             title: '综合评分',
@@ -163,8 +319,7 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
                         _report!.summary,
                         style: TextStyle(
                           fontSize: 13,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           height: 1.5,
                         ),
                       ),
@@ -202,8 +357,8 @@ class _SixDimensionReviewPanelState extends State<SixDimensionReviewPanel> {
                             width: 22,
                             height: 22,
                             decoration: BoxDecoration(
-                              color:
-                                  const Color(0xFF2563EB).withValues(alpha: 0.12),
+                              color: const Color(0xFF2563EB)
+                                  .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             alignment: Alignment.center,
@@ -288,7 +443,10 @@ class _PanelSection extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: Theme.of(context)
+              .colorScheme
+              .outlineVariant
+              .withValues(alpha: 0.4),
         ),
       ),
       child: Column(

@@ -23,9 +23,14 @@ import 'web_search_panel.dart';
 import 'workflow_approval_panel.dart';
 
 class ToolboxPage extends StatefulWidget {
-  const ToolboxPage({super.key, this.projectId});
+  const ToolboxPage({
+    super.key,
+    this.projectId,
+    this.projectDirectoryPath,
+  });
 
   final String? projectId;
+  final String? projectDirectoryPath;
 
   @override
   State<ToolboxPage> createState() => _ToolboxPageState();
@@ -67,7 +72,10 @@ class _ToolboxPageState extends State<ToolboxPage> {
       case 3:
         return WorkflowApprovalPanel(projectId: pid);
       case 4:
-        return SixDimensionReviewPanel(projectId: pid);
+        return SixDimensionReviewPanel(
+          projectId: pid,
+          projectDirectoryPath: widget.projectDirectoryPath,
+        );
       case 5:
         return ForeshadowingPanel(projectId: pid);
       case 6:
