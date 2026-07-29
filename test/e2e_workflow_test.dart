@@ -13,11 +13,11 @@ import 'package:lingbi/shared/models/story_beat.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/export_service.dart';
-import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/features/import_export/data/export_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
-import 'package:lingbi/services/version_history_service.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 
 /// 灵笔全链路端到端测试
 ///

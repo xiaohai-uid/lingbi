@@ -1,6 +1,6 @@
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lingbi/ui/layout/main_scaffold.dart';
@@ -10,7 +10,7 @@ import 'package:lingbi/ui/layout/ai_panel/ai_panel.dart';
 import 'package:lingbi/ui/pages/project_page.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/shared/models/document.dart';
-import 'package:lingbi/services/project_tab_controller.dart';
+import 'package:lingbi/features/project/data/project_tab_controller.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';

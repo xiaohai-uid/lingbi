@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/models/story_beat.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
 
 class StoryboardPage extends StatefulWidget {
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../services/project_onboarding_workflow.dart';
+import 'package:lingbi/features/onboarding/data/project_onboarding_workflow.dart';
 import '../theme/tokens.dart';
 
 class OnboardingQuestionCard extends StatelessWidget {

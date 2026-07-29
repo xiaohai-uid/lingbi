@@ -11,7 +11,7 @@ import 'package:lingbi/features/writing/data/pipeline/project_session_scope.dart
 import '../../services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import '../../services/document_service.dart';
-import '../../services/project_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 
 /// The durable, UI-facing state for one opened project.
 class ProjectSessionSnapshot {

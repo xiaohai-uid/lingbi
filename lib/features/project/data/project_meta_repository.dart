@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 
 /// 当前 schema 版本
 const int currentMetaSchemaVersion = 1;

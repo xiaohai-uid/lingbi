@@ -6,7 +6,7 @@ import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
-import 'package:lingbi/services/project_brief_repository.dart';
+import 'package:lingbi/features/project/data/project_brief_repository.dart';
 import 'package:lingbi/services/template_seeder.dart';
 
 class ProjectService implements IProjectService {

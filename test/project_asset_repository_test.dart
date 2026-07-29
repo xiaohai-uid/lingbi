@@ -6,9 +6,9 @@ import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/domain/project/project_asset.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/services/project_asset_repository.dart';
-import 'package:lingbi/services/project_meta_repository.dart';
-import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/features/project/data/project_asset_repository.dart';
+import 'package:lingbi/features/project/data/project_meta_repository.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 
 class _MemoryMetaRepository implements IProjectMetaRepository {

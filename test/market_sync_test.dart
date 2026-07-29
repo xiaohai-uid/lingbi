@@ -14,8 +14,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/services/market_intel_service.dart';
-import 'package:lingbi/services/sync/webdav_service.dart';
-import 'package:lingbi/services/sync/sync_manager.dart';
+import 'package:lingbi/features/sync/data/sync/webdav_service.dart';
+import 'package:lingbi/features/sync/data/sync/sync_manager.dart';
 
 void main() {
   // ═══════════════════════════════════════════════════════

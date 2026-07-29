@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/project.dart';
-import 'package:lingbi/services/project_tab_controller.dart';
+import 'package:lingbi/features/project/data/project_tab_controller.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/features/settings/data/settings_service.dart';

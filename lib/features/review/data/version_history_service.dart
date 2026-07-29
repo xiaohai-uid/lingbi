@@ -1,8 +1,8 @@
 import 'package:lingbi/services/interfaces/i_version_history_service.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'atomic_file_store.dart';
-import 'recovery_center_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/recovery_center_service.dart';
 
 /// 版本快照元数据
 class VersionInfo {

@@ -5,7 +5,7 @@ import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'atomic_file_store.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
 
 /// 导出服务 - 支持 Markdown / TXT / PDF / Word 格式导出
 class ExportService implements IExportService {

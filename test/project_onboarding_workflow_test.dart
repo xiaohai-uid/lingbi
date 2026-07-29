@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/services/project_asset_repository.dart';
-import 'package:lingbi/services/project_onboarding_workflow.dart';
+import 'package:lingbi/features/project/data/project_asset_repository.dart';
+import 'package:lingbi/features/onboarding/data/project_onboarding_workflow.dart';
 
 class _MemoryMetaRepository implements IProjectMetaRepository {
   final Map<String, Map<String, dynamic>> values = {};

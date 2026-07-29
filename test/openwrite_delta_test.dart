@@ -12,7 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
-import 'package:lingbi/services/export_service.dart';
+import 'package:lingbi/features/import_export/data/export_service.dart';
 
 /// 返回固定正文的假 Provider（复现足量中文字，供离线测试写作循环）。
 class _FakeProvider extends AIProvider {

@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
-import 'package:lingbi/services/project_brief_repository.dart';
-import 'package:lingbi/services/project_service.dart';
+import 'package:lingbi/features/project/data/project_brief_repository.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 
 void main() {
   late Directory tempDir;

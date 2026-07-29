@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/models/project.dart';
-import '../models/project_template.dart';
-import '../theme/lingbi_icons.dart';
-import '../theme/tokens.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/ui_v2/models/project_template.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({

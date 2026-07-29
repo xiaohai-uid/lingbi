@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/sync/project_sync_manifest.dart';
-import 'package:lingbi/services/sync/three_way_merge_service.dart';
+import 'package:lingbi/features/sync/data/sync/project_sync_manifest.dart';
+import 'package:lingbi/features/sync/data/sync/three_way_merge_service.dart';
 
 void main() {
   late Directory tempDir;

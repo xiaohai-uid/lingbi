@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/portable_project_package_service.dart';
+import 'package:lingbi/features/import_export/data/portable_project_package_service.dart';
 
 void main() {
   test('exports, validates and imports a complete portable project', () async {

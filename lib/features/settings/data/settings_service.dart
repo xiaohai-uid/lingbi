@@ -1,6 +1,6 @@
 import 'package:lingbi/services/interfaces/i_settings_service.dart';
-import 'package:lingbi/services/sync/webdav_service.dart';
-import 'package:lingbi/services/sync/sync_manager.dart';
+import 'package:lingbi/features/sync/data/sync/webdav_service.dart';
+import 'package:lingbi/features/sync/data/sync/sync_manager.dart';
 import 'package:lingbi/features/settings/data/subscription_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

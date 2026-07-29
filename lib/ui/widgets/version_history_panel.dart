@@ -1,5 +1,5 @@
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/version_history_service.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/models/document.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/version_history_service.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
 
 class VersionHistoryPage extends StatefulWidget {
 

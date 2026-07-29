@@ -1,5 +1,5 @@
-import '../domain/project/project_asset.dart';
-import 'interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/domain/project/project_asset.dart';
+import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 
 class ProjectAssetConflict implements Exception {
   const ProjectAssetConflict({

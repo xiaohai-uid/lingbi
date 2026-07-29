@@ -11,16 +11,16 @@ import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/services/project_asset_repository.dart';
-import 'package:lingbi/services/project_onboarding_workflow.dart';
+import 'package:lingbi/features/project/data/project_asset_repository.dart';
+import 'package:lingbi/features/onboarding/data/project_onboarding_workflow.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/ui_v2/components/project_brief_sheet.dart';
 import 'package:lingbi/ui_v2/controllers/project_session_manager.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
-import 'package:lingbi/ui_v2/pages/project_onboarding_page.dart';
-import 'package:lingbi/ui_v2/pages/project_overview_page.dart';
-import 'package:lingbi/ui_v2/pages/welcome_page.dart';
+import 'package:lingbi/features/onboarding/ui/project_onboarding_page.dart';
+import 'package:lingbi/features/project/ui/project_overview_page.dart';
+import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 class _MemoryMetaRepository implements IProjectMetaRepository {

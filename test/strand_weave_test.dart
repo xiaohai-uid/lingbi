@@ -6,7 +6,7 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/strand_weave_config.dart';
 import 'package:lingbi/shared/models/chapter_state_snapshot.dart';
-import 'package:lingbi/services/strand_weave_service.dart';
+import 'package:lingbi/features/strand/data/strand_weave_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 

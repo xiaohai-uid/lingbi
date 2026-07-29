@@ -5,8 +5,8 @@ import 'package:lingbi/shared/di/service_locator.dart';
 
 import 'package:lingbi/services/license_service.dart';
 import 'package:lingbi/features/settings/data/subscription_service.dart';
-import 'package:lingbi/services/sync/webdav_service.dart';
-import 'package:lingbi/services/sync/sync_manager.dart';
+import 'package:lingbi/features/sync/data/sync/webdav_service.dart';
+import 'package:lingbi/features/sync/data/sync/sync_manager.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
 import 'package:lingbi/ui_v2/components/model_status_bar.dart';

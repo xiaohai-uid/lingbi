@@ -1,4 +1,4 @@
-import 'package:lingbi/services/version_history_service.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 
 /// 版本历史服务接口
 abstract class IVersionHistoryService {

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
-import 'recovery_center_page.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
+import 'package:lingbi/ui_v2/pages/recovery_center_page.dart';
 
 class ImportExportPage extends StatefulWidget {
   const ImportExportPage({super.key, this.projectId});

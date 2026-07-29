@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/ui_v2/components/project_brief_sheet.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
-import 'package:lingbi/ui_v2/pages/welcome_page.dart';
+import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 
 void main() {
   testWidgets('genre card shows selection before the only continue action',

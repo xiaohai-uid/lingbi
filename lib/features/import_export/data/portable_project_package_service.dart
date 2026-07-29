@@ -5,8 +5,8 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
-import 'atomic_file_store.dart';
-import 'migrations/schema_versions.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/migrations/schema_versions.dart';
 
 class PortablePackageFile {
   const PortablePackageFile({
