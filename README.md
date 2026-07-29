@@ -1,71 +1,84 @@
-# 灵笔 (Lingbi)
+# 灵笔 LingBi
 
-灵笔是面向中文长篇小说作者与小型工作室的 Windows 桌面写作工具。项目坚持 local-first：项目、文档、资产和导出不因授权状态而失去本地访问能力；AI 写入遵循候选稿、差异检查、人工批准和可恢复写入流程。
+面向中文长篇小说作者的本地优先 AI 写作桌面应用。灵笔把项目、章节、人物、世界观、AI 辅助、审稿和导出放在同一个 Windows 工作台里；AI 生成内容先成为候选稿，确认后才会写入正文。
 
-## 当前发布状态
+[![CI](https://github.com/xiaohai-uid/lingbi/actions/workflows/ci.yml/badge.svg)](https://github.com/xiaohai-uid/lingbi/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/xiaohai-uid/lingbi)](https://github.com/xiaohai-uid/lingbi/releases/latest)
+[![License](https://img.shields.io/github/license/xiaohai-uid/lingbi)](LICENSE)
 
-仓库版本为 **1.0.1**。当前代码可以从受 Git 跟踪的源码和 `pubspec.lock` 复现依赖、测试、Windows release build 与便携包；GitHub PR CI 会上传包含相对路径 SHA-256 和源码 provenance 的未签名便携包。
+## 直接下载
 
-这不是“商业就绪”声明。Inno Setup 元数据已统一到 `Lingbi-Setup-1.0.1.exe`，但 Task 1 CI 产物是未签名便携包，尚未证明安装、升级、卸载保留数据和回滚矩阵。Windows 代码签名、商户支付、法律文本审批、授权市场数据、真实提供商验收及专业作者试用均为 `BLOCKED_EXTERNAL`。
+当前版本：**v1.1.0**，支持 Windows 10/11 x64。
 
-详细能力证据和限制见 [商业发布报告](docs/qa/commercial-release-report.md) 与 [P0 Windows 发布门禁](docs/qa/p0-windows-release-checklist.md)。
+- [下载安装版 `Lingbi-Setup-1.1.0.exe`](https://github.com/xiaohai-uid/lingbi/releases/latest/download/Lingbi-Setup-1.1.0.exe)（推荐）
+- [下载免安装版 `Lingbi-Windows-Portable-1.1.0.zip`](https://github.com/xiaohai-uid/lingbi/releases/latest/download/Lingbi-Windows-Portable-1.1.0.zip)
+- [查看全部版本与校验文件](https://github.com/xiaohai-uid/lingbi/releases)
 
-## 已验证与受限范围
+安装版目前没有商业代码签名证书。Windows SmartScreen 可能显示“Windows 已保护你的电脑”，请确认下载地址属于 `xiaohai-uid/lingbi`，核对 Release 中的 SHA-256 后，再选择“更多信息 → 仍要运行”。
 
-| 范围 | 状态 | 说明 |
-|------|------|------|
-| 本地项目/文档访问与编辑 | REAL | Windows 本地文件和项目数据不依赖订阅权限 |
-| 候选稿、人工采用与原子文件写入 | REAL | 自动化测试覆盖候选稿不直接覆盖正文及可恢复写入 |
-| Windows 快捷键、命令面板和基础响应式布局 | REAL | 有针对性 Flutter 测试 |
-| 题材建项、三问引导、首章恢复链路 | PARTIAL | 组件存在，端到端 golden path 尚未闭合 |
-| 运行时模型切换、许可证、隐私诊断 | PARTIAL | 生产信任根和真实连接验证尚未完成；购买入口保持禁用 |
-| 恢复中心、便携项目导入、迁移回滚 | PARTIAL | 服务骨架/单测存在，干净目录重启事务尚未闭合 |
-| Agent 工具循环、上下文编译与会话压缩 | REAL | 项目内读写沙箱、候选确认、资料引用和长会话压缩有自动化覆盖 |
-| 章节结算与项目文稿六维审稿 | REAL | 人工确认后更新后续上下文；审稿报告原子保存并保留历史 |
-| Skill 执行、WebDAV、授权市场情报 | PARTIAL | 本地实现存在；外部兼容、授权数据源和生产凭据仍需独立验收 |
-| DOCX 导出与稳定章节选择 | REAL | OOXML 结构和正文内容由自动化测试验证 |
-| 系统拖放 | NOT_IMPLEMENTED | 不宣称完整桌面拖放体验 |
-| 终端/通用 system command 工具 | DISABLED | 在单独审查的沙箱存在前不会启用 |
+## 三分钟开始写作
 
-## 开发与验证
+1. 安装并启动灵笔，按首次配置向导选择 AI 提供商。
+2. 填入自己的 API Key，选择模型并执行连接测试。
+3. 创建项目，填写题材和创作目标，然后新建第一章。
 
-前置要求：Flutter 3.44.6、Windows 10/11 x64。
+没有 API Key 时仍可使用本地项目、编辑、资料管理和导出；AI 生成、联网检索等功能需要对应服务可用。API Key 保存在 Windows 安全存储中，不会写入项目文件。
+
+第一次使用遇到问题，请从[零基础使用指南](docs/GETTING_STARTED.md)开始；常见报错见[常见问题](docs/FAQ.md)。
+
+## 核心能力
+
+| 创作环节 | 灵笔提供的能力 |
+| --- | --- |
+| 项目与正文 | 本地项目、章节树、富文本编辑、自动保存、版本历史 |
+| 世界构建 | 人物、地点、时间线、设定资料与正史上下文 |
+| AI 写作 | 多提供商与自定义端点、模型切换、多模型路由、长会话压缩 |
+| 安全落稿 | 候选稿预览、差异检查、人工采用、原子写入与恢复 |
+| 资料研究 | Web 搜索、来源浏览、资料引用和上下文插入 |
+| 质量审阅 | 六维章节审稿、历史报告、确认式章节结算 |
+| 交付 | Markdown、TXT、DOCX、PDF 导出与便携项目包 |
+| 扩展 | 本地 Skill 发现、Agent 项目工具和项目目录沙箱 |
+
+## 数据与隐私
+
+- 默认项目目录：`%USERPROFILE%\Documents\灵笔`
+- 卸载应用不会主动删除项目和用户数据。
+- AI 请求会把当前任务所需内容发送给你选择的第三方模型提供商。
+- 请定期备份项目目录；升级或迁移前尤其如此。
+- 源代码采用 MIT 许可证，第三方 AI 服务可能按各自规则收费。
+
+## 从源码运行
+
+需要 Windows 10/11、Git、Visual Studio 2022 Desktop development with C++ 和 Flutter 3.44.6。
 
 ```powershell
 git clone https://github.com/xiaohai-uid/lingbi.git
 cd lingbi
 flutter pub get --enforce-lockfile
-flutter analyze lib/
-flutter test
-flutter build windows --release
-tool/windows/package_release.ps1 -SkipBuild
-```
-
-便携包输出到传入的 `-OutputDir`（未传入时为系统临时目录下的 `lingbi-release-package`）；CI 使用 runner 临时目录，其中：
-
-- `SHA256SUMS.txt` 使用包内相对路径，避免机器相关绝对路径；
-- `PROVENANCE.json` 记录应用版本、Git commit/ref、dirty 状态、构建配置和平台；
-- `source_dirty: true` 的本地产物只能用于诊断，不能作为正式发布证据。
-
-运行应用：
-
-```powershell
 flutter run -d windows
 ```
 
-AI 提供商配置位于应用设置页。不要把 API Key 写入仓库、日志、诊断事件或 provenance。
+验证与构建：
 
-## 项目结构
-
-```text
-lib/                         Flutter 应用与服务
-test/                        自动化测试与发布契约
-tool/windows/                Windows release 包装脚本
-installer/                   Inno Setup 元数据（未进入 Task 1 CI 产物）
-docs/qa/                     发布证据、限制与人工门禁
-.github/workflows/ci.yml     PR/push 分析、测试、release build/package
+```powershell
+flutter analyze lib/
+flutter test --exclude-tags network
+flutter build windows --release
+tool/windows/build_release_assets.ps1 -SkipBuild -SkipInstaller
 ```
+
+项目结构、提交规范和测试要求见[贡献指南](CONTRIBUTING.md)。安全问题请阅读[安全政策](SECURITY.md)，不要在公开 Issue 中披露凭据或未修复漏洞。
+
+## 发布透明度
+
+仓库 CI 会分析、测试并构建 Windows 产物；版本标签会生成安装器、便携 ZIP、`SHA256SUMS.txt` 和 `PROVENANCE.json`。后者记录版本、源码提交和构建平台。
+
+代码签名、授权市场数据、支付、法律审批和专业作者试点属于外部商业门槛，不会被描述为已经完成。详细证据见[发布报告](docs/qa/commercial-release-report.md)和[Windows 发布检查表](docs/qa/p0-windows-release-checklist.md)。
+
+## 参与项目
+
+欢迎提交 Bug、文档改进、模型兼容修复和写作工作流建议。开始开发前请先阅读[贡献指南](CONTRIBUTING.md)。
 
 ## 许可证
 
-[MIT](LICENSE)
+[MIT License](LICENSE)

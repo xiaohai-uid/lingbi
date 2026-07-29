@@ -4,9 +4,9 @@
 
 **Branch:** `agent/openwrite-parity-ui`
 
-**Code evidence baseline:** `f790250` (the package's exact source commit is recorded in `PROVENANCE.json`)
+**Code evidence baseline:** the `v1.1.0` tag; the exact source commit is recorded in `PROVENANCE.json`
 
-**Release metadata version:** `1.0.1`
+**Release metadata version:** `1.1.0`
 
 This report records repository evidence; it is not a commercial-readiness certificate. Status vocabulary is limited to `REAL`, `PARTIAL`, `DISABLED`, `BLOCKED_EXTERNAL`, and `NOT_IMPLEMENTED`.
 
@@ -14,15 +14,16 @@ This report records repository evidence; it is not a commercial-readiness certif
 
 | Gate | Evidence state |
 |------|----------------|
-| Tracked imported sources, `pubspec.lock`, and QA gates | PASS — `test/release_metadata_contract_test.dart` (4/4) |
-| App/launcher/installer/README version agreement | PASS — `1.0.1` |
+| Tracked imported sources, `pubspec.lock`, and QA gates | PASS — `test/release_metadata_contract_test.dart` (9/9) |
+| App/launcher/installer/README version agreement | PASS — `1.1.0` |
 | `flutter analyze lib/` | PASS — `No issues found` |
-| `flutter test --exclude-tags network` | PASS — 1056 tests, 0 failures |
+| `flutter test --exclude-tags network` | PASS — 1058 tests, 0 failures |
 | Live 10K provider acceptance | BLOCKED_EXTERNAL — an earlier run produced 12577 Chinese characters; the 2026-07-29 rerun hit SenseNova HTTP 429 after chapter 1 |
 | `flutter build windows --release` | PASS — `build/windows/x64/runner/Release/lingbi.exe` |
 | Portable package | PASS — relative-path `SHA256SUMS.txt`; `PROVENANCE.json` records the exact source commit and `source_dirty: false` |
 | Repository-wide format check | FAIL (pre-existing) — 173 historical files would change; no broad reformat was applied in Task 1 |
-| Installer/upgrade/uninstall/rollback matrix | Not yet executed; release remains not commercially ready |
+| Installer smoke test | PASS — silent install, app startup, silent uninstall, and binary removal via `tool/windows/smoke_test_installer.ps1` |
+| Upgrade/data-preservation/rollback matrix | PARTIAL — migration tests pass; signed upgrade and rollback remain manual/external gates |
 
 The deterministic suite is release evidence for repository behavior, not a substitute for provider availability or professional-user acceptance. Provider error text is now rejected at the chapter commit boundary instead of being saved as content.
 

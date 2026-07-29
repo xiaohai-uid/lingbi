@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows-release:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify source
+        run: |
+          flutter analyze lib/
+          flutter test --exclude-tags network
+
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build release assets
+        shell: powershell
+        run: |
+          $assetDir = Join-Path $env:RUNNER_TEMP "lingbi-release-assets"
+          tool/windows/build_release_assets.ps1 -OutputDir $assetDir
+          "LINGBI_ASSET_DIR=$assetDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Smoke test installer
+        shell: powershell
+        run: |
+          $installer = Get-ChildItem -LiteralPath $env:LINGBI_ASSET_DIR -Filter "Lingbi-Setup-*.exe" | Select-Object -First 1
+          if (-not $installer) { throw "Release installer was not produced" }
+          tool/windows/smoke_test_installer.ps1 -InstallerPath $installer.FullName
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lingbi-${{ github.ref_name }}-windows
+          path: ${{ env.LINGBI_ASSET_DIR }}/*
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem -LiteralPath $env:LINGBI_ASSET_DIR -File | Select-Object -ExpandProperty FullName
+          gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "灵笔 $env:GITHUB_REF_NAME"

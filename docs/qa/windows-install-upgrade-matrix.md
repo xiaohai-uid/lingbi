@@ -2,7 +2,7 @@
 
 | Scenario | Expected | Status |
 |----------|----------|--------|
-| Clean install (no prior data) | App launches, welcome page shown | PASS |
+| Clean install (no prior data) | App launches, welcome page shown | PASS (automated installer smoke test) |
 | Upgrade from v1 schema | Migration runs, backup created, data preserved | PASS (tested) |
 | Upgrade from current schema | No migration, app launches | PASS (tested) |
 | Downgrade attempt (newer schema) | Refused with clear error | PASS (tested) |
@@ -16,3 +16,8 @@
 BLOCKED_EXTERNAL: No EV/OV code-signing certificate is configured.
 The packaging script (`tool/windows/package_release.ps1`) produces
 checksums but cannot sign without a genuine certificate.
+
+`tool/windows/smoke_test_installer.ps1` verifies silent current-user install,
+application startup, silent uninstall, and removal of the installed binary.
+Upgrade, rollback, SmartScreen, and preservation of real user data remain
+separate manual gates.

@@ -62,6 +62,10 @@ if (-not (Test-Path -LiteralPath $resolvedBuildDir)) {
 if (Test-Path -LiteralPath $resolvedOutputDir) { Remove-Item -Recurse -Force -LiteralPath $resolvedOutputDir }
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 Get-ChildItem -LiteralPath $resolvedBuildDir | Copy-Item -Destination $resolvedOutputDir -Recurse -Force
+$portableReadme = Join-Path $PSScriptRoot "PORTABLE_README.txt"
+if (Test-Path -LiteralPath $portableReadme) {
+    Copy-Item -LiteralPath $portableReadme -Destination (Join-Path $resolvedOutputDir "README.txt") -Force
+}
 
 # Step 3: Generate provenance and relative-path checksums
 Write-Host "[3/4] Generating provenance and checksums..." -ForegroundColor Yellow

@@ -50,9 +50,12 @@ litellm_config.yaml
 /lingbi_server/
 /services/
 /launcher/
-/docs/*
-!/docs/qa/
-!/docs/qa/**
+
+# Local agent and code-graph helper files
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md
 
 # Docker (not a runtime prerequisite)
 Dockerfile
