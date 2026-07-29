@@ -33,6 +33,9 @@ class OpenAICompatibleProvider extends AIProvider {
   bool get isAvailable => _config.apiKey != null && _config.apiKey!.isNotEmpty;
 
   @override
+  bool get supportsTools => true;
+
+  @override
   String get currentModelId => _modelOverride ?? _config.modelId;
 
   /// 设置模型 ID（运行时切换）
@@ -209,6 +212,76 @@ class OpenAICompatibleProvider extends AIProvider {
   Future<List<double>> embed(String text) async {
     if (!isAvailable) return List.filled(768, 0);
     return List.filled(768, 0);
+  }
+
+  @override
+  Future<ToolTurn> chatWithTools({
+    required List<ChatMessage> messages,
+    required List<ToolSpec> tools,
+    double temperature = 0.7,
+    int maxTokens = 2048,
+  }) async {
+    if (!isAvailable) {
+      return ToolTurn(content: '请先配置 ${_config.name} API Key');
+    }
+
+    final body = <String, dynamic>{
+      'model': currentModelId,
+      'messages': messages.map((m) => m.toJson()).toList(),
+      'temperature': temperature,
+      'max_tokens': maxTokens,
+      if (tools.isNotEmpty)
+        'tools': tools.map((t) => t.toOpenAiJson()).toList(),
+      if (tools.isNotEmpty) 'tool_choice': 'auto',
+    };
+
+    try {
+      final response = await _client
+          .post(
+            Uri.parse(_config.chatEndpoint),
+            headers: {
+              'Content-Type': 'application/json',
+              ..._authHeaders,
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 120));
+
+      if (response.statusCode != 200) {
+        return ToolTurn(content: _friendlyHttpError(response.statusCode));
+      }
+
+      // 用 bodyBytes + utf8 解码，避免中文乱码。
+      final json = jsonDecode(utf8.decode(response.bodyBytes));
+      final choice = json['choices']?[0];
+      final message = choice?['message'];
+      final content = message?['content'] as String? ?? '';
+      final finishReason = choice?['finish_reason'] as String? ?? 'stop';
+
+      final rawToolCalls = message?['tool_calls'] as List<dynamic>?;
+      final toolCalls = <ToolCall>[];
+      if (rawToolCalls != null) {
+        for (final tc in rawToolCalls) {
+          final fn = tc['function'];
+          if (fn == null) continue;
+          toolCalls.add(ToolCall(
+            id: tc['id'] as String? ?? '',
+            name: fn['name'] as String? ?? '',
+            argumentsJson: fn['arguments'] as String? ?? '{}',
+          ));
+        }
+      }
+
+      return ToolTurn(
+        content: content,
+        toolCalls: toolCalls,
+        finishReason: finishReason,
+      );
+    } on TimeoutException {
+      return const ToolTurn(content: '请求超时，请检查网络连接');
+    } catch (e) {
+      return ToolTurn(content: '${_config.name} API 错误: $e');
+    }
   }
 
   @override

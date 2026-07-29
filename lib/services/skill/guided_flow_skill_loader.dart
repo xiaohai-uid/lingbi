@@ -23,8 +23,9 @@ class GuidedFlowSkillLoader {
 
   final GuidedFlowEngine _engine;
 
-  /// 已加载的题材 → flowId 映射
-  final Map<String, String> _genreToFlowId = {};
+  /// 已加载的题材 → flowId 列表映射（同题材可有长篇/短篇多个流程，
+  /// 注册顺序即优先级，长篇在前）。
+  final Map<String, List<String>> _genreToFlowIds = {};
 
   /// 扫描安装目录，加载所有 guided_flow 类型 Skill
   ///
@@ -78,7 +79,7 @@ class GuidedFlowSkillLoader {
     // 注册题材映射
     final genre = manifest.genre ?? definition.genre;
     if (genre.isNotEmpty) {
-      _genreToFlowId[genre] = definition.id;
+      _genreToFlowIds.putIfAbsent(genre, () => []).add(definition.id);
     }
 
     return true;
@@ -87,24 +88,34 @@ class GuidedFlowSkillLoader {
   /// 注册内置引导流程定义（代码中硬编码的题材 Skill）
   ///
   /// 用于官方预装题材 Skill（无需文件系统）。
+  /// [genre] 必须使用与 ProjectTemplate.genreId 一致的英文 slug（如 `xuanhuan`）。
   void registerBuiltinFlow(GuidedFlowDefinition definition, String genre) {
     _engine.registerDefinition(definition);
     if (genre.isNotEmpty) {
-      _genreToFlowId[genre] = definition.id;
+      _genreToFlowIds.putIfAbsent(genre, () => []).add(definition.id);
     }
   }
 
   /// 按题材查找对应的 flowId
   ///
   /// 返回 null 表示该题材无专属 Skill，应降级到通用流程。
-  String? findFlowIdByGenre(String genre) {
+  /// 同题材有多个流程时，优先返回指定 [type]；未指定或无匹配时返回首个（长篇优先）。
+  String? findFlowIdByGenre(String genre, {GuidedFlowType? type}) {
     if (genre.isEmpty) return null;
-    return _genreToFlowId[genre];
+    final ids = _genreToFlowIds[genre];
+    if (ids == null || ids.isEmpty) return null;
+    if (type != null) {
+      for (final id in ids) {
+        final def = _engine.getDefinition(id);
+        if (def != null && def.type == type) return id;
+      }
+    }
+    return ids.first;
   }
 
   /// 获取所有已注册的题材列表
-  List<String> get registeredGenres => _genreToFlowId.keys.toList();
+  List<String> get registeredGenres => _genreToFlowIds.keys.toList();
 
   /// 判断某题材是否有专属引导 Skill
-  bool hasGenreSkill(String genre) => _genreToFlowId.containsKey(genre);
+  bool hasGenreSkill(String genre) => _genreToFlowIds.containsKey(genre);
 }

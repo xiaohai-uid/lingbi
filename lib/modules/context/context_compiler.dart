@@ -14,6 +14,31 @@ class CompilerConfig {
     this.mandatoryReserveRatio = 0.15,
   });
 
+  /// 依据模型的上下文窗口与输出上限动态推导上下文预算。
+  ///
+  /// 对标 OpenWrite 的 `context_limit - reserved_output` 思路：
+  /// 从窗口中扣除输出预留与约 15% 的提示/协议开销，剩余作为
+  /// "设定与前情"上下文预算，并夹在 [4000, 200000] 的安全区间。
+  /// [contextWindow] 未知（remote/manual 模型）时回退到默认 8000。
+  factory CompilerConfig.forModel({
+    int? contextWindow,
+    int? maxOutputTokens,
+    double mandatoryReserveRatio = 0.15,
+  }) {
+    if (contextWindow == null || contextWindow <= 0) {
+      return CompilerConfig(mandatoryReserveRatio: mandatoryReserveRatio);
+    }
+    final reservedOutput =
+        (maxOutputTokens ?? 4096).clamp(1024, contextWindow);
+    final overhead = (contextWindow * 0.15).round();
+    final budget =
+        (contextWindow - reservedOutput - overhead).clamp(4000, 200000);
+    return CompilerConfig(
+      tokenBudget: budget,
+      mandatoryReserveRatio: mandatoryReserveRatio,
+    );
+  }
+
   final int tokenBudget;
   final double mandatoryReserveRatio;
 }

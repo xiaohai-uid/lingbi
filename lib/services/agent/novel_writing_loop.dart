@@ -16,6 +16,7 @@ import 'dart:io';
 
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/ai/ai_response_normalizer.dart';
+import 'package:lingbi/core/ai/model_registry.dart';
 import 'package:lingbi/core/models/canon_entry.dart';
 import 'package:lingbi/modules/context/context_compiler.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
@@ -69,8 +70,19 @@ class NovelWritingLoop {
     this.projectId,
     this.recentChapterCount = 5,
     this.minChineseChars = 2000,
-  })  : compiler = compiler ?? const ContextCompiler(config: CompilerConfig()),
+  })  : compiler = compiler ?? ContextCompiler(config: _configFor(provider)),
         store = store ?? AtomicFileStore();
+
+  /// 依据 Provider 当前模型的上下文窗口推导编译预算（p6 动态扩容）。
+  ///
+  /// 内置模型有完整元数据时按窗口放大预算；未知模型回退默认 8000。
+  static CompilerConfig _configFor(AIProvider provider) {
+    final info = ModelRegistry.instance.findModel(provider.currentModelId);
+    return CompilerConfig.forModel(
+      contextWindow: info?.contextWindow,
+      maxOutputTokens: info?.maxOutputTokens,
+    );
+  }
 
   final AIProvider provider;
   final String projectDir;

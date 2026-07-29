@@ -219,6 +219,10 @@ class ServiceLocator {
       locator.guidedFlowEngine = GuidedFlowEngine(
         metaRepository: locator.projectMetaRepository,
         aiProvider: locator.aiService.currentProvider,
+        fileStore: locator.atomicFileStore,
+        // p8：解析项目目录，把引导产物镜像到 小说资料/*.md。
+        projectDirResolver: (pid) async =>
+            (await locator.projectService.getProject(pid))?.directoryPath,
       );
       // 注册默认引导流程（通用长篇/短篇）
       locator.guidedFlowEngine.registerDefinition(defaultLongFlowDefinition);
@@ -227,37 +231,39 @@ class ServiceLocator {
       // 引导流程 Skill 加载器 + 官方预装题材
       locator.guidedFlowSkillLoader =
           GuidedFlowSkillLoader(locator.guidedFlowEngine);
+      // R2 修复：注册键统一为 genreId（与 ProjectTemplate.genreId 一致的英文 slug），
+      // 否则项目存 'xuanhuan' 而流程按 '玄幻' 注册，findFlowIdByGenre 永远返回 null。
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         xuanhuanLongFlowDefinition,
-        '玄幻',
+        'xuanhuan',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         xuanhuanShortFlowDefinition,
-        '玄幻',
+        'xuanhuan',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         xianxiaLongFlowDefinition,
-        '仙侠',
+        'xianxia',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         dushiLongFlowDefinition,
-        '都市',
+        'urban',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         xuanyiLongFlowDefinition,
-        '悬疑',
+        'suspense',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         yanqingLongFlowDefinition,
-        '言情',
+        'romance',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         kehuanLongFlowDefinition,
-        '科幻',
+        'scifi',
       );
       locator.guidedFlowSkillLoader.registerBuiltinFlow(
         lishiLongFlowDefinition,
-        '历史',
+        'history',
       );
 
       // 反幻觉三定律 + 监督智能体

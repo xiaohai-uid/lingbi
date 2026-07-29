@@ -17,6 +17,7 @@ import 'package:yaml/yaml.dart';
 import 'package:lingbi/core/ai/ai_provider.dart';
 import 'package:lingbi/core/models/guided_flow_definition.dart';
 import 'package:lingbi/core/models/guided_flow_state.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 
 /// 完成判定结果
@@ -42,11 +43,21 @@ class GuidedFlowEngine {
   GuidedFlowEngine({
     required IProjectMetaRepository metaRepository,
     required AIProvider aiProvider,
+    AtomicFileStore? fileStore,
+    Future<String?> Function(String projectId)? projectDirResolver,
   })  : _metaRepository = metaRepository,
-        _aiProvider = aiProvider;
+        _aiProvider = aiProvider,
+        _fileStore = fileStore ?? AtomicFileStore(),
+        _projectDirResolver = projectDirResolver;
 
   final IProjectMetaRepository _metaRepository;
   AIProvider _aiProvider;
+
+  /// 原子文件存储（用于把引导产物镜像到 项目目录/小说资料/*.md）。
+  final AtomicFileStore _fileStore;
+
+  /// projectId → 项目目录解析回调；为 null 时跳过镜像落盘。
+  final Future<String?> Function(String projectId)? _projectDirResolver;
 
   /// 已加载的流程定义缓存（flowId -> definition）
   final Map<String, GuidedFlowDefinition> _definitions = {};
@@ -353,15 +364,154 @@ class GuidedFlowEngine {
       final data = jsonDecode(jsonStr) as Map<String, dynamic>;
 
       await _metaRepository.write(projectId, output.targetFile, data);
+      // p8：同步镜像到 项目目录/小说资料/*.md（对标 OpenWrite 项目结构），
+      // 供 Agent 工具循环读取与用户直接查看；失败不阻断主流程。
+      await _mirrorToMarkdown(projectId, output.targetFile, data);
     } catch (_) {
       // 提取失败不阻断流程，写入原始对话摘要
-      await _metaRepository.write(projectId, output.targetFile, {
+      final fallbackData = <String, dynamic>{
         'stepId': step.id,
         'stepName': step.name,
         'rawConversation': conversationText,
         'extractedAt': DateTime.now().toIso8601String(),
-      });
+      };
+      await _metaRepository.write(projectId, output.targetFile, fallbackData);
+      await _mirrorToMarkdown(projectId, output.targetFile, fallbackData);
     }
+  }
+
+  // ─── 引导产物镜像（小说资料/*.md）───────────────────────────
+
+  /// 把结构化产出镜像为项目目录下的 Markdown 维护文档。
+  Future<void> _mirrorToMarkdown(
+    String projectId,
+    String targetFile,
+    Map<String, dynamic> data,
+  ) async {
+    final resolver = _projectDirResolver;
+    if (resolver == null) return;
+    final mapping = _markdownTarget(targetFile);
+    if (mapping == null) return;
+    final (fileName, heading) = mapping;
+    try {
+      final dir = await resolver(projectId);
+      if (dir == null || dir.isEmpty) return;
+      final path = '$dir/小说资料/$fileName';
+      final existing = await _fileStore.readString(path) ?? '';
+      final section = _renderSection(heading, data);
+      final merged = _upsertSection(existing, heading, section);
+      final body = existing.trim().isEmpty
+          ? '# ${fileName.replaceAll('.md', '')}\n\n$section'
+          : merged;
+      await _fileStore.writeString(path, body);
+    } catch (_) {
+      // 镜像失败不影响元数据主流程。
+    }
+  }
+
+  /// targetFile → (镜像 Markdown 文件名, 章节标题)。
+  static (String, String)? _markdownTarget(String targetFile) {
+    switch (targetFile) {
+      case 'characters.json':
+        return ('人物库.md', '人物设定');
+      case 'cultivation_system.json':
+        return ('世界观.md', '修炼体系');
+      case 'factions.json':
+        return ('世界观.md', '宗门势力');
+      case 'geography_races.json':
+        return ('世界观.md', '地理与种族');
+      case 'quick_world.json':
+        return ('世界观.md', '世界观总览');
+      default:
+        return null;
+    }
+  }
+
+  String _renderSection(String heading, Map<String, dynamic> data) {
+    final b = StringBuffer()..writeln('## $heading');
+    b.write(_dataToMarkdown(data, 0));
+    return b.toString().trimRight();
+  }
+
+  String _dataToMarkdown(dynamic data, int depth) {
+    final b = StringBuffer();
+    final indent = '  ' * depth;
+    if (data is Map) {
+      data.forEach((k, v) {
+        final label = _labelOf(k.toString());
+        if (v is Map || v is List) {
+          b.writeln('$indent- **$label**：');
+          b.write(_dataToMarkdown(v, depth + 1));
+        } else {
+          final s = v.toString().trim();
+          if (s.isNotEmpty) b.writeln('$indent- **$label**：$s');
+        }
+      });
+    } else if (data is List) {
+      for (final item in data) {
+        if (item is Map) {
+          final name = item['name'] ?? item['名称'];
+          if (name != null) {
+            b.writeln('$indent- **$name**');
+            item.forEach((k, v) {
+              if (k == 'name' || k == '名称') return;
+              final s = v.toString().trim();
+              if (s.isNotEmpty) {
+                b.writeln('$indent  - ${_labelOf(k.toString())}：$s');
+              }
+            });
+          } else {
+            b.write(_dataToMarkdown(item, depth));
+          }
+        } else {
+          final s = item.toString().trim();
+          if (s.isNotEmpty) b.writeln('$indent- $s');
+        }
+      }
+    } else {
+      final s = data.toString().trim();
+      if (s.isNotEmpty) b.writeln('$indent$s');
+    }
+    return b.toString();
+  }
+
+  /// 把英文 key 转为可读标签（保留中文）。
+  String _labelOf(String key) {
+    if (RegExp(r'[\u4e00-\u9fa5]').hasMatch(key)) return key;
+    return key
+        .replaceAll(RegExp(r'[_\-]+'), ' ')
+        .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')
+        .trim();
+  }
+
+  /// 用同名二级标题替换/追加章节，避免重复堆叠。
+  String _upsertSection(String existing, String heading, String section) {
+    final lines = existing.split('\n');
+    final marker = '## $heading';
+    var start = -1;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].trim() == marker) {
+        start = i;
+        break;
+      }
+    }
+    if (start < 0) {
+      final base = existing.trimRight();
+      return base.isEmpty ? section : '$base\n\n$section';
+    }
+    var end = lines.length;
+    for (var i = start + 1; i < lines.length; i++) {
+      final t = lines[i].trim();
+      if (t.startsWith('## ') || t.startsWith('# ')) {
+        end = i;
+        break;
+      }
+    }
+    return [
+      ...lines.sublist(0, start),
+      section,
+      ...lines.sublist(end),
+    ].join('\n');
   }
 
   /// AI 辅助完成判定

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// AI Provider 抽象接口
 ///
 /// 所有 AI 模型提供商必须实现此接口。
@@ -22,6 +24,26 @@ abstract class AIProvider {
     double temperature = 0.7,
     int maxTokens = 2048,
   });
+
+  /// 是否支持 function-calling（工具调用）。
+  ///
+  /// 默认 false；支持 OpenAI tools 协议的 Provider 应覆盖为 true。
+  bool get supportsTools => false;
+
+  /// 带工具的对话（function-calling，非流式）。
+  ///
+  /// 传入工具规格 [tools]，模型可返回 [ToolTurn.toolCalls] 请求调用工具；
+  /// 调用方执行工具后把结果作为 role:'tool' 消息回灌再次调用，直到
+  /// [ToolTurn.finishReason] 为 'stop'。默认实现抛 [UnsupportedError]，
+  /// 供上层能力探测后回退到确定性流程。
+  Future<ToolTurn> chatWithTools({
+    required List<ChatMessage> messages,
+    required List<ToolSpec> tools,
+    double temperature = 0.7,
+    int maxTokens = 2048,
+  }) {
+    throw UnsupportedError('$name 不支持 function-calling');
+  }
 
   /// 文本嵌入（向量化）
   Future<List<double>> embed(String text);
@@ -127,10 +149,116 @@ class ConnectionTestResult {
 }
 
 class ChatMessage {
-
-  const ChatMessage({required this.role, required this.content});
-  final String role; // 'user', 'assistant', 'system'
+  const ChatMessage({
+    required this.role,
+    required this.content,
+    this.toolCalls,
+    this.toolCallId,
+    this.name,
+  });
+  final String role; // 'user', 'assistant', 'system', 'tool'
   final String content;
 
-  Map<String, dynamic> toJson() => {'role': role, 'content': content};
+  /// assistant 消息携带的工具调用请求（function-calling）。
+  final List<ToolCall>? toolCalls;
+
+  /// role='tool' 时，对应的工具调用 ID。
+  final String? toolCallId;
+
+  /// role='tool' 时的工具名（可选）。
+  final String? name;
+
+  Map<String, dynamic> toJson() {
+    if (toolCalls != null && toolCalls!.isNotEmpty) {
+      return {
+        'role': role,
+        'content': content.isEmpty ? null : content,
+        'tool_calls': toolCalls!.map((t) => t.toRequestJson()).toList(),
+      };
+    }
+    if (role == 'tool') {
+      return {
+        'role': 'tool',
+        'tool_call_id': toolCallId ?? '',
+        if (name != null) 'name': name,
+        'content': content,
+      };
+    }
+    return {'role': role, 'content': content};
+  }
+}
+
+/// 模型请求调用的一个工具（function-calling）。
+class ToolCall {
+  const ToolCall({
+    required this.id,
+    required this.name,
+    required this.argumentsJson,
+  });
+
+  final String id;
+  final String name;
+
+  /// 原始参数 JSON 字符串（模型输出，可能不完整）。
+  final String argumentsJson;
+
+  /// 解析后的参数；解析失败返回空 map。
+  Map<String, dynamic> get arguments {
+    try {
+      final decoded = jsonDecode(argumentsJson);
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Map<String, dynamic> toRequestJson() => {
+        'id': id,
+        'type': 'function',
+        'function': {'name': name, 'arguments': argumentsJson},
+      };
+}
+
+/// 工具规格（OpenAI function schema）。
+class ToolSpec {
+  const ToolSpec({
+    required this.name,
+    required this.description,
+    required this.parameters,
+  });
+
+  final String name;
+  final String description;
+
+  /// JSON Schema 形式的参数定义。
+  final Map<String, dynamic> parameters;
+
+  Map<String, dynamic> toOpenAiJson() => {
+        'type': 'function',
+        'function': {
+          'name': name,
+          'description': description,
+          'parameters': parameters,
+        },
+      };
+}
+
+/// 一次带工具能力的模型返回。
+class ToolTurn {
+  const ToolTurn({
+    this.content = '',
+    this.toolCalls = const [],
+    this.finishReason = 'stop',
+  });
+
+  /// 模型文本输出（可能为空，若本轮只请求工具）。
+  final String content;
+
+  /// 模型请求调用的工具列表。
+  final List<ToolCall> toolCalls;
+
+  /// 结束原因：'stop' | 'tool_calls' | 'length' | ...
+  final String finishReason;
+
+  bool get hasToolCalls => toolCalls.isNotEmpty;
 }

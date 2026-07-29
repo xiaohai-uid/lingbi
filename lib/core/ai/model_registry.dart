@@ -413,6 +413,19 @@ class ModelRegistry {
     return config?.recommendedModel;
   }
 
+  /// 查询模型是否支持 function-calling（工具调用）。
+  ///
+  /// 内置模型返回其 [ModelCapabilities.supportsTools]；
+  /// 非内置（remote/manual）模型能力未知，返回 null，由调用方决定
+  /// 是否乐观尝试（OpenAI 兼容端点通常支持）。
+  bool? supportsToolsFor(String modelId, {String? providerId}) {
+    final info = findModel(modelId, providerId: providerId);
+    if (info == null || info.metadataSource != MetadataSource.builtin) {
+      return null;
+    }
+    return info.capabilities.supportsTools;
+  }
+
   /// 获取平台配置
   static PlatformModelConfig? getConfig(String providerId) =>
       _platforms[providerId];

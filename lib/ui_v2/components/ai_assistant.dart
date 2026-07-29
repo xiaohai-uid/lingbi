@@ -2,6 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lingbi/core/ai/ai_response_normalizer.dart';
 import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/services/agent/agent_tool_loop.dart';
+import 'package:lingbi/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/services/agent/novel_writing_loop.dart';
+import 'package:lingbi/services/agent_writing_service.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/clarity_check_service.dart';
 import '../theme/tokens.dart';
@@ -19,6 +24,7 @@ class _ChatMessage {
     this.clarifyQuestion = '',
     this.quickOptions = const [],
     this.originalMessage = '',
+    this.toolSteps = const [],
   });
   final String content;
   final bool isUser;
@@ -37,6 +43,9 @@ class _ChatMessage {
 
   /// 触发确认卡的原始消息（选择选项后拼接发送）
   final String originalMessage;
+
+  /// Agent 工具循环的步骤时间线（供渲染）。
+  final List<AgentStep> toolSteps;
 }
 
 class AiAssistantPanel extends StatefulWidget {
@@ -56,9 +65,7 @@ class AiAssistantPanel extends StatefulWidget {
   State<AiAssistantPanel> createState() => _AiAssistantPanelState();
 }
 
-class _AiAssistantPanelState extends State<AiAssistantPanel>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AiAssistantPanelState extends State<AiAssistantPanel> {
   final AIService _aiService = ServiceLocator.instance.aiService;
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -75,7 +82,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     if (widget.projectId != null) {
       _setupProjectContext();
       _checkGuidedFlowState();
@@ -85,7 +91,10 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
   @override
   void didUpdateWidget(AiAssistantPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.projectId != oldWidget.projectId && widget.projectId != null) {
+    // 项目切换由 ValueKey(projectId) 强制重建 State 来隔离（R4）；
+    // 这里仅处理同项目改名时的上下文刷新。
+    if (widget.projectId == oldWidget.projectId &&
+        widget.projectName != oldWidget.projectName) {
       _setupProjectContext();
     }
   }
@@ -95,13 +104,34 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     _aiService.setProjectContext('项目名称：$name\n项目 ID：${widget.projectId}');
   }
 
-  /// 检查当前项目是否有未完成的引导流程
+  /// 检查当前项目是否有未完成的引导流程；若无但项目带题材，则自动启动。
   Future<void> _checkGuidedFlowState() async {
     final pid = widget.projectId;
     if (pid == null) return;
     final engine = ServiceLocator.instance.guidedFlowEngine;
-    final state = await engine.getState(pid);
+    var state = await engine.getState(pid);
+
+    // R2b 修复：新建/打开带题材的项目时，自动启动对应题材引导流程，
+    // 使模板真正生效（此前 GuidedFlowPage 未接入导航，引导从不启动）。
+    if (state == null || (!state.isActive && !state.isCompleted)) {
+      final genreId = await _resolveProjectGenre(pid);
+      if (genreId != null && genreId.isNotEmpty) {
+        final flowId = ServiceLocator.instance.guidedFlowSkillLoader
+            .findFlowIdByGenre(genreId, type: GuidedFlowType.long);
+        if (flowId != null) {
+          try {
+            state = await engine.startFlow(flowId: flowId, projectId: pid);
+          } catch (_) {
+            state = null;
+          }
+        }
+      }
+    }
+
     if (state != null && state.isActive && !state.isCompleted) {
+      // 绑定到非空局部变量：下方 _generateGuidedOpening 的 await 闭包会捕获
+      // state，导致 Dart 流分析取消其空值提升。
+      final activeState = state;
       setState(() {
         _guidedMode = true;
         _guidedProgress = engine.getProgress(pid);
@@ -109,9 +139,9 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         _guidedFlowComplete = false;
       });
       // 加载历史对话
-      if (state.conversationHistory.isNotEmpty) {
+      if (activeState.conversationHistory.isNotEmpty) {
         setState(() {
-          for (final turn in state.conversationHistory) {
+          for (final turn in activeState.conversationHistory) {
             _messages.add(_ChatMessage(
               content: turn.content,
               isUser: turn.role == 'user',
@@ -120,7 +150,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         });
         _scrollToBottom();
       }
+      // 进入引导模式后，若尚无对话则生成第一步开场白。
+      if (_messages.isEmpty) {
+        await _generateGuidedOpening();
+      }
     }
+  }
+
+  /// 解析项目题材 ID（Project.genre 存的就是 genreId）。
+  Future<String?> _resolveProjectGenre(String projectId) async {
+    final project =
+        await ServiceLocator.instance.projectService.getProject(projectId);
+    return project?.genre;
   }
 
   /// 切换引导/自由模式
@@ -236,7 +277,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
 
   @override
   void dispose() {
-    _tabController.dispose();
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -378,6 +418,160 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     _sendMessage(originalMessage);
   }
 
+  // ─── Agent 写作（真 function-calling 工具循环）───────────────
+
+  /// 启动 Agent 写作：模型自主读设定 / 提问 / 写章节，步骤实时渲染。
+  Future<void> _runAgentWriting() async {
+    final pid = widget.projectId;
+    if (pid == null || _isLoading) return;
+    final project =
+        await ServiceLocator.instance.projectService.getProject(pid);
+    final dir = project?.directoryPath;
+    if (dir == null || dir.isEmpty) {
+      setState(() {
+        _messages.add(_ChatMessage(
+          content: '无法解析项目目录，请先打开一个项目。',
+          isUser: false,
+        ));
+      });
+      return;
+    }
+
+    setState(() {
+      _messages.add(_ChatMessage(
+        content: '🤖 交给 AI 自主创作下一章',
+        isUser: true,
+      ));
+      _messages.add(_ChatMessage(
+        content: '',
+        isUser: false,
+        isStreaming: true,
+        isThinking: true,
+      ));
+      _isLoading = true;
+    });
+    _scrollToBottom();
+    final entryIndex = _messages.length - 1;
+
+    final provider = _aiService.currentProvider;
+    final registry = AgentToolRegistry(
+      projectDir: dir,
+      store: ServiceLocator.instance.atomicFileStore,
+      confirmWrite: _confirmToolWrite,
+      onToolEvent: (name, display) {
+        // 工具事件已通过 AgentToolLoop.onStep 汇总，此处预留扩展。
+      },
+    );
+    final fallback = NovelWritingLoop(
+      provider: provider,
+      projectDir: dir,
+      store: ServiceLocator.instance.atomicFileStore,
+      canonService: ServiceLocator.instance.canonService,
+      projectId: pid,
+    );
+    final loop = AgentToolLoop(
+      provider: provider,
+      registry: registry,
+      fallback: fallback,
+      onStep: (step) {
+        if (!mounted) return;
+        setState(() {
+          final m = _messages[entryIndex];
+          _messages[entryIndex] = _ChatMessage(
+            content: step.kind == 'final' ? step.text : m.content,
+            isUser: false,
+            isStreaming: true,
+            isThinking: step.kind != 'final',
+            toolSteps: [...m.toolSteps, step],
+          );
+        });
+        _scrollToBottom();
+      },
+    );
+
+    try {
+      final result = await loop.run(
+        systemPrompt: AgentWritingService.systemPrompt(
+          projectName: widget.projectName ?? '未命名项目',
+        ),
+        userGoal: '请阅读小说资料中的设定与前情，续写下一章并保存到 章节内容/ 目录。',
+      );
+      if (!mounted) return;
+      setState(() {
+        final m = _messages[entryIndex];
+        _messages[entryIndex] = _ChatMessage(
+          content: result.finalText.isEmpty
+              ? (result.usedFallback ? '已按确定性流程完成创作。' : '本轮未产出正文，请查看工具步骤。')
+              : result.finalText,
+          isUser: false,
+          toolSteps: m.toolSteps,
+        );
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messages[entryIndex] = _ChatMessage(
+          content: 'Agent 写作失败：$e',
+          isUser: false,
+        );
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// 工具写文件前的确认弹窗（先展示后保存）。
+  Future<bool> _confirmToolWrite(String path, String content) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('写入文件确认'),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('路径：$path',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Text('内容预览（${content.length} 字符）：'),
+              const SizedBox(height: 4),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 240),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    content.length > 2000
+                        ? '${content.substring(0, 2000)}…'
+                        : content,
+                    style: const TextStyle(fontSize: 12, height: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('拒绝'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('确认写入'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = LingBiColors.of(context);
@@ -400,16 +594,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: ModelSelector(compact: true),
             ),
-            _buildTabs(c),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildChatTab(c),
-                  _buildWebSearchTab(c),
-                  _buildCanonTab(c),
-                ],
-              ),
+              child: _buildChatTab(c),
             ),
           ],
         ),
@@ -438,6 +624,30 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
             ),
           ),
           const Spacer(),
+          // Agent 写作快捷入口（需项目上下文）
+          if (widget.projectId != null)
+            Tooltip(
+              message: 'Agent 自主创作下一章',
+              child: InkWell(
+                onTap: _isLoading ? null : _runAgentWriting,
+                borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: LingBiTokens.space2,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                  ),
+                  child: Text(
+                    '✍ Agent 写作',
+                    style: TextStyle(fontSize: 11, color: c.accent),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(width: LingBiTokens.space2),
           // 引导/自由模式切换
           if (_guidedStepName.isNotEmpty || _guidedMode)
             Tooltip(
@@ -514,54 +724,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     );
   }
 
-  Widget _buildTabs(LingBiColors c) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        LingBiTokens.space3,
-        LingBiTokens.space2,
-        LingBiTokens.space3,
-        0,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: c.surfaceContainer.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(LingBiTokens.radiusMd),
-        ),
-        child: TabBar(
-          controller: _tabController,
-          indicator: BoxDecoration(
-            color: c.bg,
-            borderRadius: BorderRadius.circular(LingBiTokens.radiusMd),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          labelColor: c.fg,
-          unselectedLabelColor: c.fgSecondary,
-          labelStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
-          ),
-          tabs: const [
-            Tab(text: '对话'),
-            Tab(text: '搜索'),
-            Tab(text: '正典'),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildChatTab(LingBiColors c) {
     return Column(
       children: [
@@ -586,6 +748,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                         processContent: msg.processContent,
                         isStreaming: msg.isStreaming,
                         isThinking: msg.isThinking,
+                        toolSteps: msg.toolSteps,
                       );
                     }
                     return Padding(
@@ -627,85 +790,13 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     );
   }
 
-  Widget _buildWebSearchTab(LingBiColors c) {
-    // TODO: 接入真实网络搜索服务，替换硬编码数据
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(LingBiTokens.space3),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: '搜索网络资料…',
-              prefixIcon: Icon(LingBiIcons.globe, size: 18),
-              suffixIcon: Icon(LingBiIcons.send, size: 18),
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
-            children: [
-              _buildSearchResult(
-                c,
-                '纳斯卡线条：古代外星理论的历史考据',
-                '考古学 · 知乎专栏',
-              ),
-              const SizedBox(height: LingBiTokens.space2),
-              _buildSearchResult(
-                c,
-                '秘鲁考古新发现：2024年纳斯卡地画研究进展',
-                '中国社会科学院考古研究所',
-              ),
-              const SizedBox(height: LingBiTokens.space2),
-              _buildSearchResult(
-                c,
-                '二进制编码在古文明中的可能起源',
-                '维基百科',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCanonTab(LingBiColors c) {
-    // TODO: 接入真实正典数据服务，替换硬编码数据
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.all(LingBiTokens.space3),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: '搜索正典内容…',
-              prefixIcon: Icon(LingBiIcons.search, size: 18),
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding:
-                const EdgeInsets.symmetric(horizontal: LingBiTokens.space3),
-            children: [
-              _buildCanonItem(c, '时间之喉', '传说地点', '纳斯卡地下的神秘空间，传说连结过去与未来…'),
-              const SizedBox(height: LingBiTokens.space2),
-              _buildCanonItem(c, '陈曦', '主要角色', '考古学家，35岁，对古代科技有深入研究…'),
-              const SizedBox(height: LingBiTokens.space2),
-              _buildCanonItem(c, '青铜芯片', '关键物品', '刻有二进制代码的古代芯片，来源不明…'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildAiMessage(
     LingBiColors c,
     String text, {
     String processContent = '',
     bool isStreaming = false,
     bool isThinking = false,
+    List<AgentStep> toolSteps = const [],
   }) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,6 +833,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
                     processContent,
                     isThinkingNow: isThinking && isStreaming,
                   ),
+                // Agent 工具步骤时间线
+                if (toolSteps.isNotEmpty) _buildToolSteps(c, toolSteps),
                 // 回答内容
                 if (text.isEmpty && isStreaming)
                   SizedBox(
@@ -885,6 +978,93 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
     );
   }
 
+  /// Agent 工具步骤时间线（折叠面板）
+  Widget _buildToolSteps(LingBiColors c, List<AgentStep> steps) {
+    final toolCount =
+        steps.where((s) => s.kind == 'tool' || s.kind == 'error').length;
+    final hasError = steps.any((s) => s.kind == 'error');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: const EdgeInsets.only(bottom: 4),
+          dense: true,
+          leading: Icon(
+            hasError ? Icons.build_circle_outlined : Icons.build_outlined,
+            size: 14,
+            color: hasError ? LingBiTokens.warning : c.muted,
+          ),
+          title: Text(
+            '🛠 工具步骤（$toolCount）',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: c.muted,
+            ),
+          ),
+          children: [
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(maxHeight: 160),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: c.surfaceContainer.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final s in steps)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              _toolStepIcon(s.kind),
+                              size: 12,
+                              color: s.kind == 'error'
+                                  ? LingBiTokens.warning
+                                  : s.kind == 'final'
+                                      ? LingBiTokens.success
+                                      : c.muted,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                s.text,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: c.fgSecondary,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _toolStepIcon(String kind) => switch (kind) {
+        'tool' => Icons.check_circle_outline,
+        'error' => Icons.warning_amber_rounded,
+        'final' => Icons.flag_outlined,
+        'fallback' => Icons.swap_horiz,
+        _ => Icons.more_horiz,
+      };
+
   /// T4: 确认卡（模糊请求追问）
   Widget _buildClarificationCard(LingBiColors c, _ChatMessage msg) {
     return Row(
@@ -1020,112 +1200,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel>
         const SizedBox(width: LingBiTokens.space2),
         Icon(LingBiIcons.edit, size: 18, color: c.fgSecondary),
       ],
-    );
-  }
-
-  Widget _buildSearchResult(LingBiColors c, String title, String source) {
-    return Container(
-      padding: const EdgeInsets.all(LingBiTokens.space3),
-      decoration: BoxDecoration(
-        color: c.bg,
-        borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-        border: Border.all(
-          color: c.borderOpaque.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: c.fg,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: LingBiTokens.space1),
-          Text(
-            source,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: c.muted,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCanonItem(
-    LingBiColors c,
-    String title,
-    String type,
-    String desc,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(LingBiTokens.space3),
-      decoration: BoxDecoration(
-        color: c.bg,
-        borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-        border: Border.all(
-          color: c.borderOpaque.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: c.fg,
-                ),
-              ),
-              const SizedBox(width: LingBiTokens.space2),
-              _buildTypeBadge(c, type),
-            ],
-          ),
-          const SizedBox(height: LingBiTokens.space1),
-          Text(
-            desc,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              color: c.fgSecondary,
-              height: 1.5,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypeBadge(LingBiColors c, String type) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: LingBiTokens.space2,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: c.cinnabar.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
-      ),
-      child: Text(
-        type,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: c.cinnabar,
-        ),
-      ),
     );
   }
 

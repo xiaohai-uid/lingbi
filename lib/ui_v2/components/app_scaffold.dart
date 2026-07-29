@@ -410,6 +410,8 @@ class _AppScaffoldState extends State<AppScaffold> {
             editor,
             if (aiDocked)
               AiAssistantPanel(
+                // R4 修复：随 projectId 强制重建 State，隔离不同项目的对话/引导状态。
+                key: ValueKey('ai-panel-${_currentProject?.id ?? 'none'}'),
                 projectId: _currentProject?.id,
                 projectName: _currentProject?.name,
               ),
@@ -429,6 +431,8 @@ class _AppScaffoldState extends State<AppScaffold> {
               child: Material(
                 elevation: 12,
                 child: AiAssistantPanel(
+                  // R4 修复：随 projectId 强制重建 State，隔离不同项目的对话/引导状态。
+                  key: ValueKey('ai-panel-${_currentProject?.id ?? 'none'}'),
                   projectId: _currentProject?.id,
                   projectName: _currentProject?.name,
                 ),
@@ -445,6 +449,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       return ProjectOnboardingPage(
         projectId: _currentProject!.id,
         workflow: ServiceLocator.instance.projectOnboardingWorkflow,
+        genreId: _currentProject!.genre,
         onCompleted: () => setState(() {
           _showProjectOnboarding = false;
           _currentTab = ProjectTab.overview;
