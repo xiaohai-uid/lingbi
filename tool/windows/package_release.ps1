@@ -76,10 +76,13 @@ if (-not $versionMatch.Success) {
     Write-Error "Unable to read version from pubspec.yaml"
     exit 1
 }
-$sourceCommit = (& git rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Unable to resolve source commit"
-    exit 1
+$sourceCommit = $env:LINGBI_SOURCE_COMMIT
+if ([string]::IsNullOrWhiteSpace($sourceCommit)) {
+    $sourceCommit = (& git rev-parse HEAD).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Unable to resolve source commit"
+        exit 1
+    }
 }
 $sourceRef = $env:GITHUB_REF_NAME
 if ([string]::IsNullOrWhiteSpace($sourceRef)) {
@@ -97,14 +100,23 @@ if ([string]::IsNullOrWhiteSpace($sourceRef)) {
         $sourceRef = $branchRaw
     }
 }
-$dirtyOutput = (& git status --porcelain) -join "`n"
+$sourceDirty = $null
+if (-not [string]::IsNullOrWhiteSpace($env:LINGBI_SOURCE_DIRTY)) {
+    if (-not [bool]::TryParse($env:LINGBI_SOURCE_DIRTY, [ref]$sourceDirty)) {
+        Write-Error "LINGBI_SOURCE_DIRTY must be true or false"
+        exit 1
+    }
+} else {
+    $dirtyOutput = (& git status --porcelain) -join "`n"
+    $sourceDirty = -not [string]::IsNullOrWhiteSpace($dirtyOutput)
+}
 $provenance = [ordered]@{
     schema_version = 1
     application = "lingbi"
     version = $versionMatch.Groups[1].Value
     source_commit = $sourceCommit
     source_ref = $sourceRef
-    source_dirty = -not [string]::IsNullOrWhiteSpace($dirtyOutput)
+    source_dirty = $sourceDirty
     build_configuration = "release"
     platform = "windows-x64"
 }
