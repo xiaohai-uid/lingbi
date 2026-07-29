@@ -133,7 +133,11 @@ class NovelWritingLoop {
       }
     }
 
-    final raw = buffer.toString().trim();
+    var raw = buffer.toString().trim();
+    if (_isProviderErrorResponse(raw)) {
+      warnings.add(raw);
+      raw = '';
+    }
     final title = _extractTitle(raw, nextNumber);
     final charCount = _chineseCharCount(raw);
     if (charCount < minChineseChars) {
@@ -152,6 +156,9 @@ class NovelWritingLoop {
 
   /// 采纳候选并原子落盘 `章节内容/第X章.md`，同时更新章节摘要。
   Future<ChapterCommitResult> commitChapter(ChapterCandidate candidate) async {
+    if (candidate.isEmpty) {
+      throw StateError('空候选或 AI 错误响应不能写入章节文件');
+    }
     final chapterPath = '$_chaptersDir/第${candidate.chapterNumber}章.md';
     final body = candidate.content.startsWith('#')
         ? candidate.content
@@ -175,7 +182,9 @@ class NovelWritingLoop {
     ChapterConfirm? confirm,
   }) async {
     final candidate = await proposeNextChapter(guidance: guidance);
-    final approved = autoApprove || (confirm != null && await confirm(candidate));
+    if (candidate.isEmpty) return null;
+    final approved =
+        autoApprove || (confirm != null && await confirm(candidate));
     if (!approved) return null;
     return commitChapter(candidate);
   }
@@ -297,8 +306,7 @@ class NovelWritingLoop {
         ..writeln(compiledContext);
     }
 
-    final user = StringBuffer()
-      ..write('请续写第 $chapterNumber 章。');
+    final user = StringBuffer()..write('请续写第 $chapterNumber 章。');
     if (guidance != null && guidance.trim().isNotEmpty) {
       user.write('本章写作要求：${guidance.trim()}');
     }
@@ -364,6 +372,22 @@ class NovelWritingLoop {
       return match.group(1)!.trim();
     }
     return '第$number章';
+  }
+
+  bool _isProviderErrorResponse(String text) {
+    final value = text.trim();
+    if (value.isEmpty || value.length > 240) return false;
+    const prefixes = <String>[
+      '请先在设置中配置',
+      '请求过于频繁',
+      '服务暂时不可用',
+      '网络连接超时',
+      'API Key 无效',
+      'SenseNova 请求失败',
+      '请求失败，请重试',
+      '余额不足',
+    ];
+    return prefixes.any(value.startsWith);
   }
 
   /// 统计中文字数（CJK 统一表意文字）。

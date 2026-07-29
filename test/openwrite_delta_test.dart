@@ -69,12 +69,14 @@ void main() {
       final archive = ZipDecoder().decodeBytes(bytes);
       final names = archive.files.map((f) => f.name).toSet();
       // 必备 OOXML 部件齐全。
-      expect(names, containsAll(<String>[
-        '[Content_Types].xml',
-        '_rels/.rels',
-        'word/document.xml',
-        'word/_rels/document.xml.rels',
-      ]));
+      expect(
+          names,
+          containsAll(<String>[
+            '[Content_Types].xml',
+            '_rels/.rels',
+            'word/document.xml',
+            'word/_rels/document.xml.rels',
+          ]));
 
       final doc = archive.findFile('word/document.xml')!;
       final xml = utf8.decode(doc.content as List<int>);
@@ -92,10 +94,8 @@ void main() {
       tempDir = Directory.systemTemp.createTempSync('lingbi-loop-');
       projectDir = tempDir.path.replaceAll(r'\', '/');
       Directory('$projectDir/小说资料').createSync(recursive: true);
-      File('$projectDir/小说资料/人物库.md')
-          .writeAsStringSync('# 人物库\n- 主角：林尘');
-      File('$projectDir/小说资料/世界观.md')
-          .writeAsStringSync('# 世界观\n修炼体系：炼气→筑基');
+      File('$projectDir/小说资料/人物库.md').writeAsStringSync('# 人物库\n- 主角：林尘');
+      File('$projectDir/小说资料/世界观.md').writeAsStringSync('# 世界观\n修炼体系：炼气→筑基');
     });
 
     tearDown(() => tempDir.deleteSync(recursive: true));
@@ -121,8 +121,7 @@ void main() {
       expect(File('$projectDir/小说资料/章节摘要.md').existsSync(), isFalse);
     });
 
-    test('writeNextChapter 未确认（无 confirm/autoApprove）不写盘并返回 null',
-        () async {
+    test('writeNextChapter 未确认（无 confirm/autoApprove）不写盘并返回 null', () async {
       final loop = buildLoop();
       final result = await loop.writeNextChapter(guidance: '开篇');
 
@@ -157,6 +156,26 @@ void main() {
       final summary = File(result.summaryPath);
       expect(summary.existsSync(), isTrue);
       expect(summary.readAsStringSync(), contains('第1章'));
+    });
+
+    test('provider error text is never auto-approved as chapter content',
+        () async {
+      final loop = NovelWritingLoop(
+        provider: _FakeProvider('请求过于频繁，请稍后再试'),
+        projectDir: projectDir,
+        minChineseChars: 100,
+      );
+
+      final candidate = await loop.proposeNextChapter(guidance: '开篇');
+      final result = await loop.writeNextChapter(
+        guidance: '开篇',
+        autoApprove: true,
+      );
+
+      expect(candidate.isEmpty, isTrue);
+      expect(candidate.warnings, contains('请求过于频繁，请稍后再试'));
+      expect(result, isNull);
+      expect(File('$projectDir/章节内容/第1章.md').existsSync(), isFalse);
     });
   });
 
