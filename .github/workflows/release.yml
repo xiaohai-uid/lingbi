@@ -59,4 +59,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $assets = Get-ChildItem -LiteralPath $env:LINGBI_ASSET_DIR -File | Select-Object -ExpandProperty FullName
-          gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "灵笔 $env:GITHUB_REF_NAME"
+          gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "LingBi $env:GITHUB_REF_NAME"

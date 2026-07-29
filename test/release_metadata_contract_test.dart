@@ -133,6 +133,8 @@ void main() {
       expect(workflow, contains('build_release_assets.ps1'));
       expect(workflow, contains('smoke_test_installer.ps1'));
       expect(workflow, contains('gh release create'));
+      expect(workflow, contains('--title "LingBi'));
+      expect(workflow, isNot(contains('--title "灵笔')));
       expect(builder, contains('Lingbi-Windows-Portable-'));
       expect(builder, contains('Lingbi-Setup-'));
       expect(builder, contains('SHA256SUMS.txt'));
