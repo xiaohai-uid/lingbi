@@ -5,7 +5,7 @@ import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/project_service.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';

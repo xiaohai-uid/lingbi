@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/modules/story_graph/story_graph.dart';
+import 'package:lingbi/features/canon/data/story_graph/story_graph.dart';
 
 final class StoryGraphRevisionConflict implements Exception {
   const StoryGraphRevisionConflict(

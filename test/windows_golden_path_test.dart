@@ -8,7 +8,7 @@ import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/services/project_asset_repository.dart';

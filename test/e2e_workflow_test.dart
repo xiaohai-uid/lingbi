@@ -11,7 +11,7 @@ import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/shared/models/story_beat.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/export_service.dart';
 import 'package:lingbi/services/project_service.dart';

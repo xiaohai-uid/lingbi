@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/story_graph/story_graph.dart';
-import 'package:lingbi/modules/story_graph/text_entity_linker.dart';
+import 'package:lingbi/features/canon/data/story_graph/story_graph.dart';
+import 'package:lingbi/features/canon/data/story_graph/text_entity_linker.dart';
 
 void main() {
   const entities = [

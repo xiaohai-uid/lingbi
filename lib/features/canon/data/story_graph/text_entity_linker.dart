@@ -1,4 +1,4 @@
-import 'package:lingbi/modules/story_graph/story_graph.dart';
+import 'package:lingbi/features/canon/data/story_graph/story_graph.dart';
 
 final class EntityMention {
   const EntityMention({

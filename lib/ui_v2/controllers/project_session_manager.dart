@@ -9,7 +9,7 @@ import '../../domain/project/project_brief.dart';
 import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
 import 'package:lingbi/features/writing/data/pipeline/project_session_scope.dart';
 import '../../services/ai_service.dart';
-import '../../services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import '../../services/document_service.dart';
 import '../../services/project_service.dart';
 

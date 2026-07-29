@@ -1,5 +1,5 @@
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/canon_linking_service.dart';
+import 'package:lingbi/features/canon/data/canon_linking_service.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:lingbi/ui/widgets/web_search_widget.dart';

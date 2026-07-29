@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/modules/story_graph/story_graph.dart';
-import 'package:lingbi/modules/story_graph/story_graph_repository.dart';
+import 'package:lingbi/features/canon/data/story_graph/story_graph.dart';
+import 'package:lingbi/features/canon/data/story_graph/story_graph_repository.dart';
 
 void main() {
   late Directory tempDir;

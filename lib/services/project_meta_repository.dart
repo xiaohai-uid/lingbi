@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/project_service.dart';
 

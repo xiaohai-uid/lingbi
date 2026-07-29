@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/market_intel_service.dart';
 

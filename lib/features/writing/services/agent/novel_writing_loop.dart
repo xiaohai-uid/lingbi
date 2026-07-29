@@ -20,7 +20,7 @@ import 'package:lingbi/shared/ai/model_registry.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 
 /// 一个候选章节（尚未落盘）。
 class ChapterCandidate {
