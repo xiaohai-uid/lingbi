@@ -15,12 +15,12 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/pipeline/book_state.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'package:lingbi/modules/pipeline/generation_context.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
-import 'package:lingbi/modules/pipeline/project_scope_api.dart';
-import 'package:lingbi/ui_v2/controllers/editor_ai_coordinator.dart';
+import 'package:lingbi/features/writing/data/pipeline/book_state.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/generation_context.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_scope_api.dart';
+import 'package:lingbi/features/writing/ui/editor_ai_coordinator.dart';
 
 // ─── Fake 实现 ─────────────────────────────────────────────────
 

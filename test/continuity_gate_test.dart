@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/continuity/continuity_gate.dart';
+import 'package:lingbi/features/writing/data/continuity/continuity_gate.dart';
 
 void main() {
   group('pre-generation constraints', () {

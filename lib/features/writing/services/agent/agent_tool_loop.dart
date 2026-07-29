@@ -11,9 +11,9 @@
 library;
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/agent/agent_tool_registry.dart';
-import 'package:lingbi/services/agent/novel_writing_loop.dart';
-import 'package:lingbi/services/agent/session_compactor.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
+import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
 
 /// Agent 执行过程中的一步（供 UI 渲染时间线 / 测试断言）。
 class AgentStep {

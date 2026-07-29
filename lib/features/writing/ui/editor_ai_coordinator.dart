@@ -13,10 +13,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../shared/errors/ai_error.dart';
-import '../../modules/pipeline/candidate_service.dart';
-import '../../modules/pipeline/novel_application_service.dart';
-import '../../modules/pipeline/project_scope_api.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_scope_api.dart';
 
 /// 管线 API 抽象（NovelApplicationService 隐式满足）
 ///

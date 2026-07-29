@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/context/context_compiler.dart';
+import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 
 void main() {
   group('ContextCompiler budget allocation', () {

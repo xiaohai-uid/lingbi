@@ -16,8 +16,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'model_status_bar.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/ui_v2/components/model_status_bar.dart';
 
 /// 候选采纳模式
 enum AdoptMode {

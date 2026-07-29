@@ -6,22 +6,22 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/shared/models/document.dart' as app;
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
-import 'package:lingbi/services/agent/novel_writing_loop.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_workflow.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
-import '../components/writing_toolbar.dart';
-import '../components/slash_command_menu.dart';
-import '../components/candidate_panel.dart';
-import '../components/model_status_bar.dart';
-import '../components/error_banner.dart';
-import '../services/command_palette_service.dart';
-import '../../services/clarity_check_service.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
+import 'writing_toolbar.dart';
+import 'package:lingbi/ui_v2/components/slash_command_menu.dart';
+import 'candidate_panel.dart';
+import 'package:lingbi/ui_v2/components/model_status_bar.dart';
+import 'package:lingbi/ui_v2/components/error_banner.dart';
+import 'package:lingbi/ui_v2/services/command_palette_service.dart';
+import 'package:lingbi/services/clarity_check_service.dart';
 
 class EditorPage extends StatefulWidget {
   const EditorPage({

@@ -7,8 +7,8 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
 
 /// 写作面板状态
 enum WritingPanelState {

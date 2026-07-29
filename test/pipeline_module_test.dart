@@ -3,7 +3,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/pipeline/pipeline.dart';
+import 'package:lingbi/features/writing/data/pipeline/pipeline.dart';
 
 void main() {
   group('GenerationContext', () {

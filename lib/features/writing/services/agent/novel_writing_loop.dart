@@ -18,7 +18,7 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/modules/context/context_compiler.dart';
+import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/canon_service.dart';
 

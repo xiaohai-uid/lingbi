@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
 
 /// Commands emitted by the toolbar; consumed by the editor layer.
 abstract class FormatCommands {

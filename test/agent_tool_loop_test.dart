@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/agent/agent_tool_loop.dart';
-import 'package:lingbi/services/agent/agent_tool_registry.dart';
-import 'package:lingbi/services/agent/session_compactor.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
 
 /// 脚本化的 function-calling Provider：按顺序返回预设的 [ToolTurn]。
 class ScriptedToolProvider extends AIProvider {

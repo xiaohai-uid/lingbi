@@ -1,4 +1,4 @@
-import '../../modules/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
 import 'first_chapter_event.dart';
 import 'first_chapter_state_store.dart';
 

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
 
 void main() {
   group('AgentToolRegistry 沙箱', () {

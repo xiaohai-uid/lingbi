@@ -11,7 +11,7 @@ library;
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
-import 'package:lingbi/modules/context/context_compiler.dart';
+import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 
 class SessionCompactor {
   const SessionCompactor({

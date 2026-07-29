@@ -11,12 +11,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/pipeline/book_state.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'package:lingbi/modules/pipeline/context_assembler.dart';
-import 'package:lingbi/modules/pipeline/creative_compass.dart';
-import 'package:lingbi/modules/pipeline/project_data_source.dart';
-import 'package:lingbi/modules/pipeline/write_lock_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/book_state.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/context_assembler.dart';
+import 'package:lingbi/features/writing/data/pipeline/creative_compass.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_data_source.dart';
+import 'package:lingbi/features/writing/data/pipeline/write_lock_service.dart';
 
 void main() {
   late Directory tempDir;

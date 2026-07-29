@@ -8,7 +8,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/shared/models/document.dart';
-import 'package:lingbi/modules/pipeline/project_session_scope.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_session_scope.dart';
 import 'package:lingbi/ui/layout/main_scaffold.dart';
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/ui/layout/sidebar/project_tree.dart';

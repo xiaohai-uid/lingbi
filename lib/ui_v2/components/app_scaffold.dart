@@ -14,7 +14,7 @@ import 'top_bar.dart';
 import 'ai_assistant.dart';
 import 'project_tabs.dart';
 import '../pages/welcome_page.dart';
-import '../pages/editor_page.dart';
+import 'package:lingbi/features/writing/ui/editor_page.dart';
 import '../pages/storyboard_page.dart';
 import '../pages/import_export_page.dart';
 import '../pages/project_overview_page.dart';

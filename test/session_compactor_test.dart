@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/agent/session_compactor.dart';
+import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
 
 void main() {
   group('SessionCompactor', () {
