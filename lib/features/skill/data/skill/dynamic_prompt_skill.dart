@@ -4,9 +4,9 @@
 /// 并在 buildPrompt 中完成模板占位符替换。
 library;
 
-import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 /// 动态 Prompt 技能 — 桥接 SkillManifest → SkillAction
 class DynamicPromptSkill extends SkillAction {

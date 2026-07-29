@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/services/skill/skill_audit_log.dart';
-import 'package:lingbi/services/skill/skill_executor.dart';
-import 'package:lingbi/services/skill/skill_manifest_verifier.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill_marketplace.dart';
+import 'package:lingbi/features/skill/data/skill/skill_audit_log.dart';
+import 'package:lingbi/features/skill/data/skill/skill_executor.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest_verifier.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill_marketplace.dart';
 
 void main() {
   late Directory tempDir;

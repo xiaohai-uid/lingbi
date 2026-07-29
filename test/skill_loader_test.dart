@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/skill/skill_loader.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill/skill_loader.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 void main() {
   late Directory tempDir;

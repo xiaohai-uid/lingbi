@@ -8,11 +8,11 @@ library;
 import 'dart:io';
 
 import 'package:lingbi/shared/models/canon_entry.dart';
-import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
-import 'package:lingbi/services/skill/skill_audit_log.dart';
-import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
+import 'package:lingbi/features/skill/data/skill/skill_audit_log.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 import 'package:path/path.dart' as path;
 
 /// 权限违反异常

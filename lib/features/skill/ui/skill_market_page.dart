@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/skill/distillation_service.dart';
-import 'package:lingbi/services/skill_marketplace.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
+import 'package:lingbi/features/skill/data/skill/distillation_service.dart';
+import 'package:lingbi/features/skill/data/skill_marketplace.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
 
 class SkillMarketPage extends StatefulWidget {
   const SkillMarketPage({super.key, required this.onBack, this.projectId});

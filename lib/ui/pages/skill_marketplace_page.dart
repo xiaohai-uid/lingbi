@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/skill_marketplace.dart';
+import 'package:lingbi/features/skill/data/skill_marketplace.dart';
 
 /// Skill 市场页面 — 浏览、搜索、安装/卸载 Skill
 class SkillMarketplacePage extends StatefulWidget {

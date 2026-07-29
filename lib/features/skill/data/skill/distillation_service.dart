@@ -13,7 +13,7 @@ import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/skill_marketplace.dart';
+import 'package:lingbi/features/skill/data/skill_marketplace.dart';
 
 /// 蒸馏结果
 class DistillationResult {

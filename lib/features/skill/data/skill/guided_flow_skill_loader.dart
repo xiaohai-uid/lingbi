@@ -9,7 +9,7 @@ import 'dart:io';
 
 import 'package:lingbi/shared/models/guided_flow_definition.dart';
 import 'package:lingbi/services/guided_flow_engine.dart';
-import 'package:lingbi/services/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
 
 /// 引导流程 Skill 加载器
 ///

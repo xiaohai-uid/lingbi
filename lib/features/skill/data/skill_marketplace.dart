@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:lingbi/services/skill/skill_manifest_verifier.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest_verifier.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Skill 条目 — 代表一个可安装的 AI 技能

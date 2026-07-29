@@ -9,7 +9,7 @@ import 'package:lingbi/shared/models/document.dart' as app;
 import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
 import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_workflow.dart';

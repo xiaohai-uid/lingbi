@@ -10,7 +10,7 @@ import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
 import 'package:lingbi/shared/ai/generation_task.dart';
 import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/services/intent_confirmation_service.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 void main() {
   group('AiResponseNormalizer', () {

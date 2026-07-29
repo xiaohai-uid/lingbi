@@ -4,11 +4,11 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
-import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill_action_service.dart';
-import 'package:lingbi/services/skill_marketplace.dart';
+import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_marketplace.dart';
 
 /// 动态 Skill 加载器
 ///

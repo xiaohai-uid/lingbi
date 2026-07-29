@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
 
 void main() {
   group('SkillPermission', () {
