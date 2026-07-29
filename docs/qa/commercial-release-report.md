@@ -4,7 +4,7 @@
 
 **Branch:** `agent/openwrite-parity-ui`
 
-**Evidence commit:** `700b2f04fd84ccae656654b339d38d929ca602a2`
+**Code evidence baseline:** `f790250` (the package's exact source commit is recorded in `PROVENANCE.json`)
 
 **Release metadata version:** `1.0.1`
 
@@ -20,7 +20,7 @@ This report records repository evidence; it is not a commercial-readiness certif
 | `flutter test --exclude-tags network` | PASS — 1056 tests, 0 failures |
 | Live 10K provider acceptance | BLOCKED_EXTERNAL — an earlier run produced 12577 Chinese characters; the 2026-07-29 rerun hit SenseNova HTTP 429 after chapter 1 |
 | `flutter build windows --release` | PASS — `build/windows/x64/runner/Release/lingbi.exe` |
-| Portable package | PASS — relative-path `SHA256SUMS.txt`; `PROVENANCE.json` records commit `700b2f0` and `source_dirty: false` |
+| Portable package | PASS — relative-path `SHA256SUMS.txt`; `PROVENANCE.json` records the exact source commit and `source_dirty: false` |
 | Repository-wide format check | FAIL (pre-existing) — 173 historical files would change; no broad reformat was applied in Task 1 |
 | Installer/upgrade/uninstall/rollback matrix | Not yet executed; release remains not commercially ready |
 
