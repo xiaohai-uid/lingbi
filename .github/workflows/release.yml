@@ -16,6 +16,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Capture source provenance
+        shell: powershell
+        run: |
+          $sourceCommit = (git rev-parse HEAD).Trim()
+          $sourceDirty = -not [string]::IsNullOrWhiteSpace((git status --porcelain | Out-String).Trim())
+          "LINGBI_SOURCE_COMMIT=$sourceCommit" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "LINGBI_SOURCE_DIRTY=$sourceDirty" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.44.6'
@@ -59,4 +67,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $assets = Get-ChildItem -LiteralPath $env:LINGBI_ASSET_DIR -File | Select-Object -ExpandProperty FullName
-          gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "LingBi $env:GITHUB_REF_NAME"
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:GITHUB_REF_NAME $assets --clobber
+          } else {
+            gh release create $env:GITHUB_REF_NAME $assets --verify-tag --generate-notes --title "LingBi $env:GITHUB_REF_NAME"
+          }

@@ -133,6 +133,9 @@ void main() {
       expect(workflow, contains('build_release_assets.ps1'));
       expect(workflow, contains('smoke_test_installer.ps1'));
       expect(workflow, contains('gh release create'));
+      expect(workflow, contains('gh release upload'));
+      expect(workflow, contains('--clobber'));
+      expect(workflow, contains('LINGBI_SOURCE_DIRTY'));
       expect(workflow, contains('--title "LingBi'));
       expect(workflow, isNot(contains('--title "灵笔')));
       expect(builder, contains('Lingbi-Windows-Portable-'));
@@ -316,6 +319,42 @@ void main() {}
       '${integrationResult.stdout}\n${integrationResult.stderr}',
       contains('Refusing unsafe OutputDir'),
     );
+  });
+
+  test('release packager honors provenance captured before build', () async {
+    final temp = Directory.systemTemp.createTempSync('lingbi-provenance-');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    final buildDir = Directory(p.join(temp.path, 'input'))..createSync();
+    File(p.join(buildDir.path, 'lingbi.exe')).writeAsStringSync('binary');
+    final outputDir = p.join(temp.path, 'package');
+    const capturedCommit = '1111111111111111111111111111111111111111';
+
+    final result = await Process.run(
+      'powershell',
+      [
+        '-NoProfile',
+        '-File',
+        p.join(repositoryRoot.path, 'tool', 'windows', 'package_release.ps1'),
+        '-SkipBuild',
+        '-BuildDir',
+        buildDir.path,
+        '-OutputDir',
+        outputDir,
+      ],
+      workingDirectory: repositoryRoot.path,
+      environment: {
+        ...Platform.environment,
+        'LINGBI_SOURCE_COMMIT': capturedCommit,
+        'LINGBI_SOURCE_DIRTY': 'false',
+      },
+    );
+
+    expect(result.exitCode, 0, reason: '${result.stdout}\n${result.stderr}');
+    final provenance = jsonDecode(
+      File(p.join(outputDir, 'PROVENANCE.json')).readAsStringSync(),
+    ) as Map<String, dynamic>;
+    expect(provenance['source_commit'], capturedCommit);
+    expect(provenance['source_dirty'], isFalse);
   });
 }
 
