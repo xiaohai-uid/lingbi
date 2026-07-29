@@ -11,7 +11,10 @@ import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import 'ai_context_browser.dart';
 import 'model_selector.dart';
+
+enum _AssistantView { chat, context }
 
 class _ChatMessage {
   _ChatMessage({
@@ -72,6 +75,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   final List<_ChatMessage> _messages = [];
   final ClarityCheckService _clarityCheck = ClarityCheckService();
   bool _isLoading = false;
+  _AssistantView _activeView = _AssistantView.chat;
 
   // ─── 引导模式状态 ───
   bool _guidedMode = false;
@@ -594,13 +598,64 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: ModelSelector(compact: true),
             ),
+            if (widget.projectId != null) _buildViewSelector(c),
             Expanded(
-              child: _buildChatTab(c),
+              child: _activeView == _AssistantView.chat
+                  ? _buildChatTab(c)
+                  : AiContextBrowser(
+                      searchWeb:
+                          ServiceLocator.instance.webSearchService.search,
+                      searchCanon: (query) => ServiceLocator
+                          .instance.canonService
+                          .search(widget.projectId!, query),
+                      onInsertContext: _insertContext,
+                    ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildViewSelector(LingBiColors c) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<_AssistantView>(
+          segments: const [
+            ButtonSegment(
+              value: _AssistantView.chat,
+              icon: Icon(Icons.chat_bubble_outline, size: 16),
+              label: Text('对话'),
+            ),
+            ButtonSegment(
+              value: _AssistantView.context,
+              icon: Icon(Icons.library_books_outlined, size: 16),
+              label: Text('资料'),
+            ),
+          ],
+          selected: {_activeView},
+          showSelectedIcon: false,
+          onSelectionChanged: (selection) {
+            setState(() => _activeView = selection.first);
+          },
+          style: ButtonStyle(
+            side: WidgetStatePropertyAll(BorderSide(color: c.borderOpaque)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _insertContext(String contextBlock) {
+    final current = _inputController.text.trim();
+    _inputController.text =
+        current.isEmpty ? contextBlock : '$current\n\n$contextBlock';
+    _inputController.selection = TextSelection.collapsed(
+      offset: _inputController.text.length,
+    );
+    setState(() => _activeView = _AssistantView.chat);
   }
 
   Widget _buildHeader(LingBiColors c) {
