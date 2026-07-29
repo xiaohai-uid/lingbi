@@ -6,7 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/subscription_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';

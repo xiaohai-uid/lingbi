@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/models/endpoint_config.dart';
-import 'package:lingbi/core/ai/provider_factory.dart';
-import 'package:lingbi/core/ai/providers/openai_compatible_provider.dart';
-import 'package:lingbi/core/ai/providers/anthropic_provider.dart';
+import 'package:lingbi/shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/shared/ai/provider_factory.dart';
+import 'package:lingbi/shared/ai/providers/openai_compatible_provider.dart';
+import 'package:lingbi/shared/ai/providers/anthropic_provider.dart';
 
 void main() {
   group('Protocol', () {

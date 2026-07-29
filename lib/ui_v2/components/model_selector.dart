@@ -6,8 +6,8 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 
 import '../theme/tokens.dart';
 

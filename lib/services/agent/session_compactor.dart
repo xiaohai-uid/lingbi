@@ -9,8 +9,8 @@
 /// `assistant(tool_calls) → tool` 配对：绝不让尾部以孤立的 tool 消息开头。
 library;
 
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
 import 'package:lingbi/modules/context/context_compiler.dart';
 
 class SessionCompactor {

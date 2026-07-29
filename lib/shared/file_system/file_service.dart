@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/document.dart';
 
 class FileService {
   FileService();

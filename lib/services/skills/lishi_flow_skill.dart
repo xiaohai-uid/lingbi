@@ -3,7 +3,7 @@
 /// 专属引导：朝代背景/官制/军事/经济/文化考据
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 历史长篇引导流程
 const lishiLongFlowDefinition = GuidedFlowDefinition(

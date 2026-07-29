@@ -7,7 +7,7 @@
 /// - 批量去AI味：对整章/整文一键处理
 library;
 
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── 数据模型 ───
 

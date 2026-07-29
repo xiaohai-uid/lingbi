@@ -5,7 +5,7 @@
 /// 每个上下文片段记录类型、来源、优先级。
 library;
 
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 

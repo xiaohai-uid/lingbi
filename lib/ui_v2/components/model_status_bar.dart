@@ -5,9 +5,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/model_snapshot.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/model_snapshot.dart';
 
 /// 模型状态栏组件
 class ModelStatusBar extends StatelessWidget {

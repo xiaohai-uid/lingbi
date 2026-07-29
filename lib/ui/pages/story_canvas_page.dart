@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/database/story_beats_repository.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/story_beat.dart';
+import 'package:lingbi/shared/database/story_beats_repository.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
 
 /// 故事画布 - 可视化情节编排
 class StoryCanvasPage extends StatefulWidget {

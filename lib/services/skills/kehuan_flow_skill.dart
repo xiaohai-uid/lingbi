@@ -3,7 +3,7 @@
 /// 专属引导：科技树/星际政治/AI伦理/硬科幻约束
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 科幻长篇引导流程
 const kehuanLongFlowDefinition = GuidedFlowDefinition(

@@ -1,4 +1,4 @@
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 /// AI 服务接口
 abstract class IAIService {

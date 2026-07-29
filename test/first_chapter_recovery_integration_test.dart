@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/modules/pipeline/novel_application_service.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/canon_service.dart';

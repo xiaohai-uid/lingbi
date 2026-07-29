@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/models/document.dart';
-import '../../core/models/project.dart';
+import '../../shared/models/document.dart';
+import '../../shared/models/project.dart';
 import '../../domain/project/project_brief.dart';
 import '../../modules/pipeline/novel_application_service.dart';
 import '../../modules/pipeline/project_session_scope.dart';

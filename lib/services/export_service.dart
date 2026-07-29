@@ -1,8 +1,8 @@
 import 'package:lingbi/services/interfaces/i_export_service.dart';
 import 'dart:io';
 import 'package:archive/archive.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'atomic_file_store.dart';

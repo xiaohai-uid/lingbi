@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 import 'recovery_center_page.dart';

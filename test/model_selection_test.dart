@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/models/model_snapshot.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/models/model_snapshot.dart';
 
 void main() {
   group('ModelRegistry.replaceRemoteModels', () {

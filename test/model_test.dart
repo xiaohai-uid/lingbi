@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/story_beat.dart';
-import 'package:lingbi/core/errors/result.dart';
-import 'package:lingbi/core/errors/app_error.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
 
 void main() {
   group('StoryBeat', () {

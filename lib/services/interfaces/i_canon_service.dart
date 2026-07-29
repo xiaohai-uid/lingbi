@@ -1,5 +1,5 @@
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 
 /// Canon 正典知识库服务接口
 abstract class ICanonService {

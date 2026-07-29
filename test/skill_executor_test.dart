@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/skill/skill_executor.dart';
 import 'package:lingbi/services/skill/skill_manifest.dart';
 import 'package:lingbi/services/skill/skill_permission.dart';

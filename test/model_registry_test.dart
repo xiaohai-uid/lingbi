@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
 
 void main() {
   group('ModelInfo', () {

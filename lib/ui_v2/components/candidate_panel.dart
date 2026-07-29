@@ -15,7 +15,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lingbi/core/ai/ai_response_normalizer.dart';
+import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'model_status_bar.dart';
 

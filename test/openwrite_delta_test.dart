@@ -9,7 +9,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/modules/context/context_compiler.dart';
 import 'package:lingbi/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/export_service.dart';

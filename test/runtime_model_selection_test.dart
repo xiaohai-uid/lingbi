@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/models/endpoint_config.dart';
-import 'package:lingbi/core/ai/runtime_model_selection.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/shared/ai/runtime_model_selection.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/quota_service.dart';
 

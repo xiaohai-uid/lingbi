@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/project_tab_controller.dart' as svc;
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';

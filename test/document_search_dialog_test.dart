@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/ui_v2/components/document_search_dialog.dart';
 
 void main() {

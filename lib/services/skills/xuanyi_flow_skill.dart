@@ -3,7 +3,7 @@
 /// 专属引导：诡计类型/线索管理/叙述性诡计/解谜节奏
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 悬疑长篇引导流程
 const xuanyiLongFlowDefinition = GuidedFlowDefinition(

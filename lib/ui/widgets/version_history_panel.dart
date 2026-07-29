@@ -1,7 +1,7 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/version_history_service.dart';
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/document.dart';
 
 /// 版本历史面板
 class VersionHistoryPanel extends StatefulWidget {

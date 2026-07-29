@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'core/di/service_locator.dart';
-import 'utils/paths.dart';
+import 'shared/di/service_locator.dart';
+import 'shared/utils/paths.dart';
 
 import 'ui/theme/app_theme.dart';
 import 'ui/pages/home_page.dart';

@@ -1,4 +1,4 @@
-import 'package:lingbi/core/models/story_beat.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
 import 'package:lingbi/services/storage_service.dart';
 
 /// 故事节拍存储仓库 — 基于 StorageService (JSON 文件)

@@ -1,5 +1,5 @@
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
 
 /// 导出服务接口
 abstract class IExportService {

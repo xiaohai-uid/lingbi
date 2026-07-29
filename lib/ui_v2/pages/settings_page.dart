@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/ai/models/endpoint_config.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 
 import 'package:lingbi/services/license_service.dart';
 import 'package:lingbi/services/subscription_service.dart';

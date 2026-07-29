@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/domain/project/project_asset.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';

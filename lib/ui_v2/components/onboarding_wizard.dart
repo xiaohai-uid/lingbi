@@ -16,10 +16,10 @@ library;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/ai/models/endpoint_config.dart';
-import 'package:lingbi/core/ai/provider_factory.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/shared/ai/provider_factory.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 
 /// 首次配置向导页面
 class OnboardingWizard extends StatefulWidget {

@@ -4,7 +4,7 @@
 /// 问题具有题材专业性，不是通用问题套玄幻皮。
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 玄幻长篇引导流程
 ///

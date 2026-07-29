@@ -6,9 +6,9 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_response_normalizer.dart';
-import 'package:lingbi/core/ai/generation_task.dart';
-import 'package:lingbi/core/errors/ai_error.dart';
+import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
+import 'package:lingbi/shared/ai/generation_task.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/services/intent_confirmation_service.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 

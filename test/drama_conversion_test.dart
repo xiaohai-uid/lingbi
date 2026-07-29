@@ -7,7 +7,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/services/drama_conversion_service.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mock ───
 

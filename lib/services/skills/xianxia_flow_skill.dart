@@ -3,7 +3,7 @@
 /// 专属引导：修炼境界/仙门/法宝/天道/劫难
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 仙侠长篇引导流程
 const xianxiaLongFlowDefinition = GuidedFlowDefinition(

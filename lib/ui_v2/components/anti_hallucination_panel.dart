@@ -2,8 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/chapter_state_snapshot.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/chapter_state_snapshot.dart';
 import 'package:lingbi/services/anti_hallucination_service.dart';
 
 class AntiHallucinationPanel extends StatefulWidget {

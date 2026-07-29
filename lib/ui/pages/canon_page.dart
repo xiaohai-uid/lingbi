@@ -1,7 +1,7 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:flutter/material.dart';
-import '../../core/models/canon_entry.dart';
+import '../../shared/models/canon_entry.dart';
 
 class CanonPage extends StatefulWidget {
 

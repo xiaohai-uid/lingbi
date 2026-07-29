@@ -1,4 +1,4 @@
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/canon_service.dart';
 
 class CanonLinkingService {

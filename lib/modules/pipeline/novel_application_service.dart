@@ -7,8 +7,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';

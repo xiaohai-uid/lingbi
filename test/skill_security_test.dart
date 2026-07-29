@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/skill/skill_audit_log.dart';
 import 'package:lingbi/services/skill/skill_executor.dart';
 import 'package:lingbi/services/skill/skill_manifest_verifier.dart';

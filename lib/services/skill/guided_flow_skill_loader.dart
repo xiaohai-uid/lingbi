@@ -7,7 +7,7 @@ library;
 
 import 'dart:io';
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 import 'package:lingbi/services/guided_flow_engine.dart';
 import 'package:lingbi/services/skill/skill_manifest.dart';
 

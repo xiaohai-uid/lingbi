@@ -2,7 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/six_dimension_review_service.dart';
 
 class SixDimensionReviewPanel extends StatefulWidget {

@@ -8,7 +8,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/main.dart';
 import 'package:lingbi/ui_v2/feature_flag.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';

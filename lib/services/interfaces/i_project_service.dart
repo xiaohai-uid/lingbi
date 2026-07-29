@@ -1,4 +1,4 @@
-import 'package:lingbi/core/models/project.dart';
+import 'package:lingbi/shared/models/project.dart';
 
 /// 项目管理服务接口
 abstract class IProjectService {

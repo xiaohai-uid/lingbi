@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/document.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
-import 'package:lingbi/utils/markdown_helper.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
+import 'package:lingbi/shared/utils/markdown_helper.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/services/quota_service.dart';
 
 void main() {

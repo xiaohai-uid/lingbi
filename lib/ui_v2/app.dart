@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'theme/app_theme.dart';
 import 'components/onboarding_gate.dart';
 

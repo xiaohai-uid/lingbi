@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:lingbi/services/interfaces/i_ai_service.dart';
-import '../core/ai/ai_provider.dart';
-import '../core/ai/ai_response_normalizer.dart';
-import '../core/ai/free_provider.dart';
-import '../core/ai/model_registry.dart';
-import '../core/ai/models/endpoint_config.dart';
-import '../core/ai/provider_factory.dart';
-import '../core/errors/ai_error.dart';
+import '../shared/ai/ai_provider.dart';
+import '../shared/ai/ai_response_normalizer.dart';
+import '../shared/ai/free_provider.dart';
+import '../shared/ai/model_registry.dart';
+import '../shared/ai/models/endpoint_config.dart';
+import '../shared/ai/provider_factory.dart';
+import '../shared/errors/ai_error.dart';
 import 'quota_service.dart';
 
 class AIService implements IAIService {

@@ -1,8 +1,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/models/guided_flow_definition.dart';
-import 'package:lingbi/core/models/guided_flow_state.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_state.dart';
 import 'package:lingbi/services/guided_flow_engine.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 

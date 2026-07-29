@@ -1,4 +1,4 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/project_service.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +8,8 @@ import 'package:lingbi/ui/layout/sidebar/project_tree.dart';
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 import 'package:lingbi/ui/layout/ai_panel/ai_panel.dart';
 import 'package:lingbi/ui/pages/project_page.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/services/project_tab_controller.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';

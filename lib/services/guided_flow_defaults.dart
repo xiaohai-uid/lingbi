@@ -4,7 +4,7 @@
 /// 题材 Skill 加载后会替换为专属定义。
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 通用长篇引导流程（世界观 + 核心角色）
 const defaultLongFlowDefinition = GuidedFlowDefinition(

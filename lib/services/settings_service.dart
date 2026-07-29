@@ -8,7 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../services/ai_service.dart';
-import '../core/ai/models/endpoint_config.dart';
+import '../shared/ai/models/endpoint_config.dart';
 
 /// 当前引导配置 schema 版本
 ///

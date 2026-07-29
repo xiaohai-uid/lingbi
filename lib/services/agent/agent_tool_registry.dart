@@ -14,7 +14,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 
 /// 单个工具的执行结果。

@@ -3,7 +3,7 @@
 /// 专属引导：职业体系/都市势力/现实规则/金手指设定
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 都市长篇引导流程
 const dushiLongFlowDefinition = GuidedFlowDefinition(

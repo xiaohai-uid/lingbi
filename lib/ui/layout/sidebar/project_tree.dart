@@ -1,9 +1,9 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/project_service.dart';
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
 import 'project_item.dart';
 
 class ProjectTree extends StatefulWidget {

@@ -1,4 +1,4 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/canon_linking_service.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:flutter/material.dart';

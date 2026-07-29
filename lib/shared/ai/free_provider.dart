@@ -1,4 +1,4 @@
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 /// Free Provider - 免费 AI 服务
 class FreeProvider extends AIProvider {

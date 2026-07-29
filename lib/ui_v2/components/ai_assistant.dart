@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/ai/ai_response_normalizer.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 import 'package:lingbi/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/services/agent/novel_writing_loop.dart';

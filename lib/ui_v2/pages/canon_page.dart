@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
 

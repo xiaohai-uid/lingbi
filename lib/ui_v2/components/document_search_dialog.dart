@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/document.dart';
 import '../theme/tokens.dart';
 
 /// Project-scoped document search results used by the top-bar search action.

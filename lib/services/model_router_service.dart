@@ -6,7 +6,7 @@
 /// - 未配置时降级为当前默认模型
 library;
 
-import '../core/ai/task_model_runtime.dart';
+import '../shared/ai/task_model_runtime.dart';
 
 // ─── 数据模型 ───
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/models/project.dart';
+import 'package:lingbi/shared/models/project.dart';
 
 /// 项目 Tab 模型
 class ProjectTab {

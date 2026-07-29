@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:lingbi/services/interfaces/i_project_service.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/services/project_brief_repository.dart';
 import 'package:lingbi/services/template_seeder.dart';

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/services/skill/skill_executor.dart';
 import 'package:lingbi/services/skill/skill_loader.dart';

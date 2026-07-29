@@ -13,7 +13,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/errors/ai_error.dart';
+import '../../shared/errors/ai_error.dart';
 import '../../modules/pipeline/candidate_service.dart';
 import '../../modules/pipeline/novel_application_service.dart';
 import '../../modules/pipeline/project_scope_api.dart';

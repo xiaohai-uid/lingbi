@@ -7,7 +7,7 @@ library;
 
 import 'dart:io';
 
-import 'package:lingbi/core/models/canon_entry.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/services/skill/skill_audit_log.dart';
 import 'package:lingbi/services/skill/skill_manifest.dart';

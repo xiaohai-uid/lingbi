@@ -2,17 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/sensenova_provider.dart';
-import 'package:lingbi/core/database/story_beats_repository.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
-import 'package:lingbi/core/file_system/sync_service.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/story_beat.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/database/story_beats_repository.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
+import 'package:lingbi/shared/file_system/sync_service.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/export_service.dart';
@@ -20,7 +20,7 @@ import 'package:lingbi/services/project_service.dart';
 import 'package:lingbi/services/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/services/version_history_service.dart';
-import 'package:lingbi/utils/paths.dart';
+import 'package:lingbi/shared/utils/paths.dart';
 
 /// 灵笔全功能集成测试
 ///

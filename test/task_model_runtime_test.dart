@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/core/ai/task_model_runtime.dart';
-import 'package:lingbi/core/errors/ai_error.dart';
-import 'package:lingbi/core/models/model_snapshot.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/shared/ai/task_model_runtime.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
+import 'package:lingbi/shared/models/model_snapshot.dart';
 import 'package:lingbi/services/model_router_service.dart';
 
 void main() {

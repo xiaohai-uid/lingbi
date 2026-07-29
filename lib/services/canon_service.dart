@@ -1,8 +1,8 @@
 import 'package:lingbi/services/interfaces/i_canon_service.dart';
 import 'package:flutter/foundation.dart';
-import '../core/models/canon_entry.dart';
-import '../core/database/zvec_service.dart';
-import '../core/ai/ai_provider.dart';
+import '../shared/models/canon_entry.dart';
+import '../shared/database/zvec_service.dart';
+import '../shared/ai/ai_provider.dart';
 
 class CanonService implements ICanonService {
 

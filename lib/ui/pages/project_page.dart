@@ -1,4 +1,4 @@
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/version_history_service.dart';
 import 'package:lingbi/services/export_service.dart';
 import 'package:lingbi/services/document_service.dart';
@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/modules/pipeline/project_session_scope.dart';
 import 'package:lingbi/ui/layout/main_scaffold.dart';
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';

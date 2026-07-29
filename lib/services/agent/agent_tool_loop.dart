@@ -10,7 +10,7 @@
 ///   自动回退到确定性的 NovelWritingLoop，保证免费模型也能出稿。
 library;
 
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/agent/session_compactor.dart';

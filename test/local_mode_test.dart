@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/main.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/services/export_service.dart';
@@ -12,8 +12,8 @@ import 'package:lingbi/services/version_history_service.dart';
 import 'package:lingbi/services/quota_service.dart';
 import 'package:lingbi/services/project_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
 
 /// 本地优先模式测试套件
 ///

@@ -5,8 +5,8 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/strand_weave_config.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/strand_weave_config.dart';
 
 /// StrandWeave 配比设定面板
 class StrandWeavePanel extends StatefulWidget {

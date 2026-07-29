@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/models/project.dart';
+import '../../shared/models/project.dart';
 import '../../domain/project/project_asset.dart';
 import '../../services/project_asset_repository.dart';
 import '../components/project_asset_card.dart';

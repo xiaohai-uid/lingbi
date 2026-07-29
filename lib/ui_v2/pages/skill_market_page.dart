@@ -1,7 +1,7 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/skill/distillation_service.dart';
 import 'package:lingbi/services/skill_marketplace.dart';
 import '../theme/tokens.dart';

@@ -1,4 +1,4 @@
-import 'package:lingbi/core/models/document.dart';
+import 'package:lingbi/shared/models/document.dart';
 
 /// 文档服务接口
 abstract class IDocumentService {

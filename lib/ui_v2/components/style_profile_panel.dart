@@ -6,8 +6,8 @@ library;
 
 import 'package:flutter/material.dart';
 
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/models/style_profile.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/style_profile.dart';
 
 /// 风格档案面板
 class StyleProfilePanel extends StatefulWidget {

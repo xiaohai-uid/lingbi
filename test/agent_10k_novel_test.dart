@@ -9,7 +9,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/ai/sensenova_provider.dart';
 import 'package:lingbi/services/agent/novel_writing_loop.dart';
 
 void main() {

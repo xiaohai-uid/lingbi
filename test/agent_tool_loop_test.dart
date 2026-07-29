@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/services/agent/session_compactor.dart';

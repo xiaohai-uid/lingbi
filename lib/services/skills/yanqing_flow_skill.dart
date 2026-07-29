@@ -3,7 +3,7 @@
 /// 专属引导：感情线设计/CP互动模式/虐甜节奏/误会机制
 library;
 
-import 'package:lingbi/core/models/guided_flow_definition.dart';
+import 'package:lingbi/shared/models/guided_flow_definition.dart';
 
 /// 言情长篇引导流程
 const yanqingLongFlowDefinition = GuidedFlowDefinition(

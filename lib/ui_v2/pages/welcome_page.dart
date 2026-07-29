@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/models/project.dart';
+import '../../shared/models/project.dart';
 import '../models/project_template.dart';
 import '../theme/lingbi_icons.dart';
 import '../theme/tokens.dart';
