@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'shared/di/service_locator.dart';
 import 'shared/utils/paths.dart';
 
-import 'ui/theme/app_theme.dart';
-import 'ui/pages/home_page.dart';
-import 'ui_v2/feature_flag.dart';
+import 'ui_v2/theme/app_theme.dart';
 import 'ui_v2/app.dart';
 
 void main() async {
@@ -62,15 +60,13 @@ class _LingBiAppState extends State<LingBiApp> {
     return MaterialApp(
       title: '灵笔',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       themeMode: _locator.initSucceeded
           ? _locator.settingsService.themeMode
           : ThemeMode.light,
       home: _locator.initSucceeded
-          ? (UIFeatureFlag.useNewUI
-              ? LingBiAppV3(locator: _locator)
-              : const HomePage())
+          ? LingBiAppV3(locator: _locator)
           : _LocalModeHome(workDir: widget.localWorkDir),
     );
   }
