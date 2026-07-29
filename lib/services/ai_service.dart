@@ -8,7 +8,7 @@ import '../shared/ai/model_registry.dart';
 import '../shared/ai/models/endpoint_config.dart';
 import '../shared/ai/provider_factory.dart';
 import '../shared/errors/ai_error.dart';
-import 'quota_service.dart';
+import '../features/settings/data/quota_service.dart';
 
 class AIService implements IAIService {
   AIService({required QuotaService quotaService}) : _quota = quotaService;

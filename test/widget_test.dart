@@ -4,7 +4,7 @@ import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/shared/utils/markdown_helper.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 
 void main() {
   group('Project', () {

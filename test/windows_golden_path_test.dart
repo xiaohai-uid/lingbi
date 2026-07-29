@@ -13,7 +13,7 @@ import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/services/project_asset_repository.dart';
 import 'package:lingbi/services/project_onboarding_workflow.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/ui_v2/components/project_brief_sheet.dart';
 import 'package:lingbi/ui_v2/controllers/project_session_manager.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 
 void main() {
   group('设置页模型管理功能', () {

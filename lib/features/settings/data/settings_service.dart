@@ -1,14 +1,14 @@
 import 'package:lingbi/services/interfaces/i_settings_service.dart';
 import 'package:lingbi/services/sync/webdav_service.dart';
 import 'package:lingbi/services/sync/sync_manager.dart';
-import 'package:lingbi/services/subscription_service.dart';
+import 'package:lingbi/features/settings/data/subscription_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import '../services/ai_service.dart';
-import '../shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 
 /// 当前引导配置 schema 版本
 ///

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 
 void main() {
   group('异常和兼容验证 — 12 种场景', () {

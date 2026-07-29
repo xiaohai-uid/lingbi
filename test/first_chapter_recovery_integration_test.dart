@@ -8,7 +8,7 @@ import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/services/project_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';

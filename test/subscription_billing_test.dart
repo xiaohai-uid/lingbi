@@ -12,7 +12,7 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/subscription_service.dart';
+import 'package:lingbi/features/settings/data/subscription_service.dart';
 import 'package:lingbi/services/license_service.dart';
 
 void main() {

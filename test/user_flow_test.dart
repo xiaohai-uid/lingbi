@@ -14,8 +14,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/services/project_tab_controller.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/quota_service.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:lingbi/ui/layout/editor/editor_panel.dart';
 
 void main() {

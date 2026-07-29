@@ -20,7 +20,7 @@ import '../pages/import_export_page.dart';
 import '../pages/project_overview_page.dart';
 import '../pages/project_onboarding_page.dart';
 import '../pages/skill_market_page.dart';
-import '../pages/settings_page.dart';
+import 'package:lingbi/features/settings/ui/settings_page.dart';
 import '../services/command_palette_service.dart';
 import 'toolbox_page.dart';
 import 'project_brief_sheet.dart';

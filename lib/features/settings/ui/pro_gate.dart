@@ -7,9 +7,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/subscription_service.dart';
-import '../theme/tokens.dart';
-import '../theme/lingbi_icons.dart';
+import 'package:lingbi/features/settings/data/subscription_service.dart';
+import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
 
 /// Pro 功能门禁包装器
 ///

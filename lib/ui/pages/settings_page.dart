@@ -1,5 +1,5 @@
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {

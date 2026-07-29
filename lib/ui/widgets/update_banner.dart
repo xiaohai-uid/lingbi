@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/update_checker.dart';
+import '../../features/settings/data/update_checker.dart';
 
 /// 更新通知横幅 — 当有新版本时显示在顶部
 class UpdateBanner extends StatelessWidget {

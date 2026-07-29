@@ -3,7 +3,7 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 import 'package:lingbi/shared/ai/runtime_model_selection.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 
 void main() {
   late AIService aiService;
