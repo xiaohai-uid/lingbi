@@ -9,6 +9,7 @@ import 'package:lingbi/core/models/document.dart' as app;
 import 'package:lingbi/modules/pipeline/candidate_service.dart';
 import 'package:lingbi/modules/pipeline/novel_application_service.dart';
 import 'package:lingbi/services/agent/novel_writing_loop.dart';
+import 'package:lingbi/services/chapter_settlement_service.dart';
 import 'package:lingbi/services/skill_action_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
@@ -18,6 +19,7 @@ import '../theme/lingbi_icons.dart';
 import '../components/writing_toolbar.dart';
 import '../components/slash_command_menu.dart';
 import '../components/candidate_panel.dart';
+import '../components/chapter_settlement_panel.dart';
 import '../components/model_status_bar.dart';
 import '../components/error_banner.dart';
 import '../services/command_palette_service.dart';
@@ -71,6 +73,8 @@ class _EditorPageState extends State<EditorPage> {
 
   // AI 续写下一章（NovelWritingLoop）：待确认候选，采纳后原子写入新章节文件
   ChapterCandidate? _pendingLoopCandidate;
+  SettlementProposal? _pendingSettlement;
+  bool _isSettling = false;
 
   // T4: 清晰度检查状态
   final ClarityCheckService _clarityCheck = ClarityCheckService();
@@ -166,6 +170,8 @@ class _EditorPageState extends State<EditorPage> {
     if (oldWidget.projectId != widget.projectId ||
         oldWidget.projectDirectoryPath != widget.projectDirectoryPath) {
       _chapterWorkflow = null;
+      _pendingSettlement = null;
+      _isSettling = false;
     }
     if (oldWidget.documentId != widget.documentId ||
         oldWidget.projectId != widget.projectId) {
@@ -258,6 +264,25 @@ class _EditorPageState extends State<EditorPage> {
       pipeline: NovelFirstChapterPipeline(application),
       stateStore:
           FileFirstChapterStateStore(projectDirectory: projectDirectory),
+    );
+  }
+
+  NovelApplicationService? _createSettlementApplication() {
+    final projectId = widget.projectId;
+    final projectDirectory = widget.projectDirectoryPath;
+    if (projectId == null ||
+        projectId.isEmpty ||
+        projectDirectory == null ||
+        projectDirectory.isEmpty) {
+      return null;
+    }
+    final locator = ServiceLocator.instance;
+    return NovelApplicationService(
+      projectDir: projectDirectory,
+      projectId: projectId,
+      documentService: locator.documentService,
+      canonService: locator.canonService,
+      aiService: locator.aiService,
     );
   }
 
@@ -562,7 +587,8 @@ class _EditorPageState extends State<EditorPage> {
           createdAt: DateTime.now(),
         );
         _showCandidatePanel = true;
-        _aiError = candidate.warnings.isEmpty ? null : candidate.warnings.join('\n');
+        _aiError =
+            candidate.warnings.isEmpty ? null : candidate.warnings.join('\n');
       });
     } catch (e) {
       if (!mounted) return;
@@ -593,13 +619,47 @@ class _EditorPageState extends State<EditorPage> {
         _showCandidatePanel = false;
         _currentCandidate = null;
         _aiError = null;
+        _pendingSettlement = null;
+        _isSettling = true;
+      });
+
+      final application = _createSettlementApplication();
+      if (application == null) {
+        setState(() {
+          _isSettling = false;
+          _aiError = '章节已写入，但项目上下文不可用，无法生成状态结算';
+        });
+        return;
+      }
+      final settlement = await application.proposeSettlement(
+        chapterId: '第${candidate.chapterNumber}章',
+        candidateId: 'loop-ch${candidate.chapterNumber}',
+        adoptedContent: candidate.content,
+      );
+      if (!mounted) return;
+      setState(() {
+        _isSettling = false;
+        if (settlement.isSuccess) {
+          _pendingSettlement = settlement.data;
+        } else {
+          _aiError = '章节已写入，但状态结算失败: ${settlement.error!.message}';
+        }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已写入：${result.chapterPath}')),
+        SnackBar(
+          content: Text(
+            settlement.isSuccess
+                ? '已写入章节，请确认状态结算'
+                : '已写入：${result.chapterPath}',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _aiError = '章节落盘失败: $e');
+      setState(() {
+        _isSettling = false;
+        _aiError = '章节落盘失败: $e';
+      });
     }
   }
 
@@ -715,6 +775,70 @@ class _EditorPageState extends State<EditorPage> {
                   onAdopt: _handleAdopt,
                   onDiscard: _handleDiscard,
                   onRegenerate: _handleRegenerate,
+                ),
+              ),
+            if (_isSettling)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 10, 12, 0),
+                child: Row(
+                  children: [
+                    SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('章节已写入，正在提取客观状态变化…'),
+                  ],
+                ),
+              ),
+            if (_pendingSettlement != null)
+              Padding(
+                padding: const EdgeInsets.all(LingBiTokens.space3),
+                child: ChapterSettlementPanel(
+                  proposal: _pendingSettlement!,
+                  onConfirm: (selectedIndexes) async {
+                    final proposal = _pendingSettlement;
+                    final projectDirectory = widget.projectDirectoryPath;
+                    if (proposal == null || projectDirectory == null) return;
+                    try {
+                      final result = await ChapterSettlementService(
+                        projectDir: projectDirectory,
+                      ).applyApprovedFacts(
+                        proposal,
+                        selectedIndexes: selectedIndexes,
+                      );
+                      if (!context.mounted) return;
+                      setState(() => _pendingSettlement = null);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '已记录 ${result.appliedCount} 条章节状态变化',
+                          ),
+                        ),
+                      );
+                    } catch (error) {
+                      if (mounted) {
+                        setState(() => _aiError = '状态结算写入失败: $error');
+                      }
+                    }
+                  },
+                  onSkip: () async {
+                    final proposal = _pendingSettlement;
+                    final projectDirectory = widget.projectDirectoryPath;
+                    if (proposal == null || projectDirectory == null) return;
+                    try {
+                      await ChapterSettlementService(
+                        projectDir: projectDirectory,
+                      ).recordDeferredDecision(proposal);
+                      if (mounted) {
+                        setState(() => _pendingSettlement = null);
+                      }
+                    } catch (error) {
+                      if (mounted) {
+                        setState(() => _aiError = '暂不更新失败: $error');
+                      }
+                    }
+                  },
                 ),
               ),
             Expanded(
