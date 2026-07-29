@@ -1,8 +1,8 @@
 # P0 Windows 发布门禁
 
-日期：2026-07-28
+日期：2026-07-29
 
-分支：`agent/lingbi-openwrite-commercial-delta`
+分支：`agent/openwrite-parity-ui`
 
 ## 自动化硬门禁
 
@@ -30,14 +30,15 @@
 - [x] 文稿、版本和导出采用临时文件 + flush + 原子替换 + `.bak` 回退。
 - [x] 回收站为软删除，恢复中心统一列出候选稿、版本、快照和回收站。
 - [x] 项目包包含 schema、文件分类、大小和 SHA-256；损坏、路径穿越和非空目标目录均拒绝导入。
-- [x] 未实现标准 DOCX 时不再宣称支持 Word。
+- [x] DOCX 导出生成可解包的标准 OOXML 部件并包含章节正文；`test/openwrite_delta_test.dart` 覆盖。
 
 ## Task 1 源码与发布证据门禁
 
 - [x] 导入的生产源码、`pubspec.lock` 和本清单均由 Git 跟踪；`test/release_metadata_contract_test.dart` 覆盖。
 - [ ] `dart format --output=none --set-exit-if-changed lib test tool`：基线仍有 173 个历史文件未格式化；Task 1 未做全库机械改写。
 - [x] `flutter analyze lib/`：`No issues found`。
-- [x] `flutter test`：1002 tests，零失败。
+- [x] `flutter test --exclude-tags network`：1056 tests，零失败。
+- [ ] 实时 10K 小说验收：此前成功生成 12577 中文字；2026-07-29 重跑被 SenseNova 429 限流阻断，保持 `BLOCKED_EXTERNAL`，且错误提示不会再被落盘为章节。
 - [x] `flutter build windows --release`：成功生成 `lingbi.exe`。
 - [x] `tool/windows/package_release.ps1 -SkipBuild`：成功生成便携包。
 - [x] `SHA256SUMS.txt` 使用包内相对路径，`PROVENANCE.json` 记录版本和源码 commit/ref/dirty 状态。

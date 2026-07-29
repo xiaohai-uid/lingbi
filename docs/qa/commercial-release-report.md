@@ -1,8 +1,10 @@
 # LingBi Commercial Release Evidence
 
-**Evidence date:** 2026-07-28
+**Evidence date:** 2026-07-29
 
-**Branch:** `agent/lingbi-openwrite-commercial-delta`
+**Branch:** `agent/openwrite-parity-ui`
+
+**Evidence commit:** `700b2f04fd84ccae656654b339d38d929ca602a2`
 
 **Release metadata version:** `1.0.1`
 
@@ -15,13 +17,31 @@ This report records repository evidence; it is not a commercial-readiness certif
 | Tracked imported sources, `pubspec.lock`, and QA gates | PASS — `test/release_metadata_contract_test.dart` (4/4) |
 | App/launcher/installer/README version agreement | PASS — `1.0.1` |
 | `flutter analyze lib/` | PASS — `No issues found` |
-| `flutter test` | PASS — 1002 tests, 0 failures |
-| `flutter build windows --release` | PASS locally; CI runs for pull requests and protected-branch pushes |
-| Portable package | PASS locally — relative-path `SHA256SUMS.txt` and `PROVENANCE.json` emitted |
+| `flutter test --exclude-tags network` | PASS — 1056 tests, 0 failures |
+| Live 10K provider acceptance | BLOCKED_EXTERNAL — an earlier run produced 12577 Chinese characters; the 2026-07-29 rerun hit SenseNova HTTP 429 after chapter 1 |
+| `flutter build windows --release` | PASS — `build/windows/x64/runner/Release/lingbi.exe` |
+| Portable package | PASS — relative-path `SHA256SUMS.txt`; `PROVENANCE.json` records commit `700b2f0` and `source_dirty: false` |
 | Repository-wide format check | FAIL (pre-existing) — 173 historical files would change; no broad reformat was applied in Task 1 |
 | Installer/upgrade/uninstall/rollback matrix | Not yet executed; release remains not commercially ready |
 
-P1 long-form evaluation in this repository is synthetic and is not accepted as professional-user or live-provider evidence. A live-provider run without real credentials is not evidence of provider acceptance.
+The deterministic suite is release evidence for repository behavior, not a substitute for provider availability or professional-user acceptance. Provider error text is now rejected at the chapter commit boundary instead of being saved as content.
+
+## OpenWrite capability-parity slice
+
+| Capability | Status | Current evidence / limit |
+|------------|--------|--------------------------|
+| Multi-provider model selection and routing | REAL | Runtime selector, endpoint settings, task routing and rollback tests |
+| Project-aware AI read/search/write tools | REAL | Sandboxed `file_read`, `file_write`, `list_dir`, project document search and explicit write confirmation |
+| Web search with source insertion | REAL | AI assistant source browser inserts attributed context blocks |
+| Long-session context compression | REAL | `SessionCompactor` is wired into `AgentToolLoop` and preserves tool-call pairs |
+| Novel-writer context assembly | REAL | Maintenance documents, Canon and recent chapters are compiled with mandatory priority |
+| Candidate-first chapter generation | REAL | Candidate preview, rejection/regeneration, explicit adoption and atomic write |
+| Post-chapter state settlement | REAL | Extracted facts require selection/confirmation before updating `章节摘要.md`; decisions are persisted |
+| Project-backed six-dimension review | REAL | Selects real project documents, uses document ID and persists historical/latest JSON reports |
+| Skill discovery/marketplace | REAL | Built-in/local discovery, install/update rollback and agent `skill_lookup`; remote trust remains policy-bound |
+| WebDAV project sync | PARTIAL | Round-trip and conflict behavior are tested; production server interoperability remains external |
+| TXT/Markdown/DOCX export | REAL | DOCX OOXML parts and content are tested; chapter selection is available in publish workflow |
+| Licensed ranking/market data | BLOCKED_EXTERNAL | Bundled sample snapshots are clearly labeled; no licensed production connector exists |
 
 ## Capability audit
 
@@ -43,7 +63,7 @@ P1 long-form evaluation in this repository is synthetic and is not accepted as p
 | 14 | Explainable context compiler | PARTIAL | Compiler exists; real chapter/Canon/onboarding bridge is incomplete |
 | 15 | Continuity gates | PARTIAL | Unit-level gates exist; production generation path is incomplete |
 | 16 | Planning matrix | PARTIAL | Scene-card domain exists; complete writing workflow is unverified |
-| 17 | Whole-book review with evidence | PARTIAL | Workflow tests exist; persisted restart-safe change plan is incomplete |
+| 17 | Whole-book review with evidence | PARTIAL | Project-backed chapter review now persists evidence; restart-safe whole-book change plans remain incomplete |
 | 18 | Safe change propagation | PARTIAL | No-silent-edit tests exist; full downstream application path is incomplete |
 | 19 | Signed skill manifests and audit log | PARTIAL | Sources are tracked; production workflow/approval trust chain is incomplete |
 | 20 | Skill marketplace rollback | PARTIAL | Unit tests exist; production install/update path remains unverified |
@@ -58,7 +78,7 @@ P1 long-form evaluation in this repository is synthetic and is not accepted as p
 | 29 | Entitlements and billing boundary | PARTIAL | Billing is safely disabled; asymmetric production license trust root is incomplete |
 | 30 | Privacy-first diagnostics | PARTIAL | Types/services exist; one persistent DI preference and record-time consent remain incomplete |
 | 31 | Windows migration and rollback | PARTIAL | Migration helpers exist; open/register/restart transaction and install matrix are incomplete |
-| 32 | Standards-compliant DOCX export | NOT_IMPLEMENTED | Word export is not advertised |
+| 32 | Standards-compliant DOCX export | REAL | OOXML package and document content are verified in `test/openwrite_delta_test.dart` |
 | 33 | General terminal/system-command tools | DISABLED | Separate reviewed sandbox is required before enablement |
 
 ## External gates
