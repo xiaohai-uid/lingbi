@@ -13,11 +13,19 @@ void main() {
       final tracked = _gitLines(repositoryRoot, ['ls-files']).toSet();
       final requiredEvidence = {
         'pubspec.lock',
+        'CHANGELOG.md',
+        'CONTRIBUTING.md',
+        'SECURITY.md',
+        'docs/FAQ.md',
+        'docs/GETTING_STARTED.md',
         'docs/qa/p0-windows-release-checklist.md',
         'docs/qa/commercial-release-report.md',
         '.github/workflows/ci.yml',
+        '.github/workflows/release.yml',
+        'tool/windows/build_release_assets.ps1',
         'tool/windows/package_release.ps1',
         'tool/windows/release_path_guard.ps1',
+        'tool/windows/smoke_test_installer.ps1',
       };
 
       expect(
@@ -107,6 +115,46 @@ void main() {
       expect(workflow, contains('PROVENANCE.json'));
     });
 
+    test('version tags publish both beginner-friendly Windows packages', () {
+      final workflow = File(
+        p.join(repositoryRoot.path, '.github', 'workflows', 'release.yml'),
+      ).readAsStringSync();
+      final builder = File(
+        p.join(
+          repositoryRoot.path,
+          'tool',
+          'windows',
+          'build_release_assets.ps1',
+        ),
+      ).readAsStringSync();
+
+      expect(workflow, contains("tags: ['v*']"));
+      expect(workflow, contains('contents: write'));
+      expect(workflow, contains('build_release_assets.ps1'));
+      expect(workflow, contains('smoke_test_installer.ps1'));
+      expect(workflow, contains('gh release create'));
+      expect(builder, contains('Lingbi-Windows-Portable-'));
+      expect(builder, contains('Lingbi-Setup-'));
+      expect(builder, contains('SHA256SUMS.txt'));
+      expect(builder, contains('PROVENANCE.json'));
+      expect(builder, contains('Assert-SafeReleaseOutputPath'));
+    });
+
+    test('Windows binaries and installer expose public product metadata', () {
+      final resource = File(
+        p.join(repositoryRoot.path, 'windows', 'runner', 'Runner.rc'),
+      ).readAsStringSync();
+      final installer = File(
+        p.join(repositoryRoot.path, 'installer', 'lingbi_setup.iss'),
+      ).readAsStringSync();
+
+      expect(resource, contains('LingBi Open Source Contributors'));
+      expect(resource, contains('灵笔 (LingBi)'));
+      expect(resource, isNot(contains('com.example')));
+      expect(installer, isNot(contains(r'launcher\build')));
+      expect(installer, contains('PrivilegesRequiredOverridesAllowed=commandline'));
+    });
+
     test('CI toolchain matches the enforced lockfile SDK floor', () {
       final workflow = File(
         p.join(repositoryRoot.path, '.github', 'workflows', 'ci.yml'),
@@ -193,7 +241,9 @@ void main() {}
         sha256.convert(executable.readAsBytesSync()).toString().toUpperCase();
     expect(sums, contains('$expectedHash  lingbi.exe'));
     expect(sums.any((line) => line.endsWith('  data/asset.bin')), isTrue);
+    expect(sums.any((line) => line.endsWith('  README.txt')), isTrue);
     expect(sums.any((line) => line.contains(temp.path)), isFalse);
+    expect(File(p.join(outputDir, 'README.txt')).existsSync(), isTrue);
 
     final provenance = jsonDecode(
       File(p.join(outputDir, 'PROVENANCE.json')).readAsStringSync(),

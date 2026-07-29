@@ -37,10 +37,11 @@
 - [x] 导入的生产源码、`pubspec.lock` 和本清单均由 Git 跟踪；`test/release_metadata_contract_test.dart` 覆盖。
 - [ ] `dart format --output=none --set-exit-if-changed lib test tool`：基线仍有 173 个历史文件未格式化；Task 1 未做全库机械改写。
 - [x] `flutter analyze lib/`：`No issues found`。
-- [x] `flutter test --exclude-tags network`：1056 tests，零失败。
+- [x] `flutter test --exclude-tags network`：1058 tests，零失败。
 - [ ] 实时 10K 小说验收：此前成功生成 12577 中文字；2026-07-29 重跑被 SenseNova 429 限流阻断，保持 `BLOCKED_EXTERNAL`，且错误提示不会再被落盘为章节。
 - [x] `flutter build windows --release`：成功生成 `lingbi.exe`。
 - [x] `tool/windows/package_release.ps1 -SkipBuild`：成功生成便携包。
+- [x] `tool/windows/smoke_test_installer.ps1`：安装、启动、卸载和程序文件移除通过。
 - [x] `SHA256SUMS.txt` 使用包内相对路径，`PROVENANCE.json` 记录版本和源码 commit/ref/dirty 状态。
 - [ ] 干净安装、升级、保留数据卸载和回滚矩阵通过。
 - [ ] 代码签名：`BLOCKED_EXTERNAL`，直到提供真实 Windows 证书。

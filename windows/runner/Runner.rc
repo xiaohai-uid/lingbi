@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "lingbi" "\0"
+            VALUE "CompanyName", "LingBi Open Source Contributors" "\0"
+            VALUE "FileDescription", "灵笔 - AI Writing Studio" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "lingbi" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 LingBi Open Source Contributors" "\0"
             VALUE "OriginalFilename", "lingbi.exe" "\0"
-            VALUE "ProductName", "lingbi" "\0"
+            VALUE "ProductName", "灵笔 (LingBi)" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

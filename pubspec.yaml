@@ -1,7 +1,7 @@
 name: lingbi
 description: 灵笔 - AI 写作助手桌面应用
 publish_to: 'none'
-version: 1.0.1
+version: 1.1.0
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
