@@ -1,4 +1,4 @@
-import 'package:lingbi/services/interfaces/i_version_history_service.dart';
+import 'package:lingbi/shared/interfaces/i_version_history_service.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:lingbi/services/atomic_file_store.dart';

@@ -18,7 +18,7 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/models/guided_flow_definition.dart';
 import 'package:lingbi/shared/models/guided_flow_state.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 /// 完成判定结果
 class CompletionJudgment {

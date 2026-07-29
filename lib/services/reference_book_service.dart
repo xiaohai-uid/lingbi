@@ -11,7 +11,7 @@ library;
 import 'package:http/http.dart' as http;
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 // ─── 数据模型 ───
 

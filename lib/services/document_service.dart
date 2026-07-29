@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:lingbi/services/interfaces/i_document_service.dart';
+import 'package:lingbi/shared/interfaces/i_document_service.dart';
 import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';

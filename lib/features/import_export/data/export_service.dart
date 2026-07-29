@@ -1,4 +1,4 @@
-import 'package:lingbi/services/interfaces/i_export_service.dart';
+import 'package:lingbi/shared/interfaces/i_export_service.dart';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:lingbi/shared/models/document.dart';

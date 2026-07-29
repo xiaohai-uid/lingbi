@@ -7,7 +7,7 @@
 /// 4. 伏笔回收后状态更新为 resolved
 library;
 
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 /// 伏笔状态
 enum ForeshadowingStatus {

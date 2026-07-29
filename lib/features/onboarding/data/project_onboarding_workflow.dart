@@ -1,5 +1,5 @@
 import 'package:lingbi/domain/project/project_asset.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/features/project/data/project_asset_repository.dart';
 
 enum OnboardingQuestion { protagonistGoal, coreObstacle, openingEvent }

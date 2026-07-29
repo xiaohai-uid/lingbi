@@ -4,7 +4,7 @@ import '../../services/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
 import '../../services/foreshadowing_service.dart';
 import '../../features/strand/data/strand_weave_service.dart';
-import '../../services/style_distillation_service.dart';
+import '../../features/style/data/style_distillation_service.dart';
 import '../../services/web_search_service.dart';
 import '../../features/canon/data/canon_service.dart';
 import '../../features/canon/data/canon_linking_service.dart';

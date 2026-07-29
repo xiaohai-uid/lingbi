@@ -1,4 +1,4 @@
-import 'package:lingbi/services/interfaces/i_canon_service.dart';
+import 'package:lingbi/shared/interfaces/i_canon_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';

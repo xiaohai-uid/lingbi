@@ -17,7 +17,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 /// 市场趋势条目 — 单个榜单作品
 class MarketTrendEntry {

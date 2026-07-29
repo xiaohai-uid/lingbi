@@ -12,7 +12,7 @@ import 'dart:convert';
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/models/chapter_state_snapshot.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 /// 反幻觉三定律 prompt 指令
 const antiHallucinationLaws = '''

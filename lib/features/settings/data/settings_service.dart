@@ -1,4 +1,4 @@
-import 'package:lingbi/services/interfaces/i_settings_service.dart';
+import 'package:lingbi/shared/interfaces/i_settings_service.dart';
 import 'package:lingbi/features/sync/data/sync/webdav_service.dart';
 import 'package:lingbi/features/sync/data/sync/sync_manager.dart';
 import 'package:lingbi/features/settings/data/subscription_service.dart';

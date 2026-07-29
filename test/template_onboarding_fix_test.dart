@@ -13,7 +13,7 @@ import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/services/guided_flow_engine.dart';
 import 'package:lingbi/services/guided_flow_defaults.dart';
 import 'package:lingbi/services/genre_seed_data.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:lingbi/features/skill/data/skill/guided_flow_skill_loader.dart';
 import 'package:lingbi/features/skill/data/flows/xuanhuan_flow_skill.dart';

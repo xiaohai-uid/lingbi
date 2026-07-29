@@ -12,7 +12,7 @@ import 'dart:convert';
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/models/strand_weave_config.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 
 /// StrandWeave 多线叙事节奏控制服务
 class StrandWeaveService {

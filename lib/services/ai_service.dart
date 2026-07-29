@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:lingbi/services/interfaces/i_ai_service.dart';
+import 'package:lingbi/shared/interfaces/i_ai_service.dart';
 import '../shared/ai/ai_provider.dart';
 import '../shared/ai/ai_response_normalizer.dart';
 import '../shared/ai/free_provider.dart';
