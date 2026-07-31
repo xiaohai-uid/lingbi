@@ -8,7 +8,9 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:lingbi/features/onboarding/data/first_chapter_trigger.dart';
 import 'package:lingbi/features/onboarding/data/guided_wizard_state_machine.dart';
+import 'package:lingbi/features/onboarding/data/onboarding_di_adapters.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 
 /// 引导型向导页面
@@ -25,6 +27,7 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
   late GuidedWizardStateMachine _machine;
   final _inputController = TextEditingController();
   final _focusNode = FocusNode();
+  bool _isCompleting = false;
 
   @override
   void initState() {
@@ -86,19 +89,52 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
   }
 
   void _completeOnboarding() {
-    // TODO(v1.2-integration): 在 ServiceLocator 中注册 DI 适配器后，
-    // 此处应编排 WizardCompletionWorkflow.execute(_machine) 创建项目+正典，
-    // 然后 FirstChapterTrigger.fire(result) 触发第一章生成。
-    // 当前仅标记完成，实际编排在 service_locator 集成层接入。
-    final settings = ServiceLocator.instance.settingsService;
-    settings.updateOnboardingState(
-      settings.onboardingState.copyWith(
-        completed: true,
-        completedAt: DateTime.now(),
-        lastStep: _machine.state.lastStep,
-      ),
-    );
-    widget.onComplete();
+    if (_isCompleting) return;
+    _isCompleting = true;
+
+    final locator = ServiceLocator.instance;
+    final settings = locator.settingsService;
+
+    // 1. 创建项目 + 写入正典
+    locator.wizardCompletionWorkflow.execute(_machine).then((result) {
+      // 2. 触发第一章候选生成（事件流由下游 UI 通过 state store 消费）
+      final target = ProjectFirstChapterTarget(
+        projectDir: result.project.directoryPath,
+        projectId: result.project.id,
+        documentService: locator.documentService,
+        canonService: locator.canonService,
+        aiService: locator.aiService,
+      );
+      final trigger = FirstChapterTrigger(target: target);
+      trigger.fire(result).listen(
+        (_) {},
+        onError: (Object e) {
+          debugPrint('First chapter generation error: $e');
+        },
+      );
+
+      // 3. 标记 onboarding 完成
+      settings.updateOnboardingState(
+        settings.onboardingState.copyWith(
+          completed: true,
+          completedAt: DateTime.now(),
+          lastStep: _machine.state.lastStep,
+        ),
+      );
+
+      // 4. 导航到主界面
+      widget.onComplete();
+    }).catchError((Object error) {
+      // 降级：编排失败仍标记完成，用户可手动创建项目
+      settings.updateOnboardingState(
+        settings.onboardingState.copyWith(
+          completed: true,
+          completedAt: DateTime.now(),
+          lastStep: _machine.state.lastStep,
+        ),
+      );
+      widget.onComplete();
+    });
   }
 
   String _defaultHint() {

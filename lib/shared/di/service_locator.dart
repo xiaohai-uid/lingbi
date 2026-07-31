@@ -24,6 +24,8 @@ import '../../services/intent_confirmation_service.dart';
 import '../../features/project/data/project_meta_repository.dart';
 import '../../features/project/data/project_asset_repository.dart';
 import '../../features/onboarding/data/project_onboarding_workflow.dart';
+import '../../features/onboarding/data/wizard_completion_workflow.dart';
+import '../../features/onboarding/data/onboarding_di_adapters.dart';
 import '../../features/project/data/project_service.dart';
 import '../../features/project/data/project_tab_controller.dart';
 import '../../features/settings/data/quota_service.dart';
@@ -60,6 +62,7 @@ import '../file_system/file_service.dart';
 import '../file_system/sync_service.dart';
 import '../ai/provider_factory.dart';
 import '../ai/runtime_model_selection.dart';
+import '../utils/paths.dart';
 
 /// 服务定位器 - 集中管理所有 Service 的创建和生命周期
 ///
@@ -125,6 +128,7 @@ class ServiceLocator {
   late final ProjectMetaRepository projectMetaRepository;
   late final ProjectAssetRepository projectAssetRepository;
   late final ProjectOnboardingWorkflow projectOnboardingWorkflow;
+  late final WizardCompletionWorkflow wizardCompletionWorkflow;
   late final GuidedFlowEngine guidedFlowEngine;
   late final GuidedFlowSkillLoader guidedFlowSkillLoader;
   late final AntiHallucinationService antiHallucinationService;
@@ -215,6 +219,11 @@ class ServiceLocator {
       locator.projectOnboardingWorkflow = ProjectOnboardingWorkflow(
         metaRepository: locator.projectMetaRepository,
         assetRepository: locator.projectAssetRepository,
+      );
+      locator.wizardCompletionWorkflow = WizardCompletionWorkflow(
+        projectCreator: ProjectServiceAdapter(locator.projectService),
+        canonWriter: CanonServiceAdapter(locator.canonService),
+        projectRootResolver: resolveDefaultProjectRoot,
       );
       locator.guidedFlowEngine = GuidedFlowEngine(
         metaRepository: locator.projectMetaRepository,
