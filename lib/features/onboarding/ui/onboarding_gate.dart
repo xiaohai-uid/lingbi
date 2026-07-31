@@ -10,7 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'onboarding_wizard.dart';
+import 'guided_wizard_page.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';
 
 /// 引导门禁 — 根据 OnboardingState 决定显示向导或主界面
@@ -60,7 +60,7 @@ class _OnboardingGateState extends State<OnboardingGate> {
   @override
   Widget build(BuildContext context) {
     if (_needsOnboarding) {
-      return OnboardingWizard(onComplete: _onOnboardingComplete);
+      return GuidedWizardPage(onComplete: _onOnboardingComplete);
     }
     return AppScaffold(
       isDarkMode: widget.isDarkMode,

@@ -26,6 +26,7 @@ class OnboardingState {
     this.selectedModelId,
     this.localOnlyMode = false,
     this.lastStep = 0,
+    this.wizardStateJson,
   });
 
   /// 全新安装时的初始状态
@@ -36,7 +37,8 @@ class OnboardingState {
         selectedProviderId = null,
         selectedModelId = null,
         localOnlyMode = false,
-        lastStep = 0;
+        lastStep = 0,
+        wizardStateJson = null;
 
   factory OnboardingState.fromJson(Map<String, dynamic> json) {
     return OnboardingState(
@@ -49,6 +51,7 @@ class OnboardingState {
       selectedModelId: json['selectedModelId'] as String?,
       localOnlyMode: json['localOnlyMode'] as bool? ?? false,
       lastStep: json['lastStep'] as int? ?? 0,
+      wizardStateJson: json['wizardState'] as Map<String, dynamic>?,
     );
   }
 
@@ -73,6 +76,9 @@ class OnboardingState {
   /// 上次停留步骤（中途退出恢复）
   final int lastStep;
 
+  /// 引导型向导状态机的序列化快照（用于中断恢复）
+  final Map<String, dynamic>? wizardStateJson;
+
   /// 是否需要展示引导向导
   ///
   /// 条件：未完成 或 schema 版本不匹配
@@ -88,6 +94,7 @@ class OnboardingState {
         if (selectedModelId != null) 'selectedModelId': selectedModelId,
         'localOnlyMode': localOnlyMode,
         'lastStep': lastStep,
+        if (wizardStateJson != null) 'wizardState': wizardStateJson,
       };
 
   OnboardingState copyWith({
@@ -98,6 +105,7 @@ class OnboardingState {
     String? selectedModelId,
     bool? localOnlyMode,
     int? lastStep,
+    Map<String, dynamic>? wizardStateJson,
   }) {
     return OnboardingState(
       completed: completed ?? this.completed,
@@ -107,6 +115,7 @@ class OnboardingState {
       selectedModelId: selectedModelId ?? this.selectedModelId,
       localOnlyMode: localOnlyMode ?? this.localOnlyMode,
       lastStep: lastStep ?? this.lastStep,
+      wizardStateJson: wizardStateJson ?? this.wizardStateJson,
     );
   }
 
@@ -388,6 +397,13 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   /// 更新引导步骤（中途退出恢复）
   void updateOnboardingStep(int step) {
     _onboardingState = _onboardingState.copyWith(lastStep: step);
+    _save();
+  }
+
+  /// 更新引导状态（通用，由引导型向导调用）
+  void updateOnboardingState(OnboardingState state) {
+    _onboardingState = state;
+    notifyListeners();
     _save();
   }
 
