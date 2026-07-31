@@ -5,14 +5,15 @@ import '../theme/lingbi_icons.dart';
 enum ProjectTab {
   overview('总览', Icons.space_dashboard_outlined),
   writing('写作', LingBiIcons.editor),
-  ideation('构思', LingBiIcons.storyboard),
-  review('审稿', Icons.fact_check_outlined),
-  publish('发布', LingBiIcons.importExport);
+  ideation('构思', LingBiIcons.storyboard, isExperimental: true),
+  review('审稿', Icons.fact_check_outlined, isExperimental: true),
+  publish('发布', LingBiIcons.importExport, isExperimental: true);
 
-  const ProjectTab(this.label, this.icon);
+  const ProjectTab(this.label, this.icon, {this.isExperimental = false});
 
   final String label;
   final IconData icon;
+  final bool isExperimental;
 }
 
 class ProjectNavigationBar extends StatelessWidget {
@@ -83,6 +84,27 @@ class ProjectNavigationBar extends StatelessWidget {
                   color: isActive ? c.fg : c.fgSecondary,
                 ),
               ),
+              if (tab.isExperimental) ...[
+                const SizedBox(width: 3),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    'EXP',
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                      color: c.accent,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

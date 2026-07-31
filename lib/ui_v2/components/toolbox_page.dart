@@ -36,23 +36,23 @@ class _ToolboxPageState extends State<ToolboxPage> {
 
   static const List<_ToolItem> _tools = [
     _ToolItem('角色关系', Icons.hub_rounded),
-    _ToolItem('一键成剧', Icons.theater_comedy_rounded),
-    _ToolItem('平行世界', Icons.public_rounded),
-    _ToolItem('流程审批', Icons.fact_check_rounded),
-    _ToolItem('六维审稿', Icons.radar_rounded),
+    _ToolItem('一键成剧', Icons.theater_comedy_rounded, isExperimental: true),
+    _ToolItem('平行世界', Icons.public_rounded, isExperimental: true),
+    _ToolItem('流程审批', Icons.fact_check_rounded, isExperimental: true),
+    _ToolItem('六维审稿', Icons.radar_rounded, isExperimental: true),
     _ToolItem('伏笔管理', Icons.anchor_rounded),
-    _ToolItem('清晰度检测', Icons.lightbulb_rounded),
-    _ToolItem('反幻觉监督', Icons.shield_rounded),
-    _ToolItem('参考书', Icons.menu_book_rounded),
-    _ToolItem('向量知识', Icons.storage_rounded),
-    _ToolItem('网络搜索', Icons.travel_explore_rounded),
+    _ToolItem('清晰度检测', Icons.lightbulb_rounded, isExperimental: true),
+    _ToolItem('反幻觉监督', Icons.shield_rounded, isExperimental: true),
+    _ToolItem('参考书', Icons.menu_book_rounded, isExperimental: true),
+    _ToolItem('向量知识', Icons.storage_rounded, isExperimental: true),
+    _ToolItem('网络搜索', Icons.travel_explore_rounded, isExperimental: true),
     _ToolItem('模型路由', Icons.account_tree_rounded),
-    _ToolItem('风格蒸馏', Icons.format_paint_rounded),
+    _ToolItem('风格蒸馏', Icons.format_paint_rounded, isExperimental: true),
     _ToolItem('短篇引擎', Icons.flash_on_rounded),
-    _ToolItem('市场情报', Icons.insights_rounded),
+    _ToolItem('市场情报', Icons.insights_rounded, isExperimental: true),
     _ToolItem('变更传播', Icons.sync_alt_rounded),
-    _ToolItem('去AI味', Icons.auto_fix_high_rounded),
-    _ToolItem('叙事线编织', Icons.linear_scale_rounded),
+    _ToolItem('去AI味', Icons.auto_fix_high_rounded, isExperimental: true),
+    _ToolItem('叙事线编织', Icons.linear_scale_rounded, isExperimental: true),
   ];
 
   Widget _buildPanel() {
@@ -150,18 +150,39 @@ class _ToolboxPageState extends State<ToolboxPage> {
                                     : theme.colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 12),
-                              Text(
-                                tool.label,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                  color: isSelected
-                                      ? theme.colorScheme.onSurface
-                                      : theme.colorScheme.onSurfaceVariant,
+                              Expanded(
+                                child: Text(
+                                  tool.label,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
+                              if (tool.isExperimental)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.tertiaryContainer,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Experimental',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.onTertiaryContainer,
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -187,8 +208,9 @@ class _ToolboxPageState extends State<ToolboxPage> {
 }
 
 class _ToolItem {
-  const _ToolItem(this.label, this.icon);
+  const _ToolItem(this.label, this.icon, {this.isExperimental = false});
 
   final String label;
   final IconData icon;
+  final bool isExperimental;
 }
