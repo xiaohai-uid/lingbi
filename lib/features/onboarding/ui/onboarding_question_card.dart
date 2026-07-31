@@ -39,6 +39,29 @@ class OnboardingQuestionCard extends StatelessWidget {
         OnboardingQuestion.openingEvent => '例：主角收到了一封自己的讣告',
       };
 
+  /// 快捷选项按钮（对标 OpenWrite 的 question 选项）。
+  /// 点击填入输入框，用户仍可修改后提交。
+  List<String> get _quickOptions => switch (question) {
+        OnboardingQuestion.protagonistGoal => const [
+            '复仇雪恨',
+            '守护至亲',
+            '登顶最强',
+            '探寻真相',
+          ],
+        OnboardingQuestion.coreObstacle => const [
+            '强敌环伺',
+            '身世成谜',
+            '天道压制',
+            '内心心魔',
+          ],
+        OnboardingQuestion.openingEvent => const [
+            '惨遭灭门',
+            '偶得金手指',
+            '重生回起点',
+            '卷入阴谋',
+          ],
+      };
+
   @override
   Widget build(BuildContext context) {
     final colors = LingBiColors.of(context);
@@ -60,15 +83,34 @@ class OnboardingQuestionCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (genreLabel != null &&
-              genreLabel!.isNotEmpty &&
-              question == OnboardingQuestion.protagonistGoal) ...[
-            const SizedBox(height: LingBiTokens.space2),
-            TextButton(
-              onPressed: () => controller.text = '守护宗族',
-              child: const Text('守护宗族'),
-            ),
-          ],
+          const SizedBox(height: LingBiTokens.space3),
+          Wrap(
+            spacing: LingBiTokens.space2,
+            runSpacing: LingBiTokens.space2,
+            children: [
+              for (final opt in _quickOptions)
+                InkWell(
+                  onTap: isSaving ? null : () => controller.text = opt,
+                  borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: LingBiTokens.space3,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainer,
+                      borderRadius:
+                          BorderRadius.circular(LingBiTokens.radiusPill),
+                      border: Border.all(color: colors.borderOpaque),
+                    ),
+                    child: Text(
+                      opt,
+                      style: TextStyle(fontSize: 13, color: colors.fg),
+                    ),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: LingBiTokens.space3),
           TextField(
             controller: controller,

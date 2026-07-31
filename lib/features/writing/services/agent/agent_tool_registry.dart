@@ -16,6 +16,7 @@ import 'dart:io';
 
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/features/skill/data/ranking_api_client.dart';
 
 /// 单个工具的执行结果。
 class ToolResult {
@@ -38,6 +39,9 @@ class ToolResult {
 /// 写入确认回调：返回 true 表示允许落盘。null 表示不需确认（自动批准）。
 typedef WriteConfirm = Future<bool> Function(String relativePath, String content);
 
+/// 命令确认回调：返回 true 表示允许执行。null 表示无确认能力（非白名单命令被拒绝）。
+typedef CommandConfirm = Future<bool> Function(String command);
+
 /// 向用户提问回调（ask_user）。返回用户选择/输入的文本。
 typedef AskUser = Future<String> Function(String question, List<String> options);
 
@@ -53,6 +57,7 @@ class AgentToolRegistry {
     required this.projectDir,
     AtomicFileStore? store,
     this.confirmWrite,
+    this.confirmCommand,
     this.askUser,
     this.skillLookup,
     this.onToolEvent,
@@ -65,6 +70,10 @@ class AgentToolRegistry {
 
   /// 写操作确认回调；为 null 时自动批准（供无人值守测试）。
   final WriteConfirm? confirmWrite;
+
+  /// 命令执行确认回调；为 null 时非白名单命令被拒绝。
+  final CommandConfirm? confirmCommand;
+
   final AskUser? askUser;
   final SkillLookup? skillLookup;
   final ToolEvent? onToolEvent;
@@ -151,6 +160,36 @@ class AgentToolRegistry {
         },
       ));
     }
+    // Phase 3: system_command 工具（复刻 OpenWrite）
+    list.add(const ToolSpec(
+      name: 'system_command',
+      description:
+          '执行系统命令（仅 Windows 桌面）。命令在 shell 中运行，返回 stdout/stderr。'
+          '使用 workdir 参数切换目录。危险命令需用户确认，交互式命令被阻止。',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'command': {'type': 'string', 'description': '要执行的命令'},
+          'workdir': {'type': 'string', 'description': '工作目录（可选，默认项目根目录）'},
+        },
+        'required': ['command'],
+      },
+    ));
+    // Phase 4.3: novel_ranking 工具（复刻 OpenWrite 扫榜）
+    list.add(const ToolSpec(
+      name: 'novel_ranking',
+      description:
+          '查询网文排行数据（番茄/起点）。可查榜单列表、书籍详情、分类统计。'
+          'endpoint 可选：top, books, stats, categories, ranks, rank_top, rank_count。',
+      parameters: {
+        'type': 'object',
+        'properties': {
+          'endpoint': {'type': 'string', 'description': 'API 端点名称'},
+          'params': {'type': 'object', 'description': '额外查询参数（可选）'},
+        },
+        'required': ['endpoint'],
+      },
+    ));
     return list;
   }
 
@@ -168,6 +207,10 @@ class AgentToolRegistry {
         return _question(args);
       case 'skill_lookup':
         return _skillLookup(args);
+      case 'system_command':
+        return _systemCommand(args);
+      case 'novel_ranking':
+        return _novelRanking(args);
       default:
         return ToolResult(
           content: '未知工具：${call.name}',
@@ -300,6 +343,109 @@ class AgentToolRegistry {
     }
     onToolEvent?.call('skill_lookup', '加载 Skill $name');
     return ToolResult(content: body, display: '加载 Skill $name');
+  }
+
+  // ─── Phase 3: system_command 三层安全 ────────────────────
+
+  /// 白名单命令前缀（自动执行，无需确认）。
+  static const _cmdWhitelist = [
+    'echo', 'dir', 'ls', 'type', 'cat', 'pwd', 'cd',
+    'git status', 'git log', 'git diff', 'git branch',
+    'flutter', 'dart', 'python', 'python3', 'node', 'npm list',
+    'where', 'which', 'ver', 'hostname', 'whoami',
+  ];
+
+  /// 黑名单正则（直接拒绝，不可执行）。
+  static final _cmdBlacklist = RegExp(
+    r'(curl|wget|nc|netcat|bash\s+-i|powershell\s+-enc|certutil'
+    r'|rundll32|reg\s+add|reg\s+delete|schtasks|wmic|bitsadmin'
+    r'|scp|rsync|rm\s+-rf|del\s+/[sfq]|format\s+[a-z]:|mklink'
+    r'|net\s+user|net\s+localgroup|takeown|icacls|nslookup|ping\s+-t)',
+    caseSensitive: false,
+  );
+
+  Future<ToolResult> _systemCommand(Map<String, dynamic> args) async {
+    final command = (args['command'] as String?) ?? '';
+    final workdir = (args['workdir'] as String?) ?? projectDir;
+
+    if (command.trim().isEmpty) {
+      return const ToolResult(
+        content: '命令为空，已忽略。',
+        isError: true,
+        display: '空命令',
+      );
+    }
+
+    // 第一层：黑名单检查
+    if (_cmdBlacklist.hasMatch(command)) {
+      return ToolResult(
+        content: '安全策略阻止：命令 "$command" 匹配黑名单，禁止执行。',
+        isError: true,
+        display: '黑名单拒绝: $command',
+      );
+    }
+
+    // 第二层：白名单检查
+    final cmdLower = command.trim().toLowerCase();
+    final isWhitelisted = _cmdWhitelist.any((w) => cmdLower.startsWith(w));
+
+    // 第三层：非白名单需确认
+    if (!isWhitelisted) {
+      final confirm = confirmCommand;
+      if (confirm == null) {
+        return ToolResult(
+          content: '命令 "$command" 不在白名单中，且无确认回调，已拒绝执行。',
+          isError: true,
+          display: '未授权命令: $command',
+        );
+      }
+      final approved = await confirm(command);
+      if (!approved) {
+        return ToolResult(
+          content: '用户拒绝执行命令 "$command"。',
+          isError: true,
+          display: '用户拒绝: $command',
+        );
+      }
+    }
+
+    // 执行命令
+    try {
+      final result = await Process.run(
+        'cmd',
+        ['/c', command],
+        workingDirectory: workdir,
+      ).timeout(const Duration(seconds: 60));
+
+      final output = StringBuffer();
+      if ((result.stdout as String).isNotEmpty) output.writeln(result.stdout);
+      if ((result.stderr as String).isNotEmpty) output.writeln(result.stderr);
+      final text = output.toString().trim();
+
+      onToolEvent?.call('system_command', '执行: $command');
+      return ToolResult(
+        content: text.isEmpty ? '(无输出，exit code ${result.exitCode})' : text,
+        display: '执行: $command (exit ${result.exitCode})',
+      );
+    } catch (e) {
+      return ToolResult(
+        content: '命令执行失败：$e',
+        isError: true,
+        display: '执行失败: $command',
+      );
+    }
+  }
+
+  /// Phase 4.3: novel_ranking 工具实现
+  final RankingApiClient _rankingClient = RankingApiClient();
+
+  Future<ToolResult> _novelRanking(Map<String, dynamic> args) async {
+    final endpoint = (args['endpoint'] as String?) ?? 'rank_top';
+    final params = (args['params'] as Map<String, dynamic>?)
+        ?.map((k, v) => MapEntry(k, v.toString()));
+    onToolEvent?.call('novel_ranking', '查询排行: $endpoint');
+    final result = await _rankingClient.query(endpoint, params: params);
+    return ToolResult(content: result, display: '扫榜: $endpoint');
   }
 
   ToolResult _deny(String rawPath) => ToolResult(

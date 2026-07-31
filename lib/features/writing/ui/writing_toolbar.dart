@@ -17,6 +17,7 @@ abstract class FormatCommands {
   static const undo = 'undo';
   static const redo = 'redo';
   static const aiWriting = 'aiWriting';
+  static const markdownPreview = 'markdownPreview';
 }
 
 class WritingToolbar extends StatelessWidget {
@@ -100,6 +101,33 @@ class WritingToolbar extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         color: c.accent,
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: LingBiTokens.space2),
+          // Markdown 预览切换
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onFormatCommand != null
+                  ? () => onFormatCommand!(FormatCommands.markdownPreview)
+                  : null,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+              child: Container(
+                height: 30,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.preview, size: 16, color: c.fgSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      '预览',
+                      style: TextStyle(fontSize: 12, color: c.fgSecondary),
                     ),
                   ],
                 ),

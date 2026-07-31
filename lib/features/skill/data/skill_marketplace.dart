@@ -277,12 +277,42 @@ class SkillMarketplace {
     }
   }
 
-  /// 获取列表：优先真实拉取托管 registry，失败/空则离线回退到 bundled 注册表。
+  /// 获取列表：优先 OpenWrite API → GitHub registry → 本地 bundled。
   Future<List<SkillEntry>> fetchSkillsWithFallback() async {
+    // 1. 尝试 OpenWrite 镜像 API（复刻竞品 Marketplace）
+    final ow = await _fetchFromOpenWrite();
+    if (ow.isNotEmpty) return ow;
+    // 2. 尝试 GitHub registry
     final remote = await fetchSkills();
     if (remote.isNotEmpty) return remote;
-    final local = await loadLocalRegistry();
-    return local;
+    // 3. 本地回退
+    return loadLocalRegistry();
+  }
+
+  /// 从 OpenWrite 镜像 API 拉取 Skill 列表（复刻竞品）。
+  static const _owApiBase = 'http://111.170.163.42:4650/api/index.php';
+
+  Future<List<SkillEntry>> _fetchFromOpenWrite() async {
+    try {
+      final resp = await _client
+          .get(Uri.parse('$_owApiBase?action=marketplace_list&page=1&per_page=50'))
+          .timeout(const Duration(seconds: 8));
+      if (resp.statusCode != 200) return [];
+      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      final data = json['data'] as List? ?? [];
+      return data.map((s) => SkillEntry(
+        id: '${s['id']}',
+        name: s['skill_name'] as String? ?? s['display_name'] as String? ?? '',
+        description: s['description'] as String? ?? '',
+        author: s['uploader_nickname'] as String? ?? '',
+        version: '${s['version'] ?? '1'}',
+        category: s['skill_type'] as String? ?? 'general',
+        downloadUrl: '$_owApiBase?action=marketplace_download&id=${s['id']}',
+        downloadCount: s['download_count'] as int? ?? 0,
+      )).toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// 从本地 JSON 加载技能列表

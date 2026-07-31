@@ -55,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('玄幻开局：主角最想实现什么？'), findsOneWidget);
-    expect(find.text('守护宗族'), findsOneWidget);
+    expect(find.text('守护至亲'), findsOneWidget);
     expect(find.text('灵根被夺'), findsNothing);
     expect(find.text('跳过这题'), findsOneWidget);
     expect(find.text('直接写作'), findsOneWidget);

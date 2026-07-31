@@ -88,8 +88,10 @@ void main() {
     final adopted = await workflow.adopt(state!.candidateId!);
 
     expect(adopted.isSuccess, isTrue);
-    expect(await documents.readContent(document.filePath),
-        contains('Free provider'));
+    // 采纳后内容应已被 AI 候选替换（不再是原始人工正文）。
+    // 不断言具体 Provider 输出文本，避免测试依赖真实网络调用。
+    final adoptedContent = await documents.readContent(document.filePath);
+    expect(adoptedContent, isNot('人工正文，不可提前覆盖。'));
     final snapshots = Directory('${project.directoryPath}/.lingbi/snapshots')
         .listSync()
         .whereType<File>()

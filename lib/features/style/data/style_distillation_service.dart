@@ -288,4 +288,52 @@ $sampleText''';
 
     return null;
   }
+
+  /// Phase 6.5: 将风格档案导出为可复用的 Style Skill（SKILL.md 格式）。
+  ///
+  /// 返回 SKILL.md 文件内容字符串，调用方负责写入磁盘。
+  String exportAsSkillMd(StyleProfile profile) {
+    final slug = profile.name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+    return '''---
+name: style-$slug
+description: 模仿「${profile.name}」的写作风格。当用户要求用该风格写作、续写、润色时触发。
+category: writing
+---
+
+# 风格技能：${profile.name}
+
+## 风格描述
+
+${profile.description}
+
+## 句式特征
+
+${profile.sentencePatterns.map((p) => '- $p').join('\n')}
+
+## 用词偏好
+
+${profile.vocabulary.map((v) => '- ${v.trait}（${v.frequency}）：${v.examples.join('、')}').join('\n')}
+
+## 节奏特征
+
+- 平均句长：${profile.rhythm.avgSentenceLength} 字
+- 段落风格：${profile.rhythm.paragraphLength}
+- 节奏感：${profile.rhythm.pacing}
+- 张力曲线：${profile.rhythm.tensionCurve}
+
+## 修辞偏好
+
+${profile.rhetoricPreferences.map((r) => '- ${r.name}（${r.frequency}）：${r.example}').join('\n')}
+
+## 使用规则
+
+- 写作时严格遵循以上风格特征
+- 保持句式多样性和节奏变化
+- 不引入与风格不符的现代网络用语
+''';
+  }
 }

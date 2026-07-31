@@ -624,6 +624,26 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
         return ThemeMode.system;
     }
   }
+
+  // ─── Phase 6.3: 自定义存储位置 ─────────────────────────────
+
+  String? _customStoragePath;
+
+  /// 获取自定义存储路径（null 表示使用默认路径）。
+  String? get customStoragePath => _customStoragePath;
+
+  /// 设置自定义存储路径。传 null 恢复默认。
+  Future<void> setCustomStoragePath(String? path) async {
+    _customStoragePath = path;
+    _save();
+    notifyListeners();
+  }
+
+  /// 从持久化加载自定义路径。
+  void loadCustomStoragePath(Map<String, dynamic> json) {
+    final stored = json['customStoragePath'] as String? ?? '';
+    _customStoragePath = stored.isEmpty ? null : stored;
+  }
 }
 
 /// API Key 日志脱敏工具

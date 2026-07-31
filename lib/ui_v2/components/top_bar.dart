@@ -3,6 +3,7 @@ import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/features/project/data/project_tab_controller.dart' as svc;
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
+import 'model_selector.dart';
 
 class TopBar extends StatefulWidget {
 
@@ -82,6 +83,10 @@ class _TopBarState extends State<TopBar> {
                 _buildLogo(c),
                 const SizedBox(width: LingBiTokens.space4),
                 Expanded(child: _buildProjectTabs(c, tabCtrl)),
+                const Padding(
+                  padding: EdgeInsets.only(right: LingBiTokens.space3),
+                  child: ModelSelector(),
+                ),
                 _buildActionButtons(c),
               ],
             ),
@@ -118,10 +123,11 @@ class _TopBarState extends State<TopBar> {
         Text(
           '灵笔',
           style: TextStyle(
-            fontSize: 16,
+            fontFamily: LingBiTokens.fontDisplay,
+            fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: c.fg,
-            letterSpacing: -0.3,
+            color: c.accent,
+            letterSpacing: 2,
           ),
         ),
       ],

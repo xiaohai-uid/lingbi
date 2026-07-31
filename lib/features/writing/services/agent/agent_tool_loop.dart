@@ -79,11 +79,21 @@ class AgentToolLoop {
   /// 步骤回调（实时上报给 UI）。
   final void Function(AgentStep step)? onStep;
 
+  /// 取消标志 — 调用 [cancel] 后下一轮循环开始前中断。
+  bool _cancelled = false;
+
+  /// 取消当前运行中的工具循环。
+  ///
+  /// 线程安全：可在任意 isolate 中调用（Dart 单线程模型保证原子性）。
+  /// 取消后 [run] 会返回已收集的部分结果。
+  void cancel() => _cancelled = true;
+
   /// 运行 Agent：以 [systemPrompt] 为系统指令、[userGoal] 为任务目标。
   Future<AgentRunResult> run({
     required String systemPrompt,
     required String userGoal,
   }) async {
+    _cancelled = false; // 重置取消标志，支持复用
     final steps = <AgentStep>[];
     void emit(AgentStep s) {
       steps.add(s);
@@ -113,6 +123,7 @@ class AgentToolLoop {
     final finalBuffer = StringBuffer();
 
     while (iterations < maxIterations) {
+      if (_cancelled) break; // Phase 1.3: 停止生成
       iterations++;
 
       // 逼近上下文预算时折叠早期消息，避免撑爆窗口（p7）。

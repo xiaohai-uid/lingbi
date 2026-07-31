@@ -86,6 +86,21 @@ class ProjectOnboardingWorkflow {
         : ProjectOnboardingState.fromJson(json);
   }
 
+  /// 重置到指定问题，允许用户重新编辑已回答的内容。
+  ///
+  /// 从 ProjectOverviewPage 的"完善主角"等按钮触发时使用：
+  /// 把 currentIndex 回退到目标问题，保留已有答案供用户参考/修改。
+  Future<ProjectOnboardingState> resetToQuestion(
+    String projectId,
+    OnboardingQuestion question,
+  ) async {
+    final state = await resume(projectId);
+    if (state.currentIndex == question.index) return state;
+    final updated = state.copyWith(currentIndex: question.index);
+    await _metaRepository.write(projectId, stateFileName, updated.toJson());
+    return updated;
+  }
+
   Future<ProjectOnboardingState> answer(
     String projectId,
     String value,

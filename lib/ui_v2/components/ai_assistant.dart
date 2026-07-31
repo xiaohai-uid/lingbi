@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/models/guided_flow_definition.dart';
@@ -8,6 +9,7 @@ import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart'
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/services/agent_writing_service.dart';
 import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/features/review/data/clarity_check_service.dart';
 import '../theme/tokens.dart';
 import '../theme/lingbi_icons.dart';
@@ -72,6 +74,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   final List<_ChatMessage> _messages = [];
   final ClarityCheckService _clarityCheck = ClarityCheckService();
   bool _isLoading = false;
+  AgentToolLoop? _activeLoop; // Phase 1.3: 保存当前循环引用以支持取消
 
   // ─── 引导模式状态 ───
   bool _guidedMode = false;
@@ -84,7 +87,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     super.initState();
     if (widget.projectId != null) {
       _setupProjectContext();
-      _checkGuidedFlowState();
+      // Phase 1.2: 不再自动启动 GuidedFlow 纯文字引导
+      // _checkGuidedFlowState();
     }
   }
 
@@ -105,6 +109,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   }
 
   /// 检查当前项目是否有未完成的引导流程；若无但项目带题材，则自动启动。
+  // ignore: unused_element — Phase 1.2 已禁用自动引导，保留方法供后续参考
   Future<void> _checkGuidedFlowState() async {
     final pid = widget.projectId;
     if (pid == null) return;
@@ -294,6 +299,13 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     });
   }
 
+  /// Phase 1.3: 停止当前生成。
+  void _cancelGeneration() {
+    _activeLoop?.cancel();
+    _activeLoop = null;
+    if (mounted) setState(() => _isLoading = false);
+  }
+
   Future<void> _sendMessage([String? overrideText]) async {
     final text = overrideText ?? _inputController.text.trim();
     if (text.isEmpty || _isLoading) return;
@@ -339,6 +351,102 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     _scrollToBottom();
 
     final entryIndex = _messages.length - 1;
+
+    // A1: 项目打开时统一走 Agent 工具循环（对标 OpenWrite "对话即写作"）
+    if (widget.projectId != null) {
+      await _sendViaAgent(text, entryIndex);
+    } else {
+      await _sendViaSimpleChat(text, entryIndex);
+    }
+  }
+
+  /// A1: Agent 工具循环路径 — AI 自主决定读文件/写文件/提问/查 Skill。
+  Future<void> _sendViaAgent(String text, int entryIndex) async {
+    final project = await ServiceLocator.instance.projectService
+        .getProject(widget.projectId!);
+    final dir = project?.directoryPath;
+    if (dir == null || dir.isEmpty) {
+      // 项目目录不可用时回退到简单聊天
+      await _sendViaSimpleChat(text, entryIndex);
+      return;
+    }
+
+    final provider = _aiService.currentProvider;
+    final registry = AgentToolRegistry(
+      projectDir: dir,
+      store: ServiceLocator.instance.atomicFileStore,
+      confirmWrite: _confirmToolWrite,
+      askUser: _askUserFromAgent,
+      skillLookup: _skillLookup,
+      onToolEvent: (name, display) {},
+    );
+    final fallback = NovelWritingLoop(
+      provider: provider,
+      projectDir: dir,
+      store: ServiceLocator.instance.atomicFileStore,
+      canonService: ServiceLocator.instance.canonService,
+      projectId: widget.projectId,
+    );
+    final loop = AgentToolLoop(
+      provider: provider,
+      registry: registry,
+      fallback: fallback,
+      maxIterations: 50,
+      onStep: (step) {
+        if (!mounted) return;
+        setState(() {
+          final m = _messages[entryIndex];
+          _messages[entryIndex] = _ChatMessage(
+            content: step.kind == 'final' ? step.text : m.content,
+            isUser: false,
+            isStreaming: true,
+            isThinking: step.kind != 'final',
+            toolSteps: [...m.toolSteps, step],
+          );
+        });
+        _scrollToBottom();
+      },
+    );
+    _activeLoop = loop; // Phase 1.3: 保存引用以支持取消
+
+    try {
+      final result = await loop.run(
+        systemPrompt: AgentWritingService.systemPrompt(
+          projectName: widget.projectName ?? '未命名项目',
+        ),
+        userGoal: text,
+      );
+      if (!mounted) return;
+      setState(() {
+        final m = _messages[entryIndex];
+        _messages[entryIndex] = _ChatMessage(
+          content: result.finalText.isEmpty
+              ? (m.toolSteps.isNotEmpty
+                  ? '已完成工具操作，请查看项目文件。'
+                  : '本轮未产出内容，请尝试更具体的指令。')
+              : result.finalText,
+          isUser: false,
+          toolSteps: m.toolSteps,
+        );
+        _isLoading = false;
+        _activeLoop = null;
+      });
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _messages[entryIndex] = _ChatMessage(
+          content: '处理失败：$e',
+          isUser: false,
+        );
+        _isLoading = false;
+        _activeLoop = null;
+      });
+    }
+  }
+
+  /// 简单聊天路径（无项目时的回退）。
+  Future<void> _sendViaSimpleChat(String text, int entryIndex) async {
     String processBuffer = '';
     String answerBuffer = '';
     try {
@@ -349,7 +457,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
             if (block.type == NormalizedBlockType.process) {
               processBuffer += block.text;
             } else {
-              // answer 或 candidate 块 → 写入 content
               answerBuffer += block.text;
             }
             setState(() {
@@ -395,6 +502,64 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         _isLoading = false;
       });
     }
+  }
+
+  /// A1: Agent 工具循环中 AI 向用户提问的回调。
+  Future<String> _askUserFromAgent(
+      String question, List<String> options) async {
+    final answer = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(question, style: const TextStyle(fontSize: 15)),
+        content: options.isEmpty
+            ? null
+            : SizedBox(
+                width: 360,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final opt in options)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(ctx).pop(opt),
+                            child: Text(opt),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('跳过'),
+            child: const Text('跳过'),
+          ),
+        ],
+      ),
+    );
+    return answer ?? '跳过';
+  }
+
+  /// A1: Skill 查找回调 — 按名称/ID 搜索已安装 Skill，返回其 prompt 正文。
+  Future<String?> _skillLookup(String nameOrId) async {
+    final service = ServiceLocator.instance.skillActionService;
+    // 先精确匹配 ID
+    final byId = service.getSkill(nameOrId);
+    if (byId != null) {
+      return byId is DynamicPromptSkill
+          ? byId.manifest.promptTemplate
+          : byId.description;
+    }
+    // 再模糊搜索
+    final results = service.searchSkills(nameOrId);
+    if (results.isEmpty) return null;
+    final skill = results.first;
+    return skill is DynamicPromptSkill
+        ? skill.manifest.promptTemplate
+        : skill.description;
   }
 
   /// 用户选择快速选项后将选项拼接到原始消息发送
@@ -623,6 +788,20 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
               color: c.fg,
             ),
           ),
+          const SizedBox(width: LingBiTokens.space2),
+          if (widget.projectId != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: c.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+                border: Border.all(color: c.accent.withValues(alpha: 0.25)),
+              ),
+              child: Text(
+                'Agent 模式',
+                style: TextStyle(fontSize: 10, color: c.accent),
+              ),
+            ),
           const Spacer(),
           // Agent 写作快捷入口（需项目上下文）
           if (widget.projectId != null)
@@ -862,26 +1041,60 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                     ),
                   )
                 else if (text.isNotEmpty)
-                  RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: c.fg,
-                        height: 1.6,
-                      ),
-                      children: [
-                        TextSpan(text: text),
-                        if (isStreaming)
-                          TextSpan(
-                            text: ' ▍',
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // A3: 流式时用纯文本+光标，完成后用 Markdown 渲染
+                      if (isStreaming)
+                        RichText(
+                          text: TextSpan(
                             style: TextStyle(
-                              color: c.accent.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w300,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: c.fg,
+                              height: 1.6,
+                            ),
+                            children: [
+                              TextSpan(text: text),
+                              TextSpan(
+                                text: ' ▍',
+                                style: TextStyle(
+                                  color: c.accent.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w300,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        MarkdownBody(
+                          data: text,
+                          styleSheet: MarkdownStyleSheet(
+                            p: TextStyle(
+                              fontSize: 14,
+                              color: c.fg,
+                              height: 1.6,
+                            ),
+                            h1: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: c.fg),
+                            h2: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: c.fg),
+                            h3: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.fg),
+                            listBullet: TextStyle(color: c.fgSecondary),
+                            code: TextStyle(
+                              fontSize: 13,
+                              backgroundColor: c.surfaceContainer,
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      // A3: 字数统计
+                      if (!isStreaming && text.length > 20)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            '共 ${_countWords(text)} 字',
+                            style: TextStyle(fontSize: 11, color: c.muted),
+                          ),
+                        ),
+                    ],
                   ),
                 // "转为候选"按钮（仅在非流式且有内容时显示）
                 if (!isStreaming &&
@@ -1065,6 +1278,17 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         _ => Icons.more_horiz,
       };
 
+  /// A3: 字数统计（中文字符 + 英文单词）。
+  int _countWords(String text) {
+    final chineseChars = RegExp(r'[\u4e00-\u9fff\u3400-\u4dbf]')
+        .allMatches(text)
+        .length;
+    final englishWords = RegExp(r'[a-zA-Z]+')
+        .allMatches(text)
+        .length;
+    return chineseChars + englishWords;
+  }
+
   /// T4: 确认卡（模糊请求追问）
   Widget _buildClarificationCard(LingBiColors c, _ChatMessage msg) {
     return Row(
@@ -1234,9 +1458,12 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
           ),
           const SizedBox(width: LingBiTokens.space2),
           IconButton(
-            onPressed: _isLoading ? null : _sendMessage,
-            icon: const Icon(LingBiIcons.send, size: 20),
-            color: c.accent,
+            onPressed: _isLoading ? _cancelGeneration : _sendMessage,
+            icon: Icon(
+              _isLoading ? Icons.stop_circle_outlined : LingBiIcons.send,
+              size: 20,
+            ),
+            color: _isLoading ? LingBiTokens.error : c.accent,
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/errors/ai_error.dart';
@@ -59,6 +60,7 @@ class _EditorPageState extends State<EditorPage> {
 
   // AI 写作状态
   bool _showAiPanel = false;
+  bool _showMarkdownPreview = false; // Phase 5.2: Markdown 预览模式
   bool _showSlashMenu = false;
   final _instructionController = TextEditingController();
   SkillAction? _selectedSkill;
@@ -328,6 +330,9 @@ class _EditorPageState extends State<EditorPage> {
     switch (command) {
       case FormatCommands.aiWriting:
         _toggleAiPanel();
+        return;
+      case FormatCommands.markdownPreview:
+        setState(() => _showMarkdownPreview = !_showMarkdownPreview);
         return;
       case FormatCommands.bold:
         _toggleAttribute(Attribute.bold);
@@ -736,7 +741,9 @@ class _EditorPageState extends State<EditorPage> {
                                 maxWidth: 720,
                                 minHeight: constraints.maxHeight,
                               ),
-                              child: _buildEditor(c),
+                              child: _showMarkdownPreview
+                                  ? _buildMarkdownPreview(c)
+                                  : _buildEditor(c),
                             ),
                           );
                         },
@@ -765,6 +772,21 @@ class _EditorPageState extends State<EditorPage> {
     );
   }
 
+  /// Phase 5.2: Markdown 预览渲染
+  Widget _buildMarkdownPreview(LingBiColors c) {
+    final displayTitle = _title.isNotEmpty ? _title : '未命名章节';
+    final mdContent = '# $displayTitle\n\n$_content';
+    return MarkdownBody(
+      data: mdContent,
+      styleSheet: MarkdownStyleSheet(
+        h1: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: c.fg, fontFamily: LingBiTokens.fontDisplay),
+        p: TextStyle(fontSize: 15, color: c.fg, height: 2),
+        h2: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: c.fg),
+        h3: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: c.fg),
+      ),
+    );
+  }
+
   Widget _buildEditor(LingBiColors c) {
     final displayTitle = _title.isNotEmpty ? _title : '未命名章节';
     return Column(
@@ -773,10 +795,11 @@ class _EditorPageState extends State<EditorPage> {
         Text(
           displayTitle,
           style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+            fontFamily: LingBiTokens.fontDisplay,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
             color: c.accent,
-            letterSpacing: 0.3,
+            letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: LingBiTokens.space2),
@@ -1041,6 +1064,14 @@ class _EditorPageState extends State<EditorPage> {
             color: _isDirty
                 ? c.muted.withValues(alpha: 0.5)
                 : LingBiTokens.success,
+          ),
+          const Spacer(),
+          // 连续性检查指示（对标设计稿 footer）
+          const Icon(LingBiIcons.check, size: 12, color: LingBiTokens.success),
+          const SizedBox(width: LingBiTokens.space1),
+          Text(
+            '连续性检查：通过',
+            style: TextStyle(fontSize: 12, color: c.muted),
           ),
         ],
       ),

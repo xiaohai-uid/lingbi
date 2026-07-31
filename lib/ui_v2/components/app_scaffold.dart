@@ -233,7 +233,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           _hasProject = true;
           _currentProject = project;
           _currentTab = ProjectTab.overview;
-          _showProjectOnboarding = true;
+          _showProjectOnboarding = false; // Phase 1.1: 不再自动弹表单引导
         });
       } catch (e) {
         if (mounted) {
@@ -358,8 +358,48 @@ class _AppScaffoldState extends State<AppScaffold> {
       );
     }
     return _commandShell(
-      Semantics(label: '灵笔 Windows 主工作区', container: true, child: content),
+      // Phase 5.3: 拖入文件导入
+      DragTarget<String>(
+        onWillAcceptWithDetails: (details) =>
+            details.data.endsWith('.txt') ||
+            details.data.endsWith('.md') ||
+            details.data.endsWith('.docx'),
+        onAcceptWithDetails: (details) => _handleFileDrop(details.data),
+        builder: (context, candidateData, rejectedData) => Stack(
+          children: [
+            Semantics(label: '灵笔 Windows 主工作区', container: true, child: content),
+            if (candidateData.isNotEmpty)
+              Positioned.fill(
+                child: Container(
+                  color: c.accent.withValues(alpha: 0.1),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: c.surface,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: c.accent, width: 2),
+                      ),
+                      child: Text(
+                        '松开导入文件',
+                        style: TextStyle(fontSize: 18, color: c.accent, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
+  }
+
+  /// Phase 5.3: 处理拖入文件
+  void _handleFileDrop(String path) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已接收文件: $path，正在导入…')),
+    );
+    // TODO: 实际导入逻辑（拆解章节等）
   }
 
   Widget _buildTopBar() {
@@ -465,13 +505,14 @@ class _AppScaffoldState extends State<AppScaffold> {
         return ProjectOverviewPage(
           project: _currentProject!,
           repository: ServiceLocator.instance.projectAssetRepository,
-          onAssetSelected: (asset) => setState(() {
+          onAssetSelected: (asset) async {
             if (asset.type == ProjectAssetType.firstChapter) {
-              _currentTab = ProjectTab.writing;
+              setState(() => _currentTab = ProjectTab.writing);
             } else {
-              _showProjectOnboarding = true;
+              // Phase 1.1: 不再弹表单引导，改为跳转写作页让 AI 面板引导
+              if (mounted) setState(() => _currentTab = ProjectTab.writing);
             }
-          }),
+          },
         );
       case ProjectTab.writing:
         return EditorPage(
