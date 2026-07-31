@@ -32,9 +32,17 @@ class AppScaffold extends StatefulWidget {
     super.key,
     required this.isDarkMode,
     required this.onToggleTheme,
+    this.initialProject,
+    this.initialDocumentId,
   });
   final bool isDarkMode;
   final ValueChanged<bool> onToggleTheme;
+
+  /// 向导完成后自动打开的项目（可选）
+  final Project? initialProject;
+
+  /// 向导完成后自动打开的文档 ID（可选）
+  final String? initialDocumentId;
 
   @override
   State<AppScaffold> createState() => _AppScaffoldState();
@@ -57,6 +65,26 @@ class _AppScaffoldState extends State<AppScaffold> {
   void initState() {
     super.initState();
     ServiceLocator.instance.projectTabController.addListener(_onTabsChanged);
+    _openInitialProject();
+  }
+
+  /// 向导完成后自动打开项目并导航到写作页
+  void _openInitialProject() {
+    final project = widget.initialProject;
+    if (project == null) return;
+    ServiceLocator.instance.projectTabController.openProject(project);
+    _currentProject = project;
+    _hasProject = true;
+    _currentTab = ProjectTab.writing;
+    final docId = widget.initialDocumentId;
+    if (docId != null) {
+      _currentDocument = Document(
+        id: docId,
+        projectId: project.id,
+        title: 'chapter-1',
+        filePath: '',
+      );
+    }
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,6 +71,11 @@ class _EditorPageState extends State<EditorPage> {
   CandidateEntry? _currentCandidate;
   bool _showCandidatePanel = false;
   FirstChapterWorkflowController? _chapterWorkflow;
+
+  // 第一章旅程状态
+  bool _firstChapterLoading = false;
+  String _firstChapterStatus = '';
+  StreamSubscription<FirstChapterEvent>? _firstChapterSubscription;
 
   // AI 续写下一章（NovelWritingLoop）：待确认候选，采纳后原子写入新章节文件
   ChapterCandidate? _pendingLoopCandidate;
@@ -268,23 +274,182 @@ class _EditorPageState extends State<EditorPage> {
     if (projectId == null || _document == null) return;
     _chapterWorkflow ??= _createChapterWorkflow();
     final state = await _chapterWorkflow?.resume(projectId);
-    if (!mounted ||
-        state == null ||
-        state.chapterId != _document!.id ||
-        state.stage != FirstChapterStage.waitingForConfirmation ||
-        state.candidateId == null) {
+    if (!mounted || state == null) return;
+
+    // 仅处理与当前文档匹配的工作流状态
+    if (state.chapterId != _document!.id &&
+        state.chapterId != 'chapter-1') {
       return;
     }
+
+    switch (state.stage) {
+      case FirstChapterStage.idle:
+        // 向导刚完成，启动生成
+        _startFirstChapterGeneration(state);
+      case FirstChapterStage.readingAssets ||
+            FirstChapterStage.generating:
+        // 生成中断恢复：状态过期（>60s）则提示重新生成
+        final elapsed = DateTime.now().toUtc().difference(state.updatedAt);
+        if (elapsed.inSeconds > 60) {
+          setState(() {
+            _firstChapterLoading = false;
+            _aiError = '上次生成未完成，是否重新生成？';
+          });
+        } else {
+          // 可能仍在进行中（同会话），尝试重新启动
+          _startFirstChapterGeneration(state);
+        }
+      case FirstChapterStage.waitingForConfirmation ||
+            FirstChapterStage.candidateReady:
+        if (state.candidateId != null) {
+          setState(() {
+            _currentCandidate = CandidateEntry(
+              id: state.candidateId!,
+              chapterId: state.chapterId,
+              content: state.candidateContent ?? '',
+              model: ServiceLocator.instance.aiService.currentProviderName,
+              createdAt: state.updatedAt,
+            );
+            _showCandidatePanel = true;
+            _aiError = state.error;
+          });
+        }
+      case FirstChapterStage.failed:
+        setState(() {
+          _firstChapterLoading = false;
+          _aiError = state.error ?? '生成失败';
+        });
+      default:
+        // completed / rejected / cancelled / writing — 正常编辑模式
+        break;
+    }
+  }
+
+  /// 启动第一章生成并订阅事件流
+  void _startFirstChapterGeneration(FirstChapterState state) {
+    if (_chapterWorkflow == null) return;
     setState(() {
+      _firstChapterLoading = true;
+      _firstChapterStatus = 'AI 正在创作第一章...';
+      _aiError = null;
+    });
+
+    final request = FirstChapterRequest(
+      projectId: state.projectId,
+      chapterId: state.chapterId,
+      targetFilePath: state.targetFilePath,
+      instruction: '',
+    );
+
+    _firstChapterSubscription?.cancel();
+    _firstChapterSubscription =
+        _chapterWorkflow!.start(request).listen((event) {
+      if (!mounted) return;
+      switch (event.stage) {
+        case FirstChapterStage.readingAssets:
+          setState(() => _firstChapterStatus = '正在读取项目资产...');
+        case FirstChapterStage.generating:
+          if (event.contentChunk != null) {
+            setState(() {
+              _streamingText += event.contentChunk!;
+              _firstChapterStatus = 'AI 正在创作第一章...';
+            });
+          }
+        case FirstChapterStage.candidateReady ||
+              FirstChapterStage.waitingForConfirmation:
+          if (event.candidateId != null) {
+            _onFirstChapterComplete(event.candidateId!);
+          }
+        case FirstChapterStage.failed:
+          setState(() {
+            _firstChapterLoading = false;
+            _firstChapterStatus = '';
+            _aiError = event.message;
+          });
+        default:
+          break;
+      }
+    }, onError: (Object error) {
+      if (!mounted) return;
+      setState(() {
+        _firstChapterLoading = false;
+        _firstChapterStatus = '';
+        _aiError = error.toString();
+      });
+    });
+  }
+
+  /// 第一章生成完成，加载候选并展示操作栏
+  Future<void> _onFirstChapterComplete(String candidateId) async {
+    final projectId = widget.projectId;
+    if (projectId == null) return;
+    // 重新读取状态获取完整候选内容
+    final state = await _chapterWorkflow?.resume(projectId);
+    if (!mounted) return;
+    setState(() {
+      _firstChapterLoading = false;
+      _firstChapterStatus = '';
+      _streamingText = '';
       _currentCandidate = CandidateEntry(
-        id: state.candidateId!,
-        chapterId: state.chapterId,
-        content: state.candidateContent ?? '',
+        id: candidateId,
+        chapterId: state?.chapterId ?? 'chapter-1',
+        content: state?.candidateContent ?? '',
         model: ServiceLocator.instance.aiService.currentProviderName,
-        createdAt: state.updatedAt,
+        createdAt: state?.updatedAt ?? DateTime.now(),
       );
       _showCandidatePanel = true;
-      _aiError = state.error;
+    });
+  }
+
+  /// 重试第一章生成（失败后用户点击重试）
+  void _retryFirstChapterGeneration() {
+    final projectId = widget.projectId;
+    if (projectId == null || _chapterWorkflow == null) return;
+    final projectDir = widget.projectDirectoryPath;
+    if (projectDir == null) return;
+    setState(() {
+      _aiError = null;
+      _firstChapterLoading = true;
+      _firstChapterStatus = 'AI 正在创作第一章...';
+      _streamingText = '';
+    });
+    final request = FirstChapterRequest(
+      projectId: projectId,
+      chapterId: 'chapter-1',
+      targetFilePath:
+          '$projectDir${Platform.pathSeparator}chapter-1.md',
+      instruction: '',
+    );
+    _firstChapterSubscription?.cancel();
+    _firstChapterSubscription =
+        _chapterWorkflow!.start(request).listen((event) {
+      if (!mounted) return;
+      switch (event.stage) {
+        case FirstChapterStage.generating:
+          if (event.contentChunk != null) {
+            setState(() => _streamingText += event.contentChunk!);
+          }
+        case FirstChapterStage.candidateReady ||
+              FirstChapterStage.waitingForConfirmation:
+          if (event.candidateId != null) {
+            _onFirstChapterComplete(event.candidateId!);
+          }
+        case FirstChapterStage.failed:
+          setState(() {
+            _firstChapterLoading = false;
+            _firstChapterStatus = '';
+            _aiError = event.message;
+          });
+        default:
+          break;
+      }
+    }, onError: (Object error) {
+      if (!mounted) return;
+      setState(() {
+        _firstChapterLoading = false;
+        _firstChapterStatus = '';
+        _aiError = error.toString();
+      });
     });
   }
 
@@ -315,6 +480,7 @@ class _EditorPageState extends State<EditorPage> {
           .saveDocument(_document!, _content);
     }
     _changesSubscription?.cancel();
+    _firstChapterSubscription?.cancel();
     _quillFocusNode.dispose();
     _quillController.dispose();
     _titleController.dispose();
@@ -709,6 +875,80 @@ class _EditorPageState extends State<EditorPage> {
               wordCount: _content.length,
             ),
             if (_showAiPanel) _buildAiWritingPanel(c),
+            // 第一章生成 loading 状态
+            if (_firstChapterLoading)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: LingBiTokens.space4,
+                  vertical: LingBiTokens.space3,
+                ),
+                color: c.accent.withValues(alpha: 0.06),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: LingBiTokens.space3),
+                    Expanded(
+                      child: Text(
+                        _firstChapterStatus,
+                        style: TextStyle(color: c.muted),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            // 第一章流式文本预览
+            if (_firstChapterLoading && _streamingText.isNotEmpty)
+              Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxHeight: 300),
+                padding: const EdgeInsets.all(LingBiTokens.space4),
+                child: SingleChildScrollView(
+                  child: Text(
+                    _streamingText,
+                    style: TextStyle(
+                      color: c.fg,
+                      height: 1.8,
+                    ),
+                  ),
+                ),
+              ),
+            // 第一章生成失败重试栏
+            if (!_firstChapterLoading &&
+                _aiError != null &&
+                !_showCandidatePanel &&
+                _chapterWorkflow != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: LingBiTokens.space4,
+                  vertical: LingBiTokens.space3,
+                ),
+                color: Colors.red.withValues(alpha: 0.06),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, size: 16, color: Colors.red[400]),
+                    const SizedBox(width: LingBiTokens.space3),
+                    Expanded(
+                      child: Text(
+                        _aiError!,
+                        style: TextStyle(color: c.muted, fontSize: 13),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: LingBiTokens.space3),
+                    FilledButton.tonal(
+                      onPressed: _retryFirstChapterGeneration,
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
             // 候选面板
             if (_showCandidatePanel && _currentCandidate != null)
               Padding(

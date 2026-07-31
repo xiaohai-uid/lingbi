@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/project.dart';
 import 'guided_wizard_page.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';
 
@@ -30,6 +31,8 @@ class OnboardingGate extends StatefulWidget {
 
 class _OnboardingGateState extends State<OnboardingGate> {
   bool _needsOnboarding = true;
+  Project? _initialProject;
+  String? _initialDocumentId;
 
   @override
   void initState() {
@@ -53,8 +56,12 @@ class _OnboardingGateState extends State<OnboardingGate> {
     }
   }
 
-  void _onOnboardingComplete() {
-    setState(() => _needsOnboarding = false);
+  void _onOnboardingComplete(Project project, String documentId) {
+    setState(() {
+      _initialProject = project;
+      _initialDocumentId = documentId;
+      _needsOnboarding = false;
+    });
   }
 
   @override
@@ -65,6 +72,8 @@ class _OnboardingGateState extends State<OnboardingGate> {
     return AppScaffold(
       isDarkMode: widget.isDarkMode,
       onToggleTheme: widget.onToggleTheme,
+      initialProject: _initialProject,
+      initialDocumentId: _initialDocumentId,
     );
   }
 }

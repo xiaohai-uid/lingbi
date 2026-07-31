@@ -7,17 +7,21 @@
 /// 替换旧 onboarding_wizard.dart（ADR-0001）。
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:lingbi/features/onboarding/data/first_chapter_trigger.dart';
 import 'package:lingbi/features/onboarding/data/guided_wizard_state_machine.dart';
-import 'package:lingbi/features/onboarding/data/onboarding_di_adapters.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
+import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
 
 /// 引导型向导页面
 class GuidedWizardPage extends StatefulWidget {
   const GuidedWizardPage({super.key, required this.onComplete});
 
-  final VoidCallback onComplete;
+  /// 向导完成回调：传递已创建的项目和第一章文档 ID
+  final void Function(Project project, String documentId) onComplete;
 
   @override
   State<GuidedWizardPage> createState() => _GuidedWizardPageState();
@@ -96,24 +100,31 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
     final settings = locator.settingsService;
 
     // 1. 创建项目 + 写入正典
-    locator.wizardCompletionWorkflow.execute(_machine).then((result) {
-      // 2. 触发第一章候选生成（事件流由下游 UI 通过 state store 消费）
-      final target = ProjectFirstChapterTarget(
-        projectDir: result.project.directoryPath,
+    locator.wizardCompletionWorkflow.execute(_machine).then((result) async {
+      // 2. 创建 chapter-1.md 文档
+      final doc = await locator.documentService.createDocument(
         projectId: result.project.id,
-        documentService: locator.documentService,
-        canonService: locator.canonService,
-        aiService: locator.aiService,
-      );
-      final trigger = FirstChapterTrigger(target: target);
-      trigger.fire(result).listen(
-        (_) {},
-        onError: (Object e) {
-          debugPrint('First chapter generation error: $e');
-        },
+        title: 'chapter-1',
+        directoryPath: result.project.directoryPath,
+        content: '',
       );
 
-      // 3. 标记 onboarding 完成
+      // 3. 写入初始第一章工作流状态（idle），由编辑器启动生成
+      const chapterId = 'chapter-1';
+      final targetFilePath =
+          '${result.project.directoryPath}${Platform.pathSeparator}$chapterId.md';
+      final stateStore = FileFirstChapterStateStore(
+        projectDirectory: result.project.directoryPath,
+      );
+      await stateStore.write(FirstChapterState(
+        projectId: result.project.id,
+        chapterId: chapterId,
+        targetFilePath: targetFilePath,
+        stage: FirstChapterStage.idle,
+        updatedAt: DateTime.now().toUtc(),
+      ));
+
+      // 4. 标记 onboarding 完成
       settings.updateOnboardingState(
         settings.onboardingState.copyWith(
           completed: true,
@@ -122,10 +133,11 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
         ),
       );
 
-      // 4. 导航到主界面
-      widget.onComplete();
+      // 5. 导航到编辑器并打开 chapter-1.md
+      widget.onComplete(result.project, doc.id);
     }).catchError((Object error) {
       // 降级：编排失败仍标记完成，用户可手动创建项目
+      debugPrint('Wizard completion error: $error');
       settings.updateOnboardingState(
         settings.onboardingState.copyWith(
           completed: true,
@@ -133,7 +145,8 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
           lastStep: _machine.state.lastStep,
         ),
       );
-      widget.onComplete();
+      // 降级时无法传递项目信息，使用空回调
+      // OnboardingGate 会显示欢迎页
     });
   }
 
