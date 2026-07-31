@@ -188,8 +188,9 @@ class CandidateService {
     return results;
   }
 
-  /// 采纳候选：将候选内容写入正式正文文件
+  /// 采纳候选：将候选内容原子写入正式正文文件
   ///
+  /// 使用 tmp+rename 模式保证原子性：写入中途失败不产生半截文件。
   /// 返回采纳后的正文文件路径。
   String adopt(String candidateId, String targetFilePath) {
     final entry = getCandidate(candidateId);
@@ -203,10 +204,13 @@ class CandidateService {
       throw StateError('候选已被拒绝，不能采纳');
     }
 
-    // 写入正式正文
+    // 原子写入正式正文：tmp → rename
     final targetFile = File(targetFilePath);
+    final tmpFile = File('$targetFilePath.tmp');
     targetFile.parent.createSync(recursive: true);
-    targetFile.writeAsStringSync(entry.content);
+    tmpFile.writeAsStringSync(entry.content, flush: true);
+    if (targetFile.existsSync()) targetFile.deleteSync();
+    tmpFile.renameSync(targetFilePath);
 
     // 更新候选状态
     entry.status = CandidateStatus.adopted;
