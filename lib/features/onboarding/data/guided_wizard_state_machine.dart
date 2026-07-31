@@ -1,23 +1,104 @@
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 
-/// 引导型向导的 5 个步骤
-enum GuidedWizardStep {
-  title,
+/// 向导维度（两屏共 8 个）
+enum WizardDimension {
+  // 第一屏：快速选择（全必选）
   genre,
+  wordCount,
+  platform,
+  // 第二屏：深度填写
+  title,
   protagonist,
   worldview,
+  creativeDirection,
   firstChapterGoal,
 }
 
-/// 每步跳过时填充的默认值
-const _defaultValues = <GuidedWizardStep, String>{
-  GuidedWizardStep.title: '未命名作品',
-  GuidedWizardStep.genre: '通用',
-  GuidedWizardStep.protagonist: '主角',
-  GuidedWizardStep.worldview: '',
-  GuidedWizardStep.firstChapterGoal: '开篇引入，建立世界观和主角',
+/// 第一屏包含的维度
+const screenOneDimensions = [
+  WizardDimension.genre,
+  WizardDimension.wordCount,
+  WizardDimension.platform,
+];
+
+/// 第二屏包含的维度
+const screenTwoDimensions = [
+  WizardDimension.title,
+  WizardDimension.protagonist,
+  WizardDimension.worldview,
+  WizardDimension.creativeDirection,
+  WizardDimension.firstChapterGoal,
+];
+
+/// 每个维度的多选上限（null = 单选或纯文本）
+const multiSelectCaps = <WizardDimension, int>{
+  WizardDimension.genre: 3,
+  WizardDimension.creativeDirection: 3,
 };
+
+/// 可跳过的维度及其默认值
+const skippableDefaults = <WizardDimension, String>{
+  WizardDimension.title: '未命名作品',
+  WizardDimension.worldview: '',
+  WizardDimension.creativeDirection: '通用',
+};
+
+/// 单个维度的用户输入值（支持多选 + 自定义共存）
+class WizardStepValue {
+  const WizardStepValue({this.selected = const [], this.customText});
+
+  /// 卡片选中的选项列表（单选时长度为 1）
+  final List<String> selected;
+
+  /// 自定义输入文本（与卡片选择共存）
+  final String? customText;
+
+  /// 是否为空（无选择且无自定义文本）
+  bool get isEmpty => selected.isEmpty && (customText == null || customText!.trim().isEmpty);
+
+  /// 是否非空
+  bool get isNotEmpty => !isEmpty;
+
+  /// 合并所有值为展示字符串（用于 buildOutput）
+  String get combined {
+    final parts = [...selected];
+    if (customText != null && customText!.trim().isNotEmpty) {
+      parts.add(customText!.trim());
+    }
+    return parts.join('、');
+  }
+
+  Map<String, dynamic> toJson() => {
+        'selected': selected,
+        if (customText != null) 'customText': customText,
+      };
+
+  factory WizardStepValue.fromJson(Map<String, dynamic> json) =>
+      WizardStepValue(
+        selected: (json['selected'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+        customText: json['customText'] as String?,
+      );
+
+  WizardStepValue copyWith({List<String>? selected, String? customText}) =>
+      WizardStepValue(
+        selected: selected ?? this.selected,
+        customText: customText ?? this.customText,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WizardStepValue &&
+          _listEquals(selected, other.selected) &&
+          customText == other.customText;
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(selected), customText);
+}
 
 /// 向导完成后的产出物
 class WizardOutput {
@@ -25,6 +106,10 @@ class WizardOutput {
     required this.brief,
     required this.initialCanon,
     required this.firstChapterInstruction,
+    required this.genres,
+    required this.wordCount,
+    required this.platform,
+    required this.creativeDirection,
   });
 
   /// 项目简报（所有字段非空）
@@ -35,83 +120,77 @@ class WizardOutput {
 
   /// 第一章生成指令
   final String firstChapterInstruction;
+
+  /// 多选题材列表
+  final List<String> genres;
+
+  /// 字数目标
+  final String wordCount;
+
+  /// 发布平台
+  final String platform;
+
+  /// 创意方向（多选）
+  final String creativeDirection;
 }
 
 /// 引导型向导的纯数据状态（可序列化、可恢复）
 class GuidedWizardState {
   const GuidedWizardState({
-    required this.currentStep,
-    required this.lastStep,
-    required this.stepData,
-    required this.skippedSteps,
+    required this.dimensionData,
+    required this.skippedDimensions,
     required this.isCompleted,
   });
 
-  /// 初始状态：从第一步开始
+  /// 初始状态：所有维度为空
   const GuidedWizardState.initial()
-      : currentStep = GuidedWizardStep.title,
-        lastStep = 0,
-        stepData = const {},
-        skippedSteps = const {},
+      : dimensionData = const {},
+        skippedDimensions = const {},
         isCompleted = false;
 
   factory GuidedWizardState.fromJson(Map<String, dynamic> json) {
-    final rawStepData = json['stepData'] as Map<String, dynamic>? ?? {};
-    final rawSkipped = json['skippedSteps'] as List<dynamic>? ?? [];
+    final rawData = json['dimensionData'] as Map<String, dynamic>? ?? {};
+    final rawSkipped = json['skippedDimensions'] as List<dynamic>? ?? [];
     return GuidedWizardState(
-      currentStep: GuidedWizardStep.values.byName(
-        json['currentStep'] as String? ?? 'title',
-      ),
-      lastStep: json['lastStep'] as int? ?? 0,
-      stepData: {
-        for (final entry in rawStepData.entries)
-          GuidedWizardStep.values.byName(entry.key): entry.value as String,
+      dimensionData: {
+        for (final entry in rawData.entries)
+          WizardDimension.values.byName(entry.key):
+              WizardStepValue.fromJson(entry.value as Map<String, dynamic>),
       },
-      skippedSteps: {
+      skippedDimensions: {
         for (final name in rawSkipped)
-          GuidedWizardStep.values.byName(name as String),
+          WizardDimension.values.byName(name as String),
       },
       isCompleted: json['isCompleted'] as bool? ?? false,
     );
   }
 
-  /// 当前所在步骤
-  final GuidedWizardStep currentStep;
+  /// 每个维度的用户输入
+  final Map<WizardDimension, WizardStepValue> dimensionData;
 
-  /// 已完成的步骤数（用于中断恢复）
-  final int lastStep;
-
-  /// 每步的用户输入或默认值
-  final Map<GuidedWizardStep, String> stepData;
-
-  /// 被跳过的步骤集合
-  final Set<GuidedWizardStep> skippedSteps;
+  /// 被跳过的维度集合
+  final Set<WizardDimension> skippedDimensions;
 
   /// 是否已完成全部步骤
   final bool isCompleted;
 
   Map<String, dynamic> toJson() => {
-        'currentStep': currentStep.name,
-        'lastStep': lastStep,
-        'stepData': {
-          for (final entry in stepData.entries) entry.key.name: entry.value,
+        'dimensionData': {
+          for (final entry in dimensionData.entries)
+            entry.key.name: entry.value.toJson(),
         },
-        'skippedSteps': skippedSteps.map((s) => s.name).toList(),
+        'skippedDimensions': skippedDimensions.map((d) => d.name).toList(),
         'isCompleted': isCompleted,
       };
 
   GuidedWizardState copyWith({
-    GuidedWizardStep? currentStep,
-    int? lastStep,
-    Map<GuidedWizardStep, String>? stepData,
-    Set<GuidedWizardStep>? skippedSteps,
+    Map<WizardDimension, WizardStepValue>? dimensionData,
+    Set<WizardDimension>? skippedDimensions,
     bool? isCompleted,
   }) =>
       GuidedWizardState(
-        currentStep: currentStep ?? this.currentStep,
-        lastStep: lastStep ?? this.lastStep,
-        stepData: stepData ?? this.stepData,
-        skippedSteps: skippedSteps ?? this.skippedSteps,
+        dimensionData: dimensionData ?? this.dimensionData,
+        skippedDimensions: skippedDimensions ?? this.skippedDimensions,
         isCompleted: isCompleted ?? this.isCompleted,
       );
 
@@ -119,26 +198,23 @@ class GuidedWizardState {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is GuidedWizardState &&
-          currentStep == other.currentStep &&
-          lastStep == other.lastStep &&
-          _mapEquals(stepData, other.stepData) &&
-          _setEquals(skippedSteps, other.skippedSteps) &&
+          _mapEquals(dimensionData, other.dimensionData) &&
+          _setEquals(skippedDimensions, other.skippedDimensions) &&
           isCompleted == other.isCompleted;
 
   @override
   int get hashCode => Object.hash(
-        currentStep,
-        lastStep,
-        Object.hashAllUnordered(stepData.entries),
-        Object.hashAllUnordered(skippedSteps),
+        Object.hashAllUnordered(dimensionData.entries),
+        Object.hashAllUnordered(skippedDimensions),
         isCompleted,
       );
 }
 
 /// 引导型向导状态机（纯逻辑，无 IO）
 ///
-/// 管理 5 步流转、跳过默认值填充、中断恢复。
+/// 管理 8 个维度的数据、校验规则、跳过默认值填充。
 /// 完成时通过 [buildOutput] 产出 ProjectBrief + 初始正典 + 第一章指令。
+/// UI 层负责屏导航；状态机只管数据和规则。
 class GuidedWizardStateMachine {
   GuidedWizardStateMachine() : _state = const GuidedWizardState.initial();
 
@@ -149,70 +225,103 @@ class GuidedWizardStateMachine {
 
   GuidedWizardState get state => _state;
 
-  /// 完成当前步骤并前进到下一步
-  void advance(String input) {
+  /// 设置某个维度的值
+  void setDimension(WizardDimension dimension, WizardStepValue value) {
     if (_state.isCompleted) return;
-
-    final step = _state.currentStep;
-    final stepData = Map<GuidedWizardStep, String>.from(_state.stepData)
-      ..[step] = input;
-    final nextIndex = step.index + 1;
-    final completed = nextIndex >= GuidedWizardStep.values.length;
-
-    _state = _state.copyWith(
-      currentStep: completed
-          ? step
-          : GuidedWizardStep.values[nextIndex],
-      lastStep: nextIndex,
-      stepData: stepData,
-      isCompleted: completed,
-    );
+    final data = Map<WizardDimension, WizardStepValue>.from(_state.dimensionData)
+      ..[dimension] = value;
+    // 如果之前被跳过但现在有值了，移除跳过标记
+    final skipped = Set<WizardDimension>.from(_state.skippedDimensions)
+      ..remove(dimension);
+    _state = _state.copyWith(dimensionData: data, skippedDimensions: skipped);
   }
 
-  /// 跳过当前步骤（填充默认值）并前进到下一步
-  void skip() {
+  /// 跳过某个维度（填充默认值）
+  ///
+  /// 仅允许可跳过的维度（title, creativeDirection）
+  void skip(WizardDimension dimension) {
     if (_state.isCompleted) return;
+    final defaultValue = skippableDefaults[dimension];
+    if (defaultValue == null) return; // 不可跳过
+    final data = Map<WizardDimension, WizardStepValue>.from(_state.dimensionData)
+      ..[dimension] = WizardStepValue(selected: [defaultValue]);
+    final skipped = Set<WizardDimension>.from(_state.skippedDimensions)
+      ..add(dimension);
+    _state = _state.copyWith(dimensionData: data, skippedDimensions: skipped);
+  }
 
-    final step = _state.currentStep;
-    final stepData = Map<GuidedWizardStep, String>.from(_state.stepData)
-      ..[step] = _defaultValues[step]!;
-    final skippedSteps = Set<GuidedWizardStep>.from(_state.skippedSteps)
-      ..add(step);
-    final nextIndex = step.index + 1;
-    final completed = nextIndex >= GuidedWizardStep.values.length;
+  /// 校验某个维度是否满足多选上限
+  ///
+  /// 返回 true 表示可以添加，false 表示已达上限
+  bool canAddSelection(WizardDimension dimension, int currentCount) {
+    final cap = multiSelectCaps[dimension];
+    if (cap == null) return true; // 单选或纯文本，无上限概念
+    return currentCount < cap;
+  }
 
-    _state = _state.copyWith(
-      currentStep: completed
-          ? step
-          : GuidedWizardStep.values[nextIndex],
-      lastStep: nextIndex,
-      stepData: stepData,
-      skippedSteps: skippedSteps,
-      isCompleted: completed,
-    );
+  /// 校验第一屏是否全部填写完成
+  bool isScreenOneComplete() {
+    for (final dim in screenOneDimensions) {
+      final value = _state.dimensionData[dim];
+      if (value == null || value.isEmpty) return false;
+    }
+    return true;
+  }
+
+  /// 校验第二屏是否全部填写完成（可跳过维度用默认值也算完成）
+  bool isScreenTwoComplete() {
+    for (final dim in screenTwoDimensions) {
+      final value = _state.dimensionData[dim];
+      if (value == null || value.isEmpty) {
+        // 可跳过维度允许为空（完成时自动填充默认值）
+        if (!skippableDefaults.containsKey(dim)) return false;
+      }
+    }
+    return true;
+  }
+
+  /// 标记向导完成
+  ///
+  /// 前置条件：两屏校验均通过。自动为可跳过维度填充默认值。
+  void markCompleted() {
+    if (!isScreenOneComplete() || !isScreenTwoComplete()) {
+      throw StateError('向导校验未通过，不能标记完成');
+    }
+    // 为可跳过维度填充默认值
+    final data = Map<WizardDimension, WizardStepValue>.from(_state.dimensionData);
+    for (final entry in skippableDefaults.entries) {
+      final existing = data[entry.key];
+      if (existing == null || existing.isEmpty) {
+        data[entry.key] = WizardStepValue(selected: [entry.value]);
+      }
+    }
+    _state = _state.copyWith(dimensionData: data, isCompleted: true);
   }
 
   /// 构建向导产出物
   ///
   /// 前置条件：向导必须已完成（[GuidedWizardState.isCompleted] == true）。
-  /// 不变量：ProjectBrief 所有字段非空，正典至少一条角色 + 一条设定。
   WizardOutput buildOutput(String projectId) {
     if (!_state.isCompleted) {
       throw StateError('向导未完成，不能构建产出物');
     }
 
-    final data = _state.stepData;
-    final title = _nonEmpty(data[GuidedWizardStep.title], '未命名作品');
-    final genre = _nonEmpty(data[GuidedWizardStep.genre], '通用');
-    final protagonist = _nonEmpty(data[GuidedWizardStep.protagonist], '主角');
-    final worldview = data[GuidedWizardStep.worldview]?.trim() ?? '';
-    final goal = _nonEmpty(
-        data[GuidedWizardStep.firstChapterGoal], '开篇引入，建立世界观和主角');
+    final data = _state.dimensionData;
+    final title = _valueOr(data[WizardDimension.title], '未命名作品');
+    final genres = data[WizardDimension.genre]?.selected ?? ['通用'];
+    final wordCount = _valueOr(data[WizardDimension.wordCount], '长篇(50万+)');
+    final platform = _valueOr(data[WizardDimension.platform], '自由发布');
+    final protagonist = _valueOr(data[WizardDimension.protagonist], '主角');
+    final worldview = data[WizardDimension.worldview]?.combined ?? '';
+    final creativeDirection =
+        _valueOr(data[WizardDimension.creativeDirection], '通用');
+    final goal = _valueOr(
+        data[WizardDimension.firstChapterGoal], '开篇引入，建立世界观和主角');
 
     final brief = ProjectBrief(
       title: title,
-      genreId: genre,
-      templateId: 'genre:$genre',
+      genreId: genres.join('+'),
+      templateId: 'genre:${genres.first}',
     );
 
     final canon = <CanonEntry>[
@@ -221,20 +330,20 @@ class GuidedWizardStateMachine {
         projectId: projectId,
         type: CanonEntryType.character,
         name: protagonist,
-        description: _state.skippedSteps.contains(GuidedWizardStep.protagonist)
+        description: _state.skippedDimensions.contains(WizardDimension.protagonist)
             ? ''
             : protagonist,
       ),
-      // 题材设定条目（始终存在，满足"至少一条设定"不变量）
+      // 题材设定条目（始终存在）
       CanonEntry(
         projectId: projectId,
         type: CanonEntryType.lore,
         name: '题材类型',
-        description: genre,
+        description: genres.join('、'),
       ),
     ];
 
-    // 世界规则：仅在用户实际填写时注入（跳过时空字符串不注入）
+    // 世界规则：仅在用户实际填写时注入
     if (worldview.isNotEmpty) {
       canon.add(CanonEntry(
         projectId: projectId,
@@ -248,15 +357,30 @@ class GuidedWizardStateMachine {
       brief: brief,
       initialCanon: canon,
       firstChapterInstruction: goal,
+      genres: genres,
+      wordCount: wordCount,
+      platform: platform,
+      creativeDirection: creativeDirection,
     );
   }
 }
 
-/// 空值合并：null 或空白字符串时返回 fallback
-String _nonEmpty(String? value, String fallback) =>
-    (value == null || value.trim().isEmpty) ? fallback : value;
+/// 空值合并：值为空时返回 fallback
+String _valueOr(WizardStepValue? value, String fallback) {
+  if (value == null || value.isEmpty) return fallback;
+  return value.combined;
+}
 
-bool _mapEquals(Map<GuidedWizardStep, String> a, Map<GuidedWizardStep, String> b) {
+bool _listEquals(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _mapEquals(Map<WizardDimension, WizardStepValue> a,
+    Map<WizardDimension, WizardStepValue> b) {
   if (a.length != b.length) return false;
   for (final key in a.keys) {
     if (a[key] != b[key]) return false;
@@ -264,7 +388,7 @@ bool _mapEquals(Map<GuidedWizardStep, String> a, Map<GuidedWizardStep, String> b
   return true;
 }
 
-bool _setEquals(Set<GuidedWizardStep> a, Set<GuidedWizardStep> b) {
+bool _setEquals(Set<WizardDimension> a, Set<WizardDimension> b) {
   if (a.length != b.length) return false;
   return a.containsAll(b);
 }
