@@ -86,6 +86,10 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
   }
 
   void _completeOnboarding() {
+    // TODO(v1.2-integration): 在 ServiceLocator 中注册 DI 适配器后，
+    // 此处应编排 WizardCompletionWorkflow.execute(_machine) 创建项目+正典，
+    // 然后 FirstChapterTrigger.fire(result) 触发第一章生成。
+    // 当前仅标记完成，实际编排在 service_locator 集成层接入。
     final settings = ServiceLocator.instance.settingsService;
     settings.updateOnboardingState(
       settings.onboardingState.copyWith(

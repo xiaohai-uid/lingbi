@@ -204,12 +204,11 @@ class CandidateService {
       throw StateError('候选已被拒绝，不能采纳');
     }
 
-    // 原子写入正式正文：tmp → rename
+    // 原子写入正式正文：tmp → rename（rename 自身原子替换已存在目标）
     final targetFile = File(targetFilePath);
     final tmpFile = File('$targetFilePath.tmp');
     targetFile.parent.createSync(recursive: true);
     tmpFile.writeAsStringSync(entry.content, flush: true);
-    if (targetFile.existsSync()) targetFile.deleteSync();
     tmpFile.renameSync(targetFilePath);
 
     // 更新候选状态
