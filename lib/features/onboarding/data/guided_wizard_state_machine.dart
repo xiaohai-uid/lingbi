@@ -48,6 +48,15 @@ const skippableDefaults = <WizardDimension, String>{
 class WizardStepValue {
   const WizardStepValue({this.selected = const [], this.customText});
 
+  factory WizardStepValue.fromJson(Map<String, dynamic> json) =>
+      WizardStepValue(
+        selected: (json['selected'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+        customText: json['customText'] as String?,
+      );
+
   /// 卡片选中的选项列表（单选时长度为 1）
   final List<String> selected;
 
@@ -73,15 +82,6 @@ class WizardStepValue {
         'selected': selected,
         if (customText != null) 'customText': customText,
       };
-
-  factory WizardStepValue.fromJson(Map<String, dynamic> json) =>
-      WizardStepValue(
-        selected: (json['selected'] as List<dynamic>?)
-                ?.map((e) => e as String)
-                .toList() ??
-            const [],
-        customText: json['customText'] as String?,
-      );
 
   WizardStepValue copyWith({List<String>? selected, String? customText}) =>
       WizardStepValue(
