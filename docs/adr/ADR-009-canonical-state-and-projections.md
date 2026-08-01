@@ -56,4 +56,5 @@ truth, and crash recovery cannot know what to protect.
 - `lib/domain/mutation/canonical_revision.dart` provides the value object and
   hash functions. Domain code imports neither Flutter nor `dart:io`.
 - Projections must be rebuildable; tests may delete them without data loss.
-- Related: ADR-010 (candidate-approval-commit) will link here.
+- Related: [ADR-010](ADR-010-candidate-approval-commit.md) defines the
+  candidate-approval-commit mutation protocol built on this classification.
