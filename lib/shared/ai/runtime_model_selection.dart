@@ -1,12 +1,14 @@
 import 'ai_provider.dart';
 import 'models/endpoint_config.dart';
 import '../../services/ai_service.dart';
+import '../errors/app_error.dart';
+import '../errors/result.dart';
 
 typedef ModelConnectionValidator = Future<ConnectionTestResult> Function(
   EndpointConfig candidate,
 );
 typedef ProviderConsumerSynchronizer = void Function(AIProvider provider);
-typedef ModelSelectionPersister = Future<void> Function(
+typedef ModelSelectionPersister = Future<Result<void>> Function(
   String providerId,
   String modelId,
 );
@@ -113,7 +115,20 @@ class RuntimeModelSelection {
       _synchronize(_aiService.currentProvider);
 
       try {
-        await _persistSelection(providerId, candidate.modelId);
+        final persistResult =
+            await _persistSelection(providerId, candidate.modelId);
+        AppError? persistError;
+        persistResult.when(
+          success: (_) {},
+          failure: (error) => persistError = error,
+        );
+        if (persistError != null) {
+          _restore(previousProviderId, previousEndpoint, targetEndpoint);
+          return ModelSelectionResult.failure(
+            '保存模型设置失败，已恢复原设置：${persistError!.message}',
+            current,
+          );
+        }
       } catch (error) {
         _restore(previousProviderId, previousEndpoint, targetEndpoint);
         return ModelSelectionResult.failure(

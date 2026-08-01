@@ -4,6 +4,8 @@ import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 import 'package:lingbi/shared/ai/runtime_model_selection.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
+import 'package:lingbi/shared/errors/result.dart';
 
 void main() {
   late AIService aiService;
@@ -45,6 +47,7 @@ void main() {
       persistSelection: (providerId, modelId) async {
         persistedProvider = providerId;
         persistedModel = modelId;
+        return Result.success(null);
       },
     );
 
@@ -74,7 +77,10 @@ void main() {
         message: '模型不存在',
       ),
       synchronizeConsumers: [(_) => consumerCalls++],
-      persistSelection: (_, __) async => persistCalls++,
+      persistSelection: (_, __) async {
+        persistCalls++;
+        return Result.success(null);
+      },
     );
 
     final result = await runtime.select('provider-a', 'missing-model');
@@ -101,7 +107,7 @@ void main() {
       synchronizeConsumers: [
         (provider) => seenModels.add(provider.currentModelId),
       ],
-      persistSelection: (_, __) async => throw StateError('disk full'),
+      persistSelection: (_, __) async => Result.failure(FileError('disk full')),
     );
 
     final result = await runtime.select('provider-a', 'model-b');

@@ -5,6 +5,7 @@ import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 import 'package:lingbi/shared/ai/runtime_model_selection.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
+import 'package:lingbi/shared/errors/result.dart';
 
 /// #40 验证：模型配置链路在向导上下文中端到端可用
 ///
@@ -55,6 +56,7 @@ void main() {
         synchronizeConsumers: [],
         persistSelection: (providerId, modelId) async {
           persistedProvider = providerId;
+          return Result.success(null);
         },
       );
 
@@ -108,6 +110,7 @@ void main() {
         persistSelection: (providerId, modelId) async {
           savedProvider = providerId;
           savedModel = modelId;
+          return Result.success(null);
         },
       );
 
@@ -141,7 +144,7 @@ void main() {
           errorCategory: '密钥无效',
         ),
         synchronizeConsumers: [],
-        persistSelection: (_, __) async {},
+        persistSelection: (_, __) async => Result.success(null),
       );
 
       final result = await runtime.select('openai', 'gpt-4o');
@@ -163,7 +166,7 @@ void main() {
           message: '',
         ),
         synchronizeConsumers: [],
-        persistSelection: (_, __) async {},
+        persistSelection: (_, __) async => Result.success(null),
       );
 
       final result = await runtime.select('nonexistent', 'model');
@@ -193,7 +196,7 @@ void main() {
           message: '',
         ),
         synchronizeConsumers: [],
-        persistSelection: (_, __) async {},
+        persistSelection: (_, __) async => Result.success(null),
       );
 
       final result = await runtime.select('openai', '  ');
@@ -226,7 +229,7 @@ void main() {
           message: '连接成功',
         ),
         synchronizeConsumers: [],
-        persistSelection: (_, __) async {},
+        persistSelection: (_, __) async => Result.success(null),
       );
 
       expect(runtime.current.modelId, 'model-a');
@@ -260,7 +263,7 @@ void main() {
           message: candidate.modelId == 'bad-model' ? '模型不存在' : '连接成功',
         ),
         synchronizeConsumers: [],
-        persistSelection: (_, __) async {},
+        persistSelection: (_, __) async => Result.success(null),
       );
 
       await runtime.select('provider-a', 'bad-model');

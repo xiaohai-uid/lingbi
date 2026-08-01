@@ -14,11 +14,11 @@ import '../../features/import_export/data/export_service.dart';
 import '../../services/intent_confirmation_service.dart';
 import '../../features/project/data/project_meta_repository.dart';
 import '../../features/project/data/project_asset_repository.dart';
-import '../../features/onboarding/data/project_onboarding_workflow.dart';
 import '../../features/onboarding/data/wizard_completion_workflow.dart';
 import '../../features/onboarding/data/onboarding_di_adapters.dart';
 import '../../features/project/data/project_service.dart';
 import '../../features/project/data/project_tab_controller.dart';
+import '../../shared/interfaces/i_project_service.dart';
 import '../../features/settings/data/quota_service.dart';
 import '../../features/settings/data/settings_service.dart';
 import '../../features/skill/data/skill_action_service.dart';
@@ -106,6 +106,7 @@ class ServiceLocator {
   late final DocumentService documentService;
   late final CanonService canonService;
   late final ProjectService projectService;
+  IProjectService get projectServiceApi => projectService;
   late final AIService aiService;
   late final CanonLinkingService canonLinkingService;
   late final SettingsService settingsService;
@@ -118,7 +119,6 @@ class ServiceLocator {
   /// ——— 项目元数据 + 引导流程 ———
   late final ProjectMetaRepository projectMetaRepository;
   late final ProjectAssetRepository projectAssetRepository;
-  late final ProjectOnboardingWorkflow projectOnboardingWorkflow;
   late final WizardCompletionWorkflow wizardCompletionWorkflow;
 
   late final AntiHallucinationService antiHallucinationService;
@@ -206,17 +206,13 @@ class ServiceLocator {
       locator.projectAssetRepository = ProjectAssetRepository(
         metaRepository: locator.projectMetaRepository,
       );
-      locator.projectOnboardingWorkflow = ProjectOnboardingWorkflow(
-        metaRepository: locator.projectMetaRepository,
-        assetRepository: locator.projectAssetRepository,
-      );
       locator.wizardCompletionWorkflow = WizardCompletionWorkflow(
         projectCreator: ProjectServiceAdapter(locator.projectService),
         canonWriter: CanonServiceAdapter(locator.canonService),
         projectRootResolver: () =>
-            locator.settingsService.customStoragePath ?? resolveDefaultProjectRoot(),
+            locator.settingsService.customStoragePath ??
+            resolveDefaultProjectRoot(),
       );
-
 
       // 反幻觉三定律 + 监督智能体
       locator.antiHallucinationService = AntiHallucinationService(

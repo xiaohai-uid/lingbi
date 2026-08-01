@@ -94,7 +94,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   final ClarityCheckService _clarityCheck = ClarityCheckService();
   bool _isLoading = false;
   AgentToolLoop? _activeLoop; // Phase 1.3: 保存当前循环引用以支持取消
-
+  Completer<String>? _pendingAgentCompleter;
+  int? _pendingAgentQuestionIndex;
 
   @override
   void initState() {
@@ -141,6 +142,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
 
   /// Phase 1.3: 停止当前生成。
   void _cancelGeneration() {
+    final pending = _pendingAgentCompleter;
+    final questionIndex = _pendingAgentQuestionIndex;
+    if (pending != null &&
+        questionIndex != null &&
+        questionIndex < _messages.length &&
+        !pending.isCompleted) {
+      _onAgentOptionSelected(questionIndex, '跳过');
+    } else if (pending != null && !pending.isCompleted) {
+      pending.complete('跳过');
+      _pendingAgentCompleter = null;
+      _pendingAgentQuestionIndex = null;
+    }
     _activeLoop?.cancel();
     _activeLoop = null;
     if (mounted) setState(() => _isLoading = false);
@@ -209,6 +222,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     var activeIndex = entryIndex;
 
     final provider = _aiService.currentProvider;
+    AgentToolLoop? loop;
     final registry = AgentToolRegistry(
       projectDir: dir,
       store: ServiceLocator.instance.atomicFileStore,
@@ -218,17 +232,25 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         if (mounted) {
           setState(() {
             final old = _messages[activeIndex];
-            _messages[activeIndex] = _ChatMessage(
-              content: old.content,
-              isUser: false,
-              processContent: old.processContent,
-              toolSteps: old.toolSteps,
-            );
+            // 没有任何可展示内容的占位气泡直接移除；否则保留已完成的
+            // 工具时间线，但明确结束流式状态，避免留下空白气泡。
+            if (old.content.isEmpty &&
+                old.processContent.isEmpty &&
+                old.toolSteps.isEmpty) {
+              _messages.removeAt(activeIndex);
+            } else {
+              _messages[activeIndex] = _ChatMessage(
+                content: old.content,
+                isUser: false,
+                processContent: old.processContent,
+                toolSteps: old.toolSteps,
+              );
+            }
           });
         }
         final answer = await _askUserFromAgent(question, options);
         // 回答后插入新的流式占位，后续步骤写入新位置
-        if (mounted) {
+        if (mounted && identical(_activeLoop, loop)) {
           setState(() {
             _messages.add(_ChatMessage(
               content: '',
@@ -253,7 +275,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       projectId: widget.projectId,
       versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
-    final loop = AgentToolLoop(
+    loop = AgentToolLoop(
       provider: provider,
       registry: registry,
       fallback: fallback,
@@ -375,6 +397,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   Future<String> _askUserFromAgent(
       String question, List<String> options) async {
     final completer = Completer<String>();
+    _pendingAgentCompleter = completer;
     setState(() {
       _messages.add(_ChatMessage(
         content: '',
@@ -384,9 +407,17 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         agentOptions: options,
         agentCompleter: completer,
       ));
+      _pendingAgentQuestionIndex = _messages.length - 1;
     });
     _scrollToBottom();
-    return completer.future;
+    try {
+      return await completer.future;
+    } finally {
+      if (identical(_pendingAgentCompleter, completer)) {
+        _pendingAgentCompleter = null;
+        _pendingAgentQuestionIndex = null;
+      }
+    }
   }
 
   /// 用户点击 Agent 提问卡的选项按钮
@@ -408,6 +439,10 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     });
     _scrollToBottom();
     msg.agentCompleter!.complete(option);
+    if (identical(_pendingAgentCompleter, msg.agentCompleter)) {
+      _pendingAgentCompleter = null;
+      _pendingAgentQuestionIndex = null;
+    }
   }
 
   /// A1: Skill 查找回调 — 按名称/ID 搜索已安装 Skill，返回其 prompt 正文。
@@ -486,10 +521,44 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     final entryIndex = _messages.length - 1;
 
     final provider = _aiService.currentProvider;
+    var activeIndex = entryIndex;
+    AgentToolLoop? loop;
     final registry = AgentToolRegistry(
       projectDir: dir,
       store: ServiceLocator.instance.atomicFileStore,
       confirmWrite: _confirmToolWrite,
+      askUser: (question, options) async {
+        if (mounted) {
+          setState(() {
+            final old = _messages[activeIndex];
+            if (old.content.isEmpty &&
+                old.processContent.isEmpty &&
+                old.toolSteps.isEmpty) {
+              _messages.removeAt(activeIndex);
+            } else {
+              _messages[activeIndex] = _ChatMessage(
+                content: old.content,
+                isUser: false,
+                processContent: old.processContent,
+                toolSteps: old.toolSteps,
+              );
+            }
+          });
+        }
+        final answer = await _askUserFromAgent(question, options);
+        if (mounted && identical(_activeLoop, loop)) {
+          setState(() {
+            _messages.add(_ChatMessage(
+              content: '',
+              isUser: false,
+              isStreaming: true,
+              isThinking: true,
+            ));
+            activeIndex = _messages.length - 1;
+          });
+        }
+        return answer;
+      },
       onToolEvent: (name, display) {
         // 工具事件已通过 AgentToolLoop.onStep 汇总，此处预留扩展。
       },
@@ -503,15 +572,15 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       projectId: pid,
       versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
-    final loop = AgentToolLoop(
+    loop = AgentToolLoop(
       provider: provider,
       registry: registry,
       fallback: fallback,
       onStep: (step) {
         if (!mounted) return;
         setState(() {
-          final m = _messages[entryIndex];
-          _messages[entryIndex] = _ChatMessage(
+          final m = _messages[activeIndex];
+          _messages[activeIndex] = _ChatMessage(
             content: step.kind == 'final' ? step.text : m.content,
             isUser: false,
             isStreaming: true,
@@ -522,6 +591,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         _scrollToBottom();
       },
     );
+    _activeLoop = loop;
 
     try {
       final result = await loop.run(
@@ -532,8 +602,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       );
       if (!mounted) return;
       setState(() {
-        final m = _messages[entryIndex];
-        _messages[entryIndex] = _ChatMessage(
+        final m = _messages[activeIndex];
+        _messages[activeIndex] = _ChatMessage(
           content: result.finalText.isEmpty
               ? (result.usedFallback ? '已按确定性流程完成创作。' : '本轮未产出正文，请查看工具步骤。')
               : result.finalText,
@@ -541,16 +611,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
           toolSteps: m.toolSteps,
         );
         _isLoading = false;
+        _activeLoop = null;
       });
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _messages[entryIndex] = _ChatMessage(
+        _messages[activeIndex] = _ChatMessage(
           content: 'Agent 写作失败：$e',
           isUser: false,
         );
         _isLoading = false;
+        _activeLoop = null;
       });
     }
   }
@@ -763,6 +835,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
               ),
               textAlign: TextAlign.center,
             ),
+            if (widget.projectId != null) ...[
+              const SizedBox(height: LingBiTokens.space3),
+              OutlinedButton.icon(
+                onPressed: _isLoading
+                    ? null
+                    : () => _sendMessage(
+                          '请先通过 question 工具向我提问，确认本章目标、冲突和开场，再开始写作。',
+                        ),
+                icon: const Icon(Icons.forum_outlined, size: 16),
+                label: const Text('让 AI 先问我几个关键问题'),
+              ),
+            ],
           ],
         ),
       ),
@@ -875,9 +959,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                               color: c.fg,
                               height: 1.6,
                             ),
-                            h1: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: c.fg),
-                            h2: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: c.fg),
-                            h3: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.fg),
+                            h1: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: c.fg),
+                            h2: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: c.fg),
+                            h3: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: c.fg),
                             listBullet: TextStyle(color: c.fgSecondary),
                             code: TextStyle(
                               fontSize: 13,
@@ -1080,12 +1173,9 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
 
   /// A3: 字数统计（中文字符 + 英文单词）。
   int _countWords(String text) {
-    final chineseChars = RegExp(r'[\u4e00-\u9fff\u3400-\u4dbf]')
-        .allMatches(text)
-        .length;
-    final englishWords = RegExp(r'[a-zA-Z]+')
-        .allMatches(text)
-        .length;
+    final chineseChars =
+        RegExp(r'[\u4e00-\u9fff\u3400-\u4dbf]').allMatches(text).length;
+    final englishWords = RegExp(r'[a-zA-Z]+').allMatches(text).length;
     return chineseChars + englishWords;
   }
 
@@ -1248,8 +1338,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                         InkWell(
                           onTap: msg.agentAnswered
                               ? null
-                              : () => _onAgentOptionSelected(
-                                  messageIndex, option),
+                              : () =>
+                                  _onAgentOptionSelected(messageIndex, option),
                           borderRadius:
                               BorderRadius.circular(LingBiTokens.radiusPill),
                           child: Container(
@@ -1274,9 +1364,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: msg.agentAnswered
-                                    ? c.muted
-                                    : c.accent,
+                                color: msg.agentAnswered ? c.muted : c.accent,
                               ),
                             ),
                           ),
@@ -1285,8 +1373,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                       InkWell(
                         onTap: msg.agentAnswered
                             ? null
-                            : () =>
-                                _onAgentOptionSelected(messageIndex, '跳过'),
+                            : () => _onAgentOptionSelected(messageIndex, '跳过'),
                         borderRadius:
                             BorderRadius.circular(LingBiTokens.radiusPill),
                         child: Container(
@@ -1296,8 +1383,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                           ),
                           decoration: BoxDecoration(
                             color: c.surfaceContainer,
-                            borderRadius: BorderRadius.circular(
-                                LingBiTokens.radiusPill),
+                            borderRadius:
+                                BorderRadius.circular(LingBiTokens.radiusPill),
                             border: Border.all(
                               color: c.borderOpaque.withValues(alpha: 0.3),
                             ),
@@ -1306,7 +1393,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                             '跳过',
                             style: TextStyle(
                               fontSize: 12,
-                              color: msg.agentAnswered ? c.muted : c.fgSecondary,
+                              color:
+                                  msg.agentAnswered ? c.muted : c.fgSecondary,
                             ),
                           ),
                         ),

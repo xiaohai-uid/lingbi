@@ -9,6 +9,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/shared/ai/models/endpoint_config.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
+import 'package:lingbi/shared/errors/result.dart';
 
 /// 当前引导配置 schema 版本
 ///
@@ -265,7 +267,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   /// Unlike the legacy synchronous setters, this method surfaces disk errors
   /// so the runtime transaction can roll back instead of reporting a false
   /// success to the user.
-  Future<void> commitRuntimeSelection(
+  Future<Result<void>> commitRuntimeSelection(
     String provider,
     String modelId,
   ) async {
@@ -273,18 +275,25 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     final previousModel = _selectedModelIds[provider];
     _selectedProvider = provider;
     _selectedModelIds[provider] = modelId;
-    try {
-      await _save(rethrowOnError: true);
-    } catch (_) {
+    final saveResult = await _save();
+    var saved = false;
+    saveResult.when(
+      success: (_) => saved = true,
+      failure: (_) {},
+    );
+    if (!saved) {
       _selectedProvider = previousProvider;
       if (previousModel == null) {
         _selectedModelIds.remove(provider);
       } else {
         _selectedModelIds[provider] = previousModel;
       }
-      rethrow;
+      return Result.failure(
+        FileError('模型设置保存失败'),
+      );
     }
     notifyListeners();
+    return Result.success(null);
   }
 
   /// 初始化 & 加载持久化设置
@@ -595,8 +604,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     _endpoints.forEach(_aiService.addEndpoint);
   }
 
-  Future<void> _save({bool rethrowOnError = false}) async {
-    if (_settingsPath == null) return;
+  Future<Result<void>> _save() async {
+    if (_settingsPath == null) return Result.success(null);
     try {
       // API Keys 仅写入安全存储；禁止明文 JSON 回退
       if (_secureStorageAvailable) {
@@ -637,13 +646,15 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
                   modelId: e.modelId,
                 ).toJson())
             .toList(),
-        if (_customStoragePath != null)
-          'customStoragePath': _customStoragePath,
+        if (_customStoragePath != null) 'customStoragePath': _customStoragePath,
         // 禁止在 JSON 中写入 apiKeys
       };
       await file.writeAsString(jsonEncode(data));
-    } catch (_) {
-      if (rethrowOnError) rethrow;
+      return Result.success(null);
+    } catch (error) {
+      return Result.failure(
+        FileError('设置保存失败', cause: error),
+      );
     }
   }
 
@@ -666,10 +677,26 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   String? get customStoragePath => _customStoragePath;
 
   /// 设置自定义存储路径。传 null 恢复默认。
-  Future<void> setCustomStoragePath(String? path) async {
+  Future<Result<void>> setCustomStoragePath(String? path) async {
+    final previousPath = _customStoragePath;
     _customStoragePath = path;
-    _save();
+    final saveResult = await _save();
+    var saved = false;
+    Object? saveError;
+    saveResult.when(
+      success: (_) => saved = true,
+      failure: (error) => saveError = error,
+    );
+    if (!saved) {
+      _customStoragePath = previousPath;
+      return Result.failure(
+        saveError is AppError
+            ? saveError as AppError
+            : FileError('存储位置保存失败', cause: saveError),
+      );
+    }
     notifyListeners();
+    return Result.success(null);
   }
 
   /// 从持久化加载自定义路径。

@@ -10,60 +10,18 @@ import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/features/project/data/project_asset_repository.dart';
-import 'package:lingbi/features/onboarding/data/project_onboarding_workflow.dart';
 import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/features/project/ui/project_brief_sheet.dart';
 import 'package:lingbi/ui_v2/controllers/project_session_manager.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
-import 'package:lingbi/features/onboarding/ui/project_onboarding_page.dart';
-import 'package:lingbi/features/project/ui/project_overview_page.dart';
 import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 
-class _MemoryMetaRepository implements IProjectMetaRepository {
-  final Map<String, Map<String, dynamic>> values = {};
-
-  @override
-  Future<Map<String, dynamic>?> read(String projectId, String fileName) async =>
-      values['$projectId/$fileName'];
-
-  @override
-  Future<void> write(
-    String projectId,
-    String fileName,
-    Map<String, dynamic> data,
-  ) async {
-    values['$projectId/$fileName'] = data;
-  }
-
-  @override
-  Future<void> delete(String projectId, String fileName) async {}
-
-  @override
-  Future<String> getMetaDirPath(String projectId) async => projectId;
-
-  @override
-  Future<List<String>> list(String projectId) async => const [];
-
-  @override
-  Future<WorldConstitution?> readConstitution(String projectId) async => null;
-
-  @override
-  Future<void> writeConstitution(
-    String projectId,
-    WorldConstitution constitution,
-  ) async {}
-}
-
-enum _GoldenStage { welcome, brief, onboarding, overview, editor }
+enum _GoldenStage { welcome, brief, editor }
 
 class _GoldenPathHarness extends StatefulWidget {
-  const _GoldenPathHarness({required this.metaRepository});
-
-  final _MemoryMetaRepository metaRepository;
+  const _GoldenPathHarness();
 
   @override
   State<_GoldenPathHarness> createState() => _GoldenPathHarnessState();
@@ -72,15 +30,6 @@ class _GoldenPathHarness extends StatefulWidget {
 class _GoldenPathHarnessState extends State<_GoldenPathHarness> {
   _GoldenStage _stage = _GoldenStage.welcome;
   late ProjectTemplate? _template;
-  late Project? _project;
-
-  late final ProjectAssetRepository _assets = ProjectAssetRepository(
-    metaRepository: widget.metaRepository,
-  );
-  late final ProjectOnboardingWorkflow _onboarding = ProjectOnboardingWorkflow(
-    metaRepository: widget.metaRepository,
-    assetRepository: _assets,
-  );
 
   @override
   Widget build(BuildContext context) => switch (_stage) {
@@ -97,43 +46,11 @@ class _GoldenPathHarnessState extends State<_GoldenPathHarness> {
             onCancel: () => setState(() => _stage = _GoldenStage.welcome),
             onSubmit: _createProject,
           ),
-        _GoldenStage.onboarding => ProjectOnboardingPage(
-            projectId: _project!.id,
-            workflow: _onboarding,
-            modelSelector: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('模型未配置'),
-                TextButton(onPressed: null, child: Text('配置模型')),
-                TextButton(onPressed: null, child: Text('继续手写')),
-              ],
-            ),
-            onCompleted: () => setState(() => _stage = _GoldenStage.overview),
-            onManualWriting: () => setState(() => _stage = _GoldenStage.editor),
-          ),
-        _GoldenStage.overview => ProjectOverviewPage(
-            project: _project!,
-            repository: _assets,
-            onAssetSelected: (asset) {
-              if (asset.type.name == 'firstChapter') {
-                setState(() => _stage = _GoldenStage.editor);
-              }
-            },
-          ),
         _GoldenStage.editor => const Center(child: Text('第一章编辑器')),
       };
 
   void _createProject(ProjectBrief brief) {
-    setState(() {
-      _project = Project(
-        id: 'golden-project',
-        name: brief.title,
-        directoryPath: r'C:\LingBi\万界守夜人',
-        genre: brief.genreId,
-        templateId: brief.templateId,
-      );
-      _stage = _GoldenStage.onboarding;
-    });
+    setState(() => _stage = _GoldenStage.editor);
   }
 }
 
@@ -206,14 +123,13 @@ void main() {
   testWidgets(
     'Windows keyboard and mouse golden path keeps genre and reaches first chapter',
     (tester) async {
-      final meta = _MemoryMetaRepository();
       await tester.binding.setSurfaceSize(const Size(1280, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(extensions: const [LingBiColors.light]),
-          home: Scaffold(body: _GoldenPathHarness(metaRepository: meta)),
+          home: const Scaffold(body: _GoldenPathHarness()),
         ),
       );
 
@@ -233,36 +149,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('project-create-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('模型未配置'), findsOneWidget);
-      expect(find.text('配置模型'), findsOneWidget);
-      expect(find.text('继续手写'), findsOneWidget);
-
-      // Complete all three questions with keyboard submit.
-      for (final answer in ['守住故乡', '天道抹去众生记忆', '收到自己的讣告']) {
-        await tester.enterText(find.byType(TextField).first, answer);
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-        await tester.pumpAndSettle();
-      }
-
-      // Completion lands on the asset overview exactly once, never loops.
-      expect(find.text('创作资产'), findsOneWidget);
-      expect(find.text('用三个问题开始创作'), findsNothing);
-      expect(find.text('第一章'), findsOneWidget);
-
-      // Mouse: first chapter is a direct, visible route into the editor.
-      await tester.tap(find.text('第一章'));
-      await tester.pumpAndSettle();
       expect(find.text('第一章编辑器'), findsOneWidget);
-
-      final state = await ProjectOnboardingWorkflow(
-        metaRepository: meta,
-        assetRepository: ProjectAssetRepository(metaRepository: meta),
-      ).resume('golden-project');
-      expect(state.isCompleted, isTrue);
-      expect(
-        state.answers.values,
-        containsAll(['守住故乡', '天道抹去众生记忆', '收到自己的讣告']),
-      );
     },
   );
 }

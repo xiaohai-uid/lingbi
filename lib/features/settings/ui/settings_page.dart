@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
@@ -26,7 +24,18 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   String _selectedSection = '外观';
 
-  final _sections = ['外观', '编辑器', 'AI 模型', 'API 密钥', '自定义端点', '快捷键', '存储', '云同步', '隐私', '订阅'];
+  final _sections = [
+    '外观',
+    '编辑器',
+    'AI 模型',
+    'API 密钥',
+    '自定义端点',
+    '快捷键',
+    '存储',
+    '云同步',
+    '隐私',
+    '订阅'
+  ];
 
   // API Key controllers
   late final TextEditingController _openaiKeyController;
@@ -64,10 +73,14 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     final settings = ServiceLocator.instance.settingsService;
-    _openaiKeyController = TextEditingController(text: settings.getApiKey('openai'));
-    _anthropicKeyController = TextEditingController(text: settings.getApiKey('claude'));
-    _deepseekKeyController = TextEditingController(text: settings.getApiKey('deepseek'));
-    _sensenovaKeyController = TextEditingController(text: settings.getApiKey('sensenova'));
+    _openaiKeyController =
+        TextEditingController(text: settings.getApiKey('openai'));
+    _anthropicKeyController =
+        TextEditingController(text: settings.getApiKey('claude'));
+    _deepseekKeyController =
+        TextEditingController(text: settings.getApiKey('deepseek'));
+    _sensenovaKeyController =
+        TextEditingController(text: settings.getApiKey('sensenova'));
     _webdavUrlController = TextEditingController();
     _webdavUserController = TextEditingController();
     _webdavPassController = TextEditingController();
@@ -96,8 +109,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _refreshModels([String? providerId]) async {
-    final pid = providerId ??
-        ServiceLocator.instance.settingsService.selectedProvider;
+    final pid =
+        providerId ?? ServiceLocator.instance.settingsService.selectedProvider;
     if (_isLoadingModels) return;
     setState(() => _isLoadingModels = true);
     try {
@@ -200,8 +213,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   section,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight:
-                        isActive ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     color: isActive ? c.accent : c.fgSecondary,
                   ),
                 ),
@@ -388,10 +400,10 @@ class _SettingsPageState extends State<SettingsPage> {
                       ))
                   .toList(),
               onChanged: (value) {
-                  final pid = value ?? 'free';
-                  settings.setProvider(pid);
-                  _refreshModels(pid);
-                },
+                final pid = value ?? 'free';
+                settings.setProvider(pid);
+                _refreshModels(pid);
+              },
               decoration: InputDecoration(
                 filled: true,
                 fillColor: c.surface,
@@ -439,7 +451,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       filled: true,
                       fillColor: c.surface,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                        borderRadius:
+                            BorderRadius.circular(LingBiTokens.radiusSm),
                         borderSide: BorderSide(color: c.borderOpaque),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
@@ -521,14 +534,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _testConnection() async {
-    final result = await ServiceLocator.instance.aiService.testConnectionUnified();
+    final result =
+        await ServiceLocator.instance.aiService.testConnectionUnified();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result.success
             ? '连接成功 (${result.latencyMs}ms)${result.responsePreview != null ? " — ${result.responsePreview}" : ""}'
             : result.message),
-        backgroundColor: result.success ? LingBiTokens.success : LingBiTokens.warning,
+        backgroundColor:
+            result.success ? LingBiTokens.success : LingBiTokens.warning,
       ),
     );
   }
@@ -540,14 +555,17 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     try {
       final buffer = StringBuffer();
-      await ServiceLocator.instance.aiService.testGeneration().forEach(buffer.write);
+      await ServiceLocator.instance.aiService
+          .testGeneration()
+          .forEach(buffer.write);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(buffer.isNotEmpty
               ? '测试生成成功：${buffer.toString().length > 60 ? "${buffer.toString().substring(0, 57)}..." : buffer}'
               : '生成结果为空，请检查配置'),
-          backgroundColor: buffer.isNotEmpty ? LingBiTokens.success : LingBiTokens.warning,
+          backgroundColor:
+              buffer.isNotEmpty ? LingBiTokens.success : LingBiTokens.warning,
         ),
       );
     } catch (e) {
@@ -619,151 +637,157 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             child: Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.amber.shade700, size: 20),
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.amber.shade700, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     settings.secureStorageWarning ??
                         '安全存储不可用，API Key 仅在本次会话有效，不会保存到磁盘。',
-                    style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
+                    style:
+                        TextStyle(fontSize: 13, color: Colors.amber.shade900),
                   ),
                 ),
               ],
             ),
           ),
         _buildSection(
-      c: c,
-      items: [
-        _SettingItem(
-          icon: LingBiIcons.apiKey,
-          title: 'SenseNova API Key',
-          subtitle: settings.hasApiKey('sensenova')
-              ? (settings.isSessionOnlyKey('sensenova') ? '已配置（仅本次会话）' : '已配置')
-              : '未配置',
-          trailing: SizedBox(
-            width: 280,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _sensenovaKeyController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'sk-...',
-                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+          c: c,
+          items: [
+            _SettingItem(
+              icon: LingBiIcons.apiKey,
+              title: 'SenseNova API Key',
+              subtitle: settings.hasApiKey('sensenova')
+                  ? (settings.isSessionOnlyKey('sensenova')
+                      ? '已配置（仅本次会话）'
+                      : '已配置')
+                  : '未配置',
+              trailing: SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _sensenovaKeyController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: 'sk-...',
+                          suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                        ),
+                        onSubmitted: (value) =>
+                            settings.setApiKey('sensenova', value.trim()),
+                      ),
                     ),
-                    onSubmitted: (value) =>
-                        settings.setApiKey('sensenova', value.trim()),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: '删除 Key',
-                  onPressed: () => _confirmDeleteKey('sensenova'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _SettingItem(
-          icon: LingBiIcons.apiKey,
-          title: 'DeepSeek API Key',
-          subtitle: settings.hasApiKey('deepseek')
-              ? (settings.isSessionOnlyKey('deepseek') ? '已配置（仅本次会话）' : '已配置')
-              : '未配置',
-          trailing: SizedBox(
-            width: 280,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _deepseekKeyController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'sk-...',
-                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: '删除 Key',
+                      onPressed: () => _confirmDeleteKey('sensenova'),
                     ),
-                    onSubmitted: (value) =>
-                        settings.setApiKey('deepseek', value.trim()),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: '删除 Key',
-                  onPressed: () => _confirmDeleteKey('deepseek'),
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        _SettingItem(
-          icon: LingBiIcons.apiKey,
-          title: 'OpenAI API Key',
-          subtitle: settings.hasApiKey('openai')
-              ? (settings.isSessionOnlyKey('openai') ? '已配置（仅本次会话）' : '已配置')
-              : '未配置',
-          trailing: SizedBox(
-            width: 280,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _openaiKeyController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'sk-...',
-                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+            _SettingItem(
+              icon: LingBiIcons.apiKey,
+              title: 'DeepSeek API Key',
+              subtitle: settings.hasApiKey('deepseek')
+                  ? (settings.isSessionOnlyKey('deepseek')
+                      ? '已配置（仅本次会话）'
+                      : '已配置')
+                  : '未配置',
+              trailing: SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _deepseekKeyController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: 'sk-...',
+                          suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                        ),
+                        onSubmitted: (value) =>
+                            settings.setApiKey('deepseek', value.trim()),
+                      ),
                     ),
-                    onSubmitted: (value) =>
-                        settings.setApiKey('openai', value.trim()),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: '删除 Key',
-                  onPressed: () => _confirmDeleteKey('openai'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        _SettingItem(
-          icon: LingBiIcons.apiKey,
-          title: 'Anthropic API Key',
-          subtitle: settings.hasApiKey('claude')
-              ? (settings.isSessionOnlyKey('claude') ? '已配置（仅本次会话）' : '已配置')
-              : '未配置',
-          trailing: SizedBox(
-            width: 280,
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _anthropicKeyController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'sk-ant-...',
-                      suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: '删除 Key',
+                      onPressed: () => _confirmDeleteKey('deepseek'),
                     ),
-                    onSubmitted: (value) =>
-                        settings.setApiKey('claude', value.trim()),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  tooltip: '删除 Key',
-                  onPressed: () => _confirmDeleteKey('claude'),
-                ),
-              ],
+              ),
             ),
-          ),
+            _SettingItem(
+              icon: LingBiIcons.apiKey,
+              title: 'OpenAI API Key',
+              subtitle: settings.hasApiKey('openai')
+                  ? (settings.isSessionOnlyKey('openai') ? '已配置（仅本次会话）' : '已配置')
+                  : '未配置',
+              trailing: SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _openaiKeyController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: 'sk-...',
+                          suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                        ),
+                        onSubmitted: (value) =>
+                            settings.setApiKey('openai', value.trim()),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: '删除 Key',
+                      onPressed: () => _confirmDeleteKey('openai'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            _SettingItem(
+              icon: LingBiIcons.apiKey,
+              title: 'Anthropic API Key',
+              subtitle: settings.hasApiKey('claude')
+                  ? (settings.isSessionOnlyKey('claude') ? '已配置（仅本次会话）' : '已配置')
+                  : '未配置',
+              trailing: SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _anthropicKeyController,
+                        obscureText: true,
+                        decoration: const InputDecoration(
+                          hintText: 'sk-ant-...',
+                          suffixIcon: Icon(LingBiIcons.edit, size: 16),
+                        ),
+                        onSubmitted: (value) =>
+                            settings.setApiKey('claude', value.trim()),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      tooltip: '删除 Key',
+                      onPressed: () => _confirmDeleteKey('claude'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
       ],
     );
   }
@@ -859,7 +883,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ),
                       IconButton(
-                        icon: Icon(LingBiIcons.delete, size: 18, color: c.muted),
+                        icon:
+                            Icon(LingBiIcons.delete, size: 18, color: c.muted),
                         tooltip: '删除',
                         onPressed: () => settings.removeCustomEndpoint(ep.id),
                       ),
@@ -1106,11 +1131,20 @@ class _SettingsPageState extends State<SettingsPage> {
                     dialogTitle: '选择小说存储目录',
                   );
                   if (result != null) {
-                    await settings.setCustomStoragePath(result);
-                    if (mounted) {
-                      setState(() {});
-                      _offerMigration(result);
-                    }
+                    final oldRoot = settings.customStoragePath ??
+                        resolveDefaultProjectRoot();
+                    final saveResult =
+                        await settings.setCustomStoragePath(result);
+                    if (!mounted) return;
+                    saveResult.when(
+                      success: (_) {
+                        setState(() {});
+                        if (oldRoot != result) {
+                          _offerMigration(oldRoot: oldRoot, newRoot: result);
+                        }
+                      },
+                      failure: (error) => _showStorageError(error.message),
+                    );
                   }
                 },
                 icon: const Icon(Icons.folder_open, size: 16),
@@ -1119,8 +1153,20 @@ class _SettingsPageState extends State<SettingsPage> {
               if (currentPath != null)
                 TextButton(
                   onPressed: () async {
-                    await settings.setCustomStoragePath(null);
-                    if (mounted) setState(() {});
+                    final oldRoot = currentPath;
+                    final saveResult =
+                        await settings.setCustomStoragePath(null);
+                    if (!mounted) return;
+                    saveResult.when(
+                      success: (_) {
+                        setState(() {});
+                        _offerMigration(
+                          oldRoot: oldRoot,
+                          newRoot: resolveDefaultProjectRoot(),
+                        );
+                      },
+                      failure: (error) => _showStorageError(error.message),
+                    );
                   },
                   child: Text(
                     '重置默认',
@@ -1135,7 +1181,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   /// 设置新路径后，检查旧位置是否有项目并提议迁移。
-  void _offerMigration(String newPath) {
+  void _offerMigration({required String oldRoot, required String newRoot}) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1153,7 +1199,7 @@ class _SettingsPageState extends State<SettingsPage> {
           FilledButton(
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await _migrateProjects(newPath);
+              await _migrateProjects(oldRoot: oldRoot, newRoot: newRoot);
             },
             child: const Text('开始迁移'),
           ),
@@ -1162,44 +1208,40 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  /// 执行项目迁移：发现旧项目 → 移动目录 → 更新路径。失败时保留原位置。
-  Future<void> _migrateProjects(String newPath) async {
-    final projectService = ServiceLocator.instance.projectService;
-    final projects = await projectService.getProjects();
-    final oldRoot = resolveDefaultProjectRoot();
-    var migrated = 0;
-    var failed = 0;
+  /// 执行项目迁移：发现旧项目 → 移动目录 → 更新便携元数据。
+  Future<void> _migrateProjects({
+    required String oldRoot,
+    required String newRoot,
+  }) async {
+    final projectService = ServiceLocator.instance.projectServiceApi;
+    final result = await projectService.migratePortableProjects(
+      oldRoot: oldRoot,
+      newRoot: newRoot,
+    );
 
-    for (final project in projects) {
-      final oldDir = project.directoryPath;
-      if (!oldDir.startsWith(oldRoot)) continue;
-
-      final dirName = oldDir.split(Platform.pathSeparator).last;
-      final newDir = '$newPath${Platform.pathSeparator}$dirName';
-
-      try {
-        final source = Directory(oldDir);
-        if (!await source.exists()) continue;
-        await source.rename(newDir);
-        project.directoryPath = newDir;
-        await projectService.updateProject(project);
-        migrated++;
-      } catch (_) {
-        failed++;
-      }
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            failed == 0
-                ? '迁移完成：$migrated 个项目已移动到新目录'
-                : '迁移部分完成：$migrated 个成功，$failed 个失败（保留在原位置）',
+    if (!mounted) return;
+    result.when(
+      success: (summary) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              summary.failed == 0
+                  ? '迁移完成：${summary.migrated} 个项目已移动到新目录'
+                  : '迁移部分完成：${summary.migrated} 个成功，'
+                      '${summary.failed} 个失败（保留在原位置）',
+            ),
           ),
-        ),
-      );
-    }
+        );
+      },
+      failure: (error) => _showStorageError(error.message),
+    );
+  }
+
+  void _showStorageError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   // ==================== 云同步 ====================
@@ -1228,7 +1270,8 @@ class _SettingsPageState extends State<SettingsPage> {
               child: TextField(
                 controller: _webdavUrlController,
                 enabled: _webdavEnabled,
-                decoration: _inputDecoration(c, 'https://dav.jianguoyun.com/dav/'),
+                decoration:
+                    _inputDecoration(c, 'https://dav.jianguoyun.com/dav/'),
               ),
             ),
           ),
@@ -1262,14 +1305,16 @@ class _SettingsPageState extends State<SettingsPage> {
           _SettingItem(
             icon: LingBiIcons.cloud,
             title: '连接测试',
-            subtitle: _syncStatusText.isEmpty ? '测试 WebDAV 连接可用性' : _syncStatusText,
+            subtitle:
+                _syncStatusText.isEmpty ? '测试 WebDAV 连接可用性' : _syncStatusText,
             trailing: FilledButton.tonal(
               onPressed: _webdavEnabled && !_testingConnection
                   ? _testWebDavConnection
                   : null,
               child: _testingConnection
                   ? const SizedBox(
-                      width: 16, height: 16,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('测试连接'),
@@ -1283,7 +1328,8 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: _webdavEnabled && !_syncing ? _triggerSync : null,
               child: _syncing
                   ? const SizedBox(
-                      width: 16, height: 16,
+                      width: 16,
+                      height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('同步'),
@@ -1335,7 +1381,8 @@ class _SettingsPageState extends State<SettingsPage> {
       manager.dispose();
       if (mounted) {
         setState(() {
-          _lastSyncText = '上次同步: ${DateTime.now().toString().substring(0, 19)} ($synced 个文件)';
+          _lastSyncText =
+              '上次同步: ${DateTime.now().toString().substring(0, 19)} ($synced 个文件)';
         });
       }
     } catch (e) {
@@ -1409,7 +1456,8 @@ class _SettingsPageState extends State<SettingsPage> {
         _SettingItem(
           icon: LingBiIcons.subscription,
           title: '当前方案',
-          subtitle: isPro ? 'Pro — 全部功能已解锁' : 'Free — 本地编辑 + 自带 API Key + 基础 Skill',
+          subtitle:
+              isPro ? 'Pro — 全部功能已解锁' : 'Free — 本地编辑 + 自带 API Key + 基础 Skill',
           trailing: Container(
             padding: const EdgeInsets.symmetric(
               horizontal: LingBiTokens.space3,
@@ -1455,7 +1503,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: _activatingLicense ? null : _activateLicense,
                 child: _activatingLicense
                     ? const SizedBox(
-                        width: 16, height: 16,
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('激活'),
@@ -1595,7 +1644,6 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class _SettingItem {
-
   const _SettingItem({
     required this.icon,
     required this.title,
