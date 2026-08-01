@@ -17,6 +17,7 @@ import 'dart:io';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/features/skill/data/ranking_api_client.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 
 /// 单个工具的执行结果。
 class ToolResult {
@@ -62,6 +63,7 @@ class AgentToolRegistry {
     this.skillLookup,
     this.onToolEvent,
     this.readCapChars = 8000,
+    this.versionHistoryService,
   }) : store = store ?? AtomicFileStore();
 
   /// 沙箱根目录（所有文件操作限定在此目录内）。
@@ -80,6 +82,9 @@ class AgentToolRegistry {
 
   /// file_read 单次返回的最大字符数（防止撑爆上下文）。
   final int readCapChars;
+
+  /// 版本快照服务：file_write 写入前自动保存旧版本，支持回滚。
+  final VersionHistoryService? versionHistoryService;
 
   /// 工具规格列表 —— 传给 [AIProvider.chatWithTools] 的模型。
   ///
@@ -274,6 +279,8 @@ class AgentToolRegistry {
         display: '用户拒绝写入 $rawPath',
       );
     }
+    // 写前版本快照：保存旧内容以支持回滚（对标 OpenWrite 版本历史）。
+    await _saveSnapshot(rawPath);
     await store.writeString(resolved, content);
     onToolEvent?.call('file_write', '写入 $rawPath');
     return ToolResult(
@@ -507,4 +514,22 @@ class AgentToolRegistry {
   /// 供测试/日志：把工具结果序列化为简短 JSON。
   static String encodePreview(ToolResult r) =>
       jsonEncode({'error': r.isError, 'display': r.display});
+
+  /// 写前快照：若目标文件已存在且 versionHistoryService 可用，保存旧版本。
+  Future<void> _saveSnapshot(String relativePath) async {
+    final svc = versionHistoryService;
+    if (svc == null) return;
+    try {
+      final oldContent = await store.readString(relativePath);
+      if (oldContent == null || oldContent.trim().isEmpty) return;
+      await svc.saveVersion(
+        projectDir: projectDir,
+        docId: relativePath,
+        content: oldContent,
+        summary: 'file_write 写前快照',
+      );
+    } catch (_) {
+      // 快照失败不阻塞写入（非关键路径）。
+    }
+  }
 }

@@ -21,6 +21,7 @@ import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/features/writing/data/context/context_compiler.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 
 /// 一个候选章节（尚未落盘）。
 class ChapterCandidate {
@@ -70,6 +71,7 @@ class NovelWritingLoop {
     this.projectId,
     this.recentChapterCount = 5,
     this.minChineseChars = 2000,
+    this.versionHistoryService,
   })  : compiler = compiler ?? ContextCompiler(config: _configFor(provider)),
         store = store ?? AtomicFileStore();
 
@@ -95,6 +97,9 @@ class NovelWritingLoop {
 
   final int recentChapterCount;
   final int minChineseChars;
+
+  /// 版本快照服务：commitChapter 写入前自动保存旧版本，支持回滚。
+  final VersionHistoryService? versionHistoryService;
 
   String get _settingsDir => '$projectDir/小说资料';
   String get _chaptersDir => '$projectDir/章节内容';
@@ -156,6 +161,8 @@ class NovelWritingLoop {
     final body = candidate.content.startsWith('#')
         ? candidate.content
         : '# 第${candidate.chapterNumber}章 ${candidate.title}\n\n${candidate.content}';
+    // 写前版本快照：保存旧章节内容以支持回滚。
+    await _saveSnapshot(chapterPath);
     await store.writeString(chapterPath, body);
     await _updateSummary(candidate);
     return ChapterCommitResult(
@@ -377,6 +384,24 @@ class NovelWritingLoop {
       }
     }
     return count;
+  }
+
+  /// 写前快照：若目标文件已存在且 versionHistoryService 可用，保存旧版本。
+  Future<void> _saveSnapshot(String relativePath) async {
+    final svc = versionHistoryService;
+    if (svc == null) return;
+    try {
+      final oldContent = await store.readString(relativePath);
+      if (oldContent == null || oldContent.trim().isEmpty) return;
+      await svc.saveVersion(
+        projectDir: projectDir,
+        docId: relativePath,
+        content: oldContent,
+        summary: 'commitChapter 写前快照',
+      );
+    } catch (_) {
+      // 快照失败不阻塞写入（非关键路径）。
+    }
   }
 }
 

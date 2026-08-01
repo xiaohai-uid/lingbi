@@ -712,6 +712,7 @@ class _EditorPageState extends State<EditorPage> {
         projectDir: projectDirectory,
         canonService: locator.canonService,
         projectId: widget.projectId,
+        versionHistoryService: locator.versionHistoryService,
       );
       final candidate = await loop.proposeNextChapter(
         guidance: _instructionController.text.trim().isEmpty
@@ -762,6 +763,7 @@ class _EditorPageState extends State<EditorPage> {
         projectDir: projectDirectory,
         canonService: locator.canonService,
         projectId: widget.projectId,
+        versionHistoryService: locator.versionHistoryService,
       );
       final result = await loop.commitChapter(candidate);
       if (!mounted) return;
