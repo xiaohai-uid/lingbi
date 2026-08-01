@@ -407,6 +407,18 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
     _save();
   }
 
+  /// 标记引导完成（由 OnboardingGate 在旧向导移除后自动调用）
+  void markOnboardingComplete() {
+    if (!_onboardingState.needsOnboarding) return;
+    _onboardingState = _onboardingState.copyWith(
+      completed: true,
+      schemaVersion: currentOnboardingSchemaVersion,
+      completedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _save();
+  }
+
   /// 添加自定义端点
   void addCustomEndpoint(EndpointConfig config) {
     _endpoints.add(config);

@@ -213,7 +213,8 @@ class ServiceLocator {
       locator.wizardCompletionWorkflow = WizardCompletionWorkflow(
         projectCreator: ProjectServiceAdapter(locator.projectService),
         canonWriter: CanonServiceAdapter(locator.canonService),
-        projectRootResolver: resolveDefaultProjectRoot,
+        projectRootResolver: () =>
+            locator.settingsService.customStoragePath ?? resolveDefaultProjectRoot(),
       );
 
 

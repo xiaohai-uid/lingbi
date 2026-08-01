@@ -205,12 +205,30 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       return;
     }
 
+    // 可变索引：提问回答后更新为新的流式占位消息位置，避免顺序倒置。
+    var activeIndex = entryIndex;
+
     final provider = _aiService.currentProvider;
     final registry = AgentToolRegistry(
       projectDir: dir,
       store: ServiceLocator.instance.atomicFileStore,
       confirmWrite: _confirmToolWrite,
-      askUser: _askUserFromAgent,
+      askUser: (question, options) async {
+        final answer = await _askUserFromAgent(question, options);
+        // 回答后插入新的流式占位，后续步骤写入新位置
+        if (mounted) {
+          setState(() {
+            _messages.add(_ChatMessage(
+              content: '',
+              isUser: false,
+              isStreaming: true,
+              isThinking: true,
+            ));
+            activeIndex = _messages.length - 1;
+          });
+        }
+        return answer;
+      },
       skillLookup: _skillLookup,
       onToolEvent: (name, display) {},
       versionHistoryService: ServiceLocator.instance.versionHistoryService,
@@ -231,8 +249,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       onStep: (step) {
         if (!mounted) return;
         setState(() {
-          final m = _messages[entryIndex];
-          _messages[entryIndex] = _ChatMessage(
+          final m = _messages[activeIndex];
+          _messages[activeIndex] = _ChatMessage(
             content: step.kind == 'final' ? step.text : m.content,
             isUser: false,
             isStreaming: true,
@@ -254,8 +272,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       );
       if (!mounted) return;
       setState(() {
-        final m = _messages[entryIndex];
-        _messages[entryIndex] = _ChatMessage(
+        final m = _messages[activeIndex];
+        _messages[activeIndex] = _ChatMessage(
           content: result.finalText.isEmpty
               ? (m.toolSteps.isNotEmpty
                   ? '已完成工具操作，请查看项目文件。'
@@ -271,7 +289,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _messages[entryIndex] = _ChatMessage(
+        _messages[activeIndex] = _ChatMessage(
           content: '处理失败：$e',
           isUser: false,
         );
@@ -1283,6 +1301,14 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                       ),
                     ],
                   ),
+                ] else ...[
+                  // 空选项 = 开放回答，显示内联输入框
+                  const SizedBox(height: LingBiTokens.space2),
+                  _AgentOpenInput(
+                    messageIndex: messageIndex,
+                    answered: msg.agentAnswered,
+                    onSubmitted: _onAgentOptionSelected,
+                  ),
                 ],
               ],
             ),
@@ -1361,6 +1387,109 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Agent 开放回答内联输入框（空选项时使用）
+class _AgentOpenInput extends StatefulWidget {
+  const _AgentOpenInput({
+    required this.messageIndex,
+    required this.answered,
+    required this.onSubmitted,
+  });
+  final int messageIndex;
+  final bool answered;
+  final void Function(int, String) onSubmitted;
+
+  @override
+  State<_AgentOpenInput> createState() => _AgentOpenInputState();
+}
+
+class _AgentOpenInputState extends State<_AgentOpenInput> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final text = _controller.text.trim();
+    if (text.isEmpty || widget.answered) return;
+    widget.onSubmitted(widget.messageIndex, text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = LingBiColors.of(context);
+    if (widget.answered) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            enabled: !widget.answered,
+            style: const TextStyle(fontSize: 13),
+            decoration: InputDecoration(
+              hintText: '输入回答...',
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+                borderSide: BorderSide(color: c.borderOpaque),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+                borderSide: BorderSide(color: c.accent),
+              ),
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ),
+        const SizedBox(width: LingBiTokens.space2),
+        InkWell(
+          onTap: _submit,
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+              border: Border.all(color: c.accent.withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              '发送',
+              style: TextStyle(fontSize: 12, color: c.accent),
+            ),
+          ),
+        ),
+        const SizedBox(width: LingBiTokens.space1),
+        InkWell(
+          onTap: () => widget.onSubmitted(widget.messageIndex, '跳过'),
+          borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: c.surfaceContainer,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusPill),
+              border: Border.all(
+                color: c.borderOpaque.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Text(
+              '跳过',
+              style: TextStyle(fontSize: 12, color: c.fgSecondary),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

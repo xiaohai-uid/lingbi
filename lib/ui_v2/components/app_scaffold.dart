@@ -247,7 +247,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     if (result != null && mounted) {
       try {
         final projectDir =
-            '${resolveDefaultProjectRoot()}${Platform.pathSeparator}${result.title}';
+            '${ServiceLocator.instance.settingsService.customStoragePath ?? resolveDefaultProjectRoot()}${Platform.pathSeparator}${result.title}';
 
         final project =
             await ServiceLocator.instance.projectService.createPortableProject(
