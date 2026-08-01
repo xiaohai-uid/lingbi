@@ -6,10 +6,9 @@ enum SkillType {
   /// 重量级 Skill（含代码插件）
   heavyweight,
 
-  /// 引导流程 Skill（题材引导知识载体）
+  /// 引导流程 Skill（已废弃，GuidedFlowEngine 已移除）
   ///
-  /// manifest 中声明 `type: guided_flow`，包含步骤定义文件（YAML/JSON）。
-  /// 加载后注册到 GuidedFlowEngine，创建项目时按题材匹配触发。
+  /// manifest 中声明 `type: guided_flow`，保留枚举值以兼容旧清单解析。
   guidedFlow,
 }
 

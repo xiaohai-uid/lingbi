@@ -10,16 +10,7 @@ import '../../features/canon/data/canon_service.dart';
 import '../../features/canon/data/canon_linking_service.dart';
 import '../../services/document_service.dart';
 import '../../features/import_export/data/export_service.dart';
-import '../../services/guided_flow_engine.dart';
-import '../../services/guided_flow_defaults.dart';
-import '../../features/skill/data/skill/guided_flow_skill_loader.dart';
-import '../../features/skill/data/flows/xuanhuan_flow_skill.dart';
-import '../../features/skill/data/flows/xianxia_flow_skill.dart';
-import '../../features/skill/data/flows/dushi_flow_skill.dart';
-import '../../features/skill/data/flows/xuanyi_flow_skill.dart';
-import '../../features/skill/data/flows/yanqing_flow_skill.dart';
-import '../../features/skill/data/flows/kehuan_flow_skill.dart';
-import '../../features/skill/data/flows/lishi_flow_skill.dart';
+
 import '../../services/intent_confirmation_service.dart';
 import '../../features/project/data/project_meta_repository.dart';
 import '../../features/project/data/project_asset_repository.dart';
@@ -129,8 +120,7 @@ class ServiceLocator {
   late final ProjectAssetRepository projectAssetRepository;
   late final ProjectOnboardingWorkflow projectOnboardingWorkflow;
   late final WizardCompletionWorkflow wizardCompletionWorkflow;
-  late final GuidedFlowEngine guidedFlowEngine;
-  late final GuidedFlowSkillLoader guidedFlowSkillLoader;
+
   late final AntiHallucinationService antiHallucinationService;
   late final ForeshadowingService foreshadowingService;
   late final StrandWeaveService strandWeaveService;
@@ -225,55 +215,7 @@ class ServiceLocator {
         canonWriter: CanonServiceAdapter(locator.canonService),
         projectRootResolver: resolveDefaultProjectRoot,
       );
-      locator.guidedFlowEngine = GuidedFlowEngine(
-        metaRepository: locator.projectMetaRepository,
-        aiProvider: locator.aiService.currentProvider,
-        fileStore: locator.atomicFileStore,
-        // p8：解析项目目录，把引导产物镜像到 小说资料/*.md。
-        projectDirResolver: (pid) async =>
-            (await locator.projectService.getProject(pid))?.directoryPath,
-      );
-      // 注册默认引导流程（通用长篇/短篇）
-      locator.guidedFlowEngine.registerDefinition(defaultLongFlowDefinition);
-      locator.guidedFlowEngine.registerDefinition(defaultShortFlowDefinition);
 
-      // 引导流程 Skill 加载器 + 官方预装题材
-      locator.guidedFlowSkillLoader =
-          GuidedFlowSkillLoader(locator.guidedFlowEngine);
-      // R2 修复：注册键统一为 genreId（与 ProjectTemplate.genreId 一致的英文 slug），
-      // 否则项目存 'xuanhuan' 而流程按 '玄幻' 注册，findFlowIdByGenre 永远返回 null。
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanhuanLongFlowDefinition,
-        'xuanhuan',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanhuanShortFlowDefinition,
-        'xuanhuan',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xianxiaLongFlowDefinition,
-        'xianxia',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        dushiLongFlowDefinition,
-        'urban',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        xuanyiLongFlowDefinition,
-        'suspense',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        yanqingLongFlowDefinition,
-        'romance',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        kehuanLongFlowDefinition,
-        'scifi',
-      );
-      locator.guidedFlowSkillLoader.registerBuiltinFlow(
-        lishiLongFlowDefinition,
-        'history',
-      );
 
       // 反幻觉三定律 + 监督智能体
       locator.antiHallucinationService = AntiHallucinationService(
@@ -400,7 +342,6 @@ class ServiceLocator {
         aiService: locator.aiService,
         validateConnection: ProviderFactory.testConnection,
         synchronizeConsumers: [
-          (provider) => locator.guidedFlowEngine.aiProvider = provider,
           (provider) => locator.antiHallucinationService.aiProvider = provider,
           (provider) => locator.strandWeaveService.aiProvider = provider,
           (provider) => locator.styleDistillationService.aiProvider = provider,

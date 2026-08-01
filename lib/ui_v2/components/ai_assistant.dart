@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
-import 'package:lingbi/shared/models/guided_flow_definition.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
@@ -27,6 +26,11 @@ class _ChatMessage {
     this.quickOptions = const [],
     this.originalMessage = '',
     this.toolSteps = const [],
+    this.isAgentQuestion = false,
+    this.agentQuestion = '',
+    this.agentOptions = const [],
+    this.agentCompleter,
+    this.agentAnswered = false,
   });
   final String content;
   final bool isUser;
@@ -48,6 +52,21 @@ class _ChatMessage {
 
   /// Agent 工具循环的步骤时间线（供渲染）。
   final List<AgentStep> toolSteps;
+
+  /// 是否为 Agent 提问卡（内联渲染选项按钮）
+  final bool isAgentQuestion;
+
+  /// Agent 提问内容
+  final String agentQuestion;
+
+  /// Agent 提问选项
+  final List<String> agentOptions;
+
+  /// 等待用户回答的 Completer
+  final Completer<String>? agentCompleter;
+
+  /// 是否已回答（用于禁用按钮）
+  final bool agentAnswered;
 }
 
 class AiAssistantPanel extends StatefulWidget {
@@ -76,19 +95,12 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   bool _isLoading = false;
   AgentToolLoop? _activeLoop; // Phase 1.3: 保存当前循环引用以支持取消
 
-  // ─── 引导模式状态 ───
-  bool _guidedMode = false;
-  double _guidedProgress = 0;
-  String _guidedStepName = '';
-  bool _guidedFlowComplete = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.projectId != null) {
       _setupProjectContext();
-      // Phase 1.2: 不再自动启动 GuidedFlow 纯文字引导
-      // _checkGuidedFlowState();
     }
   }
 
@@ -106,178 +118,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   void _setupProjectContext() {
     final name = widget.projectName ?? '';
     _aiService.setProjectContext('项目名称：$name\n项目 ID：${widget.projectId}');
-  }
-
-  /// 检查当前项目是否有未完成的引导流程；若无但项目带题材，则自动启动。
-  // ignore: unused_element — Phase 1.2 已禁用自动引导，保留方法供后续参考
-  Future<void> _checkGuidedFlowState() async {
-    final pid = widget.projectId;
-    if (pid == null) return;
-    final engine = ServiceLocator.instance.guidedFlowEngine;
-    var state = await engine.getState(pid);
-
-    // R2b 修复：新建/打开带题材的项目时，自动启动对应题材引导流程，
-    // 使模板真正生效（此前 GuidedFlowPage 未接入导航，引导从不启动）。
-    if (state == null || (!state.isActive && !state.isCompleted)) {
-      final genreId = await _resolveProjectGenre(pid);
-      if (genreId != null && genreId.isNotEmpty) {
-        final flowId = ServiceLocator.instance.guidedFlowSkillLoader
-            .findFlowIdByGenre(genreId, type: GuidedFlowType.long);
-        if (flowId != null) {
-          try {
-            state = await engine.startFlow(flowId: flowId, projectId: pid);
-          } catch (_) {
-            state = null;
-          }
-        }
-      }
-    }
-
-    if (state != null && state.isActive && !state.isCompleted) {
-      // 绑定到非空局部变量：下方 _generateGuidedOpening 的 await 闭包会捕获
-      // state，导致 Dart 流分析取消其空值提升。
-      final activeState = state;
-      setState(() {
-        _guidedMode = true;
-        _guidedProgress = engine.getProgress(pid);
-        _guidedStepName = engine.getCurrentStep(pid)?.name ?? '';
-        _guidedFlowComplete = false;
-      });
-      // 加载历史对话
-      if (activeState.conversationHistory.isNotEmpty) {
-        setState(() {
-          for (final turn in activeState.conversationHistory) {
-            _messages.add(_ChatMessage(
-              content: turn.content,
-              isUser: turn.role == 'user',
-            ));
-          }
-        });
-        _scrollToBottom();
-      }
-      // 进入引导模式后，若尚无对话则生成第一步开场白。
-      if (_messages.isEmpty) {
-        await _generateGuidedOpening();
-      }
-    }
-  }
-
-  /// 解析项目题材 ID（Project.genre 存的就是 genreId）。
-  Future<String?> _resolveProjectGenre(String projectId) async {
-    final project =
-        await ServiceLocator.instance.projectService.getProject(projectId);
-    return project?.genre;
-  }
-
-  /// 切换引导/自由模式
-  void _toggleGuidedMode() {
-    setState(() => _guidedMode = !_guidedMode);
-  }
-
-  /// 引导模式下发送消息
-  Future<void> _sendGuidedMessage(String text) async {
-    final pid = widget.projectId;
-    if (pid == null) return;
-    final engine = ServiceLocator.instance.guidedFlowEngine;
-
-    setState(() {
-      _messages.add(_ChatMessage(content: text, isUser: true));
-      _messages.add(_ChatMessage(
-        content: '',
-        isUser: false,
-        isStreaming: true,
-        isThinking: true,
-      ));
-      _isLoading = true;
-    });
-    _scrollToBottom();
-
-    try {
-      final response = await engine.processUserInput(
-        projectId: pid,
-        userInput: text,
-      );
-      if (!mounted) return;
-
-      final entryIndex = _messages.length - 1;
-      setState(() {
-        _messages[entryIndex] = _ChatMessage(
-          content: response.aiMessage,
-          isUser: false,
-        );
-        _guidedProgress = response.progress;
-        _guidedStepName = response.currentStepName;
-        _isLoading = false;
-      });
-      _scrollToBottom();
-
-      // 步骤完成提示
-      if (response.isStepComplete && !response.isFlowComplete) {
-        setState(() {
-          _messages.add(_ChatMessage(
-            content: '✓ 「${response.currentStepName}」已完成，进入下一步...',
-            isUser: false,
-          ));
-        });
-        // 生成新步骤开场白
-        await _generateGuidedOpening();
-      }
-
-      if (response.isFlowComplete) {
-        setState(() {
-          _guidedFlowComplete = true;
-          _guidedProgress = 1;
-          _messages.add(_ChatMessage(
-            content: '🎉 所有引导步骤已完成！设定已保存到项目。',
-            isUser: false,
-          ));
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final entryIndex = _messages.length - 1;
-      setState(() {
-        _messages[entryIndex] = _ChatMessage(
-          content: '引导处理失败: $e',
-          isUser: false,
-        );
-        _isLoading = false;
-      });
-    }
-  }
-
-  /// 生成引导步骤开场白
-  Future<void> _generateGuidedOpening() async {
-    final pid = widget.projectId;
-    if (pid == null) return;
-    final engine = ServiceLocator.instance.guidedFlowEngine;
-
-    setState(() {
-      _messages.add(_ChatMessage(
-        content: '',
-        isUser: false,
-        isStreaming: true,
-        isThinking: true,
-      ));
-      _isLoading = true;
-    });
-
-    try {
-      final opening = await engine.generateStepOpening(pid);
-      if (!mounted) return;
-      final entryIndex = _messages.length - 1;
-      setState(() {
-        _messages[entryIndex] = _ChatMessage(
-          content: opening,
-          isUser: false,
-        );
-        _guidedStepName = engine.getCurrentStep(pid)?.name ?? '';
-        _isLoading = false;
-      });
-      _scrollToBottom();
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   @override
@@ -311,12 +151,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     if (text.isEmpty || _isLoading) return;
 
     if (overrideText == null) _inputController.clear();
-
-    // 引导模式下走 GuidedFlowEngine
-    if (_guidedMode && !_guidedFlowComplete) {
-      await _sendGuidedMessage(text);
-      return;
-    }
 
     // T4: 清晰度检查
     final clarityResult = _clarityCheck.assess(text);
@@ -379,6 +213,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       askUser: _askUserFromAgent,
       skillLookup: _skillLookup,
       onToolEvent: (name, display) {},
+      versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
     final fallback = NovelWritingLoop(
       provider: provider,
@@ -386,6 +221,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       store: ServiceLocator.instance.atomicFileStore,
       canonService: ServiceLocator.instance.canonService,
       projectId: widget.projectId,
+      versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
     final loop = AgentToolLoop(
       provider: provider,
@@ -505,42 +341,43 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
   }
 
   /// A1: Agent 工具循环中 AI 向用户提问的回调。
+  /// 在聊天流中内联渲染选项按钮（对标 OpenWrite 原版行为）。
   Future<String> _askUserFromAgent(
       String question, List<String> options) async {
-    final answer = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(question, style: const TextStyle(fontSize: 15)),
-        content: options.isEmpty
-            ? null
-            : SizedBox(
-                width: 360,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final opt in options)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.of(ctx).pop(opt),
-                            child: Text(opt),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop('跳过'),
-            child: const Text('跳过'),
-          ),
-        ],
-      ),
-    );
-    return answer ?? '跳过';
+    final completer = Completer<String>();
+    setState(() {
+      _messages.add(_ChatMessage(
+        content: '',
+        isUser: false,
+        isAgentQuestion: true,
+        agentQuestion: question,
+        agentOptions: options,
+        agentCompleter: completer,
+      ));
+    });
+    _scrollToBottom();
+    return completer.future;
+  }
+
+  /// 用户点击 Agent 提问卡的选项按钮
+  void _onAgentOptionSelected(int messageIndex, String option) {
+    final msg = _messages[messageIndex];
+    if (msg.agentAnswered || msg.agentCompleter == null) return;
+    setState(() {
+      _messages[messageIndex] = _ChatMessage(
+        content: '',
+        isUser: false,
+        isAgentQuestion: true,
+        agentQuestion: msg.agentQuestion,
+        agentOptions: msg.agentOptions,
+        agentCompleter: msg.agentCompleter,
+        agentAnswered: true,
+      );
+      // 显示用户的选择
+      _messages.add(_ChatMessage(content: option, isUser: true));
+    });
+    _scrollToBottom();
+    msg.agentCompleter!.complete(option);
   }
 
   /// A1: Skill 查找回调 — 按名称/ID 搜索已安装 Skill，返回其 prompt 正文。
@@ -626,6 +463,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       onToolEvent: (name, display) {
         // 工具事件已通过 AgentToolLoop.onStep 汇总，此处预留扩展。
       },
+      versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
     final fallback = NovelWritingLoop(
       provider: provider,
@@ -633,6 +471,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       store: ServiceLocator.instance.atomicFileStore,
       canonService: ServiceLocator.instance.canonService,
       projectId: pid,
+      versionHistoryService: ServiceLocator.instance.versionHistoryService,
     );
     final loop = AgentToolLoop(
       provider: provider,
@@ -754,7 +593,6 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
         child: Column(
           children: [
             _buildHeader(c),
-            if (_guidedMode) _buildGuidedProgressBar(c),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: ModelSelector(compact: true),
@@ -827,77 +665,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
               ),
             ),
           const SizedBox(width: LingBiTokens.space2),
-          // 引导/自由模式切换
-          if (_guidedStepName.isNotEmpty || _guidedMode)
-            Tooltip(
-              message: _guidedMode ? '切换到自由对话' : '切换到引导模式',
-              child: InkWell(
-                onTap: _toggleGuidedMode,
-                borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: LingBiTokens.space2,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _guidedMode
-                        ? c.accent.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-                  ),
-                  child: Text(
-                    _guidedMode ? '引导中' : '自由',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _guidedMode ? c.accent : c.muted,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(width: LingBiTokens.space2),
           Icon(LingBiIcons.more, size: 16, color: c.muted),
-        ],
-      ),
-    );
-  }
-
-  /// 引导进度条（显示在 header 下方）
-  Widget _buildGuidedProgressBar(LingBiColors c) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: LingBiTokens.space4,
-        vertical: LingBiTokens.space1,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (_guidedStepName.isNotEmpty)
-                Text(
-                  _guidedFlowComplete ? '引导完成' : '当前: $_guidedStepName',
-                  style: TextStyle(fontSize: 11, color: c.fgSecondary),
-                ),
-              const Spacer(),
-              Text(
-                '${(_guidedProgress * 100).toInt()}%',
-                style: TextStyle(fontSize: 11, color: c.accent),
-              ),
-            ],
-          ),
-          const SizedBox(height: 3),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              value: _guidedProgress,
-              minHeight: 3,
-              backgroundColor: c.borderOpaque,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _guidedFlowComplete ? LingBiTokens.success : c.accent,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -918,6 +686,8 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                     Widget child;
                     if (msg.isUser) {
                       child = _buildUserMessage(c, msg.content);
+                    } else if (msg.isAgentQuestion) {
+                      child = _buildAgentQuestionCard(c, msg, index);
                     } else if (msg.isClarification) {
                       child = _buildClarificationCard(c, msg);
                     } else {
@@ -1390,6 +1160,130 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Agent 提问卡 — 在聊天流中内联渲染选项按钮
+  Widget _buildAgentQuestionCard(
+      LingBiColors c, _ChatMessage msg, int messageIndex) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: c.accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+          ),
+          child: Center(
+            child: Icon(Icons.smart_toy_outlined, size: 16, color: c.accent),
+          ),
+        ),
+        const SizedBox(width: LingBiTokens.space2),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(LingBiTokens.space3),
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+              border: Border.all(
+                color: c.accent.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  msg.agentQuestion,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: c.fg,
+                    height: 1.4,
+                  ),
+                ),
+                if (msg.agentOptions.isNotEmpty) ...[
+                  const SizedBox(height: LingBiTokens.space2),
+                  Wrap(
+                    spacing: LingBiTokens.space2,
+                    runSpacing: LingBiTokens.space1,
+                    children: [
+                      for (final option in msg.agentOptions)
+                        InkWell(
+                          onTap: msg.agentAnswered
+                              ? null
+                              : () => _onAgentOptionSelected(
+                                  messageIndex, option),
+                          borderRadius:
+                              BorderRadius.circular(LingBiTokens.radiusPill),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: msg.agentAnswered
+                                  ? c.surfaceContainer
+                                  : c.accent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                  LingBiTokens.radiusPill),
+                              border: Border.all(
+                                color: msg.agentAnswered
+                                    ? c.borderOpaque.withValues(alpha: 0.2)
+                                    : c.accent.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Text(
+                              option,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: msg.agentAnswered
+                                    ? c.muted
+                                    : c.accent,
+                              ),
+                            ),
+                          ),
+                        ),
+                      // 跳过按钮
+                      InkWell(
+                        onTap: msg.agentAnswered
+                            ? null
+                            : () =>
+                                _onAgentOptionSelected(messageIndex, '跳过'),
+                        borderRadius:
+                            BorderRadius.circular(LingBiTokens.radiusPill),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: c.surfaceContainer,
+                            borderRadius: BorderRadius.circular(
+                                LingBiTokens.radiusPill),
+                            border: Border.all(
+                              color: c.borderOpaque.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            '跳过',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: msg.agentAnswered ? c.muted : c.fgSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

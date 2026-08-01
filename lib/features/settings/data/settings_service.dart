@@ -524,6 +524,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
             _subscriptionState = SubscriptionState.fromJson(
                 json['subscription'] as Map<String, dynamic>);
           }
+          // 加载自定义存储路径
+          loadCustomStoragePath(json);
         } catch (_) {}
       }
     }
@@ -622,6 +624,8 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
                   modelId: e.modelId,
                 ).toJson())
             .toList(),
+        if (_customStoragePath != null)
+          'customStoragePath': _customStoragePath,
         // 禁止在 JSON 中写入 apiKeys
       };
       await file.writeAsString(jsonEncode(data));

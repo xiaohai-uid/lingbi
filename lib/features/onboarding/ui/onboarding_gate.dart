@@ -2,19 +2,17 @@
 ///
 /// 职责：
 /// - 等待 SettingsService 初始化（显示启动加载状态）
-/// - 未完成引导时显示 OnboardingWizard
+/// - 首次启动时自动标记引导完成（旧向导已移除，由 AppScaffold 内 WelcomePage 接管新手引导）
 /// - 已完成引导后显示 AppScaffold
-/// - resetOnboarding() 后立即重新显示向导
-/// - 禁止主界面启动闪烁
 library;
 
 import 'package:flutter/material.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/models/project.dart';
-import 'guided_wizard_page.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';
 
-/// 引导门禁 — 根据 OnboardingState 决定显示向导或主界面
+/// 引导门禁 — 根据 OnboardingState 决定是否需要自动完成引导
 class OnboardingGate extends StatefulWidget {
   const OnboardingGate({
     super.key,
@@ -30,45 +28,32 @@ class OnboardingGate extends StatefulWidget {
 }
 
 class _OnboardingGateState extends State<OnboardingGate> {
-  bool _needsOnboarding = true;
   Project? _initialProject;
   String? _initialDocumentId;
 
   @override
   void initState() {
     super.initState();
-    final settings = ServiceLocator.instance.settingsService;
-    _needsOnboarding = settings.onboardingState.needsOnboarding;
-    settings.addListener(_onSettingsChanged);
+    _autoCompleteOnboardingIfNeeded();
   }
 
-  @override
-  void dispose() {
-    ServiceLocator.instance.settingsService.removeListener(_onSettingsChanged);
-    super.dispose();
-  }
-
-  void _onSettingsChanged() {
+  /// 旧版引导向导已移除，首次启动时自动标记引导完成。
+  /// 新手引导由 AppScaffold 内的 WelcomePage 接管。
+  void _autoCompleteOnboardingIfNeeded() {
     final settings = ServiceLocator.instance.settingsService;
-    final needs = settings.onboardingState.needsOnboarding;
-    if (needs != _needsOnboarding && mounted) {
-      setState(() => _needsOnboarding = needs);
+    if (settings.onboardingState.needsOnboarding) {
+      settings.updateOnboardingState(
+        settings.onboardingState.copyWith(
+          completed: true,
+          schemaVersion: currentOnboardingSchemaVersion,
+          completedAt: DateTime.now(),
+        ),
+      );
     }
-  }
-
-  void _onOnboardingComplete(Project project, String documentId) {
-    setState(() {
-      _initialProject = project;
-      _initialDocumentId = documentId;
-      _needsOnboarding = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_needsOnboarding) {
-      return GuidedWizardPage(onComplete: _onOnboardingComplete);
-    }
     return AppScaffold(
       isDarkMode: widget.isDarkMode,
       onToggleTheme: widget.onToggleTheme,

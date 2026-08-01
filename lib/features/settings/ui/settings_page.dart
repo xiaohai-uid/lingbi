@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
 import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
@@ -22,7 +23,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   String _selectedSection = '外观';
 
-  final _sections = ['外观', '编辑器', 'AI 模型', 'API 密钥', '自定义端点', '快捷键', '云同步', '隐私', '订阅'];
+  final _sections = ['外观', '编辑器', 'AI 模型', 'API 密钥', '自定义端点', '快捷键', '存储', '云同步', '隐私', '订阅'];
 
   // API Key controllers
   late final TextEditingController _openaiKeyController;
@@ -223,6 +224,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return _buildCustomEndpointSection(c);
       case '快捷键':
         return _buildShortcutsSection(c);
+      case '存储':
+        return _buildStorageSection(c);
       case '云同步':
         return _buildCloudSyncSection(c);
       case '隐私':
@@ -1076,6 +1079,52 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // ==================== 存储 ====================
+
+  Widget _buildStorageSection(LingBiColors c) {
+    final settings = ServiceLocator.instance.settingsService;
+    final currentPath = settings.customStoragePath;
+    return _buildSection(
+      c: c,
+      items: [
+        _SettingItem(
+          icon: Icons.folder_outlined,
+          title: '自定义存储位置',
+          subtitle: currentPath ?? '使用默认路径（文档目录）',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton.icon(
+                onPressed: () async {
+                  final result = await FilePicker.platform.getDirectoryPath(
+                    dialogTitle: '选择小说存储目录',
+                  );
+                  if (result != null) {
+                    await settings.setCustomStoragePath(result);
+                    if (mounted) setState(() {});
+                  }
+                },
+                icon: const Icon(Icons.folder_open, size: 16),
+                label: const Text('选择目录'),
+              ),
+              if (currentPath != null)
+                TextButton(
+                  onPressed: () async {
+                    await settings.setCustomStoragePath(null);
+                    if (mounted) setState(() {});
+                  },
+                  child: Text(
+                    '重置默认',
+                    style: TextStyle(color: c.muted),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -33,7 +33,7 @@ class WizardCompletionResult {
 
 /// 向导完成编排器：创建项目 + 写入初始正典
 ///
-/// 由 GuidedWizardPage 在向导完成时调用。
+/// 由两屏向导（GuidedWizardStateMachine）完成时调用。
 /// 依赖通过接口注入，测试使用 Fake 实现。
 class WizardCompletionWorkflow {
   WizardCompletionWorkflow({
