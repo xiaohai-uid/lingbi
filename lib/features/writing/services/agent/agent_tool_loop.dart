@@ -228,7 +228,6 @@ class AgentToolLoop {
     }
     final result = await fb.writeNextChapter(
       guidance: userGoal,
-      autoApprove: true,
     );
     if (result == null) {
       emit(const AgentStep(kind: 'error', text: '回退流程未产出章节。'));
