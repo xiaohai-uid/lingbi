@@ -18,7 +18,6 @@ import 'package:lingbi/features/writing/ui/editor_page.dart';
 import 'package:lingbi/features/strand/ui/storyboard_page.dart';
 import 'package:lingbi/features/import_export/ui/import_export_page.dart';
 import 'package:lingbi/features/project/ui/project_overview_page.dart';
-import 'package:lingbi/features/onboarding/ui/project_onboarding_page.dart';
 import 'package:lingbi/features/skill/ui/skill_market_page.dart';
 import 'package:lingbi/features/settings/ui/settings_page.dart';
 import '../services/command_palette_service.dart';
@@ -54,7 +53,6 @@ class _AppScaffoldState extends State<AppScaffold> {
   bool _hasProject = false;
   bool _showingSkillMarket = false;
   bool _showingSettings = false;
-  bool _showProjectOnboarding = false;
   int _sidebarIndex = 0;
   ProjectTab _currentTab = ProjectTab.overview;
   Project? _currentProject;
@@ -113,7 +111,6 @@ class _AppScaffoldState extends State<AppScaffold> {
       setState(() {
         _hasProject = false;
         _showingSkillMarket = false;
-        _showProjectOnboarding = false;
         _currentProject = null;
         _currentDocument = null;
       });
@@ -173,7 +170,6 @@ class _AppScaffoldState extends State<AppScaffold> {
       _hasProject = false;
       _showingSkillMarket = false;
       _showingSettings = false;
-      _showProjectOnboarding = false;
       _currentProject = null;
       _currentDocument = null;
     });
@@ -260,8 +256,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = project;
-          _currentTab = ProjectTab.overview;
-          _showProjectOnboarding = false; // Phase 1.1: 不再自动弹表单引导
+          _currentTab = ProjectTab.writing;
         });
       } catch (e) {
         if (mounted) {
@@ -299,8 +294,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         setState(() {
           _hasProject = true;
           _currentProject = result.project;
-          _currentTab = ProjectTab.overview;
-          _showProjectOnboarding = false;
+          _currentTab = ProjectTab.writing;
         });
 
         if (mounted) {
@@ -376,7 +370,6 @@ class _AppScaffoldState extends State<AppScaffold> {
               currentTab: _currentTab,
               onTabChanged: (tab) => setState(() {
                 _currentTab = tab;
-                _showProjectOnboarding = false;
               }),
               onCollapse: _collapseNavigation,
             ),
@@ -513,21 +506,6 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Widget _buildPage() {
-    if (_showProjectOnboarding) {
-      return ProjectOnboardingPage(
-        projectId: _currentProject!.id,
-        workflow: ServiceLocator.instance.projectOnboardingWorkflow,
-        genreId: _currentProject!.genre,
-        onCompleted: () => setState(() {
-          _showProjectOnboarding = false;
-          _currentTab = ProjectTab.overview;
-        }),
-        onManualWriting: () => setState(() {
-          _showProjectOnboarding = false;
-          _currentTab = ProjectTab.writing;
-        }),
-      );
-    }
     switch (_currentTab) {
       case ProjectTab.overview:
         return ProjectOverviewPage(

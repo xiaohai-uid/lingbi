@@ -11,4 +11,7 @@ abstract class ISettingsService implements ChangeNotifier {
   void setThemeMode(ThemeMode mode);
   void setProvider(String name);
   void setApiKey(String provider, String key);
+
+  /// 标记引导完成（旧向导移除后由 OnboardingGate 自动调用）
+  void markOnboardingComplete();
 }

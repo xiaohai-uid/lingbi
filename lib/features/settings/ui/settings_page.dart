@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:lingbi/shared/ai/model_registry.dart';
 import 'package:lingbi/shared/ai/models/endpoint_config.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/utils/paths.dart';
 
 import 'package:lingbi/services/license_service.dart';
 import 'package:lingbi/features/settings/data/subscription_service.dart';
@@ -1104,7 +1107,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   );
                   if (result != null) {
                     await settings.setCustomStoragePath(result);
-                    if (mounted) setState(() {});
+                    if (mounted) {
+                      setState(() {});
+                      _offerMigration(result);
+                    }
                   }
                 },
                 icon: const Icon(Icons.folder_open, size: 16),
@@ -1126,6 +1132,74 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ],
     );
+  }
+
+  /// 设置新路径后，检查旧位置是否有项目并提议迁移。
+  void _offerMigration(String newPath) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('迁移已有项目'),
+        content: const Text(
+          '是否将已有项目从旧位置移动到新目录？\n\n'
+          '• 移动失败的项目会保留在原位置\n'
+          '• 已打开的项目建议先关闭',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('不迁移'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _migrateProjects(newPath);
+            },
+            child: const Text('开始迁移'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 执行项目迁移：发现旧项目 → 移动目录 → 更新路径。失败时保留原位置。
+  Future<void> _migrateProjects(String newPath) async {
+    final projectService = ServiceLocator.instance.projectService;
+    final projects = await projectService.getProjects();
+    final oldRoot = resolveDefaultProjectRoot();
+    var migrated = 0;
+    var failed = 0;
+
+    for (final project in projects) {
+      final oldDir = project.directoryPath;
+      if (!oldDir.startsWith(oldRoot)) continue;
+
+      final dirName = oldDir.split(Platform.pathSeparator).last;
+      final newDir = '$newPath${Platform.pathSeparator}$dirName';
+
+      try {
+        final source = Directory(oldDir);
+        if (!await source.exists()) continue;
+        await source.rename(newDir);
+        project.directoryPath = newDir;
+        await projectService.updateProject(project);
+        migrated++;
+      } catch (_) {
+        failed++;
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            failed == 0
+                ? '迁移完成：$migrated 个项目已移动到新目录'
+                : '迁移部分完成：$migrated 个成功，$failed 个失败（保留在原位置）',
+          ),
+        ),
+      );
+    }
   }
 
   // ==================== 云同步 ====================

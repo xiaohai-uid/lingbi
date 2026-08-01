@@ -214,6 +214,18 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
       store: ServiceLocator.instance.atomicFileStore,
       confirmWrite: _confirmToolWrite,
       askUser: (question, options) async {
+        // 提问前结束旧流式气泡，避免永久“思考中”
+        if (mounted) {
+          setState(() {
+            final old = _messages[activeIndex];
+            _messages[activeIndex] = _ChatMessage(
+              content: old.content,
+              isUser: false,
+              processContent: old.processContent,
+              toolSteps: old.toolSteps,
+            );
+          });
+        }
         final answer = await _askUserFromAgent(question, options);
         // 回答后插入新的流式占位，后续步骤写入新位置
         if (mounted) {

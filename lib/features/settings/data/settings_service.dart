@@ -408,6 +408,7 @@ class SettingsService extends ChangeNotifier implements ISettingsService {
   }
 
   /// 标记引导完成（由 OnboardingGate 在旧向导移除后自动调用）
+  @override
   void markOnboardingComplete() {
     if (!_onboardingState.needsOnboarding) return;
     _onboardingState = _onboardingState.copyWith(
