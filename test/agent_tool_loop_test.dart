@@ -76,7 +76,10 @@ void main() {
       final provider = ScriptedToolProvider(const [], support: false);
       final loop = AgentToolLoop(
         provider: provider,
-        registry: AgentToolRegistry(projectDir: dir.path),
+        registry: AgentToolRegistry(
+                  projectDir: dir.path,
+                  confirmWrite: (p, c) async => true,
+                ),
         compactor: const SessionCompactor(),
       );
       final result = await loop.run(systemPrompt: 'sys', userGoal: '写一章');
@@ -98,7 +101,10 @@ void main() {
       ]);
       final loop = AgentToolLoop(
         provider: provider,
-        registry: AgentToolRegistry(projectDir: dir.path),
+        registry: AgentToolRegistry(
+                  projectDir: dir.path,
+                  confirmWrite: (p, c) async => true,
+                ),
         compactor: const SessionCompactor(),
       );
       final result = await loop.run(systemPrompt: 'sys', userGoal: '写第1章');
@@ -128,7 +134,10 @@ void main() {
       ));
       final loop = AgentToolLoop(
         provider: provider,
-        registry: AgentToolRegistry(projectDir: dir.path),
+        registry: AgentToolRegistry(
+                  projectDir: dir.path,
+                  confirmWrite: (p, c) async => true,
+                ),
         compactor: const SessionCompactor(),
         maxIterations: 3,
       );

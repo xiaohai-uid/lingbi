@@ -12,7 +12,10 @@ void main() {
 
     setUp(() {
       dir = Directory.systemTemp.createTempSync('lingbi-agent-registry-');
-      registry = AgentToolRegistry(projectDir: dir.path);
+      registry = AgentToolRegistry(
+        projectDir: dir.path,
+        confirmWrite: (path, content) async => true,
+      );
     });
 
     tearDown(() => dir.deleteSync(recursive: true));

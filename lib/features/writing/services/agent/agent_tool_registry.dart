@@ -271,8 +271,15 @@ class AgentToolRegistry {
         display: '跳过空写入 $rawPath',
       );
     }
-    // 先展示后保存：交由确认回调裁决（无回调则自动批准）。
-    final approved = confirmWrite == null || await confirmWrite!(rawPath, content);
+    // Fail-closed: 无确认回调时拒绝写入（ADR-010）。
+    if (confirmWrite == null) {
+      return ToolResult(
+        content: 'APPROVAL_REQUIRED: 写入 $rawPath 需要用户确认，但无确认回调。',
+        isError: true,
+        display: '写入被拒绝（无确认通道）',
+      );
+    }
+    final approved = await confirmWrite!(rawPath, content);
     if (!approved) {
       return ToolResult(
         content: '用户拒绝了对 $rawPath 的写入，请调整后再试或征询用户意见。',
