@@ -46,6 +46,7 @@ import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../features/review/data/version_history_service.dart';
 import '../../services/atomic_file_store.dart';
+import '../../services/mutation/local_mutation_journal.dart';
 import '../../services/recovery_center_service.dart';
 import '../../features/import_export/data/portable_project_package_service.dart';
 import '../database/zvec_service.dart';
@@ -92,6 +93,7 @@ class ServiceLocator {
   late final FileService fileService;
   late final QuotaService quotaService;
   late final AtomicFileStore atomicFileStore;
+  late final LocalMutationJournal mutationJournal;
   late final RecoveryCenterService recoveryCenterService;
   late final PortableProjectPackageService portableProjectPackageService;
 
@@ -169,6 +171,10 @@ class ServiceLocator {
       locator.fileService = FileService();
       locator.quotaService = QuotaService();
       locator.atomicFileStore = AtomicFileStore();
+      final appDir = await getApplicationSupportDirectory();
+      locator.mutationJournal = LocalMutationJournal(
+        basePath: '${appDir.path}/mutations',
+      );
       locator.recoveryCenterService = RecoveryCenterService(
         atomicStore: locator.atomicFileStore,
       );
