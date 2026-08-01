@@ -238,7 +238,7 @@ class GuidedWizardStateMachine {
 
   /// 跳过某个维度（填充默认值）
   ///
-  /// 仅允许可跳过的维度（title, creativeDirection）
+  /// 仅允许可跳过的维度（title, worldview, creativeDirection）
   void skip(WizardDimension dimension) {
     if (_state.isCompleted) return;
     final defaultValue = skippableDefaults[dimension];
@@ -330,9 +330,7 @@ class GuidedWizardStateMachine {
         projectId: projectId,
         type: CanonEntryType.character,
         name: protagonist,
-        description: _state.skippedDimensions.contains(WizardDimension.protagonist)
-            ? ''
-            : protagonist,
+        description: protagonist,
       ),
       // 题材设定条目（始终存在）
       CanonEntry(

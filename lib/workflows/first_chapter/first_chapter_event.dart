@@ -52,6 +52,7 @@ class FirstChapterState {
     this.candidateContent,
     this.sourceVersion,
     this.error,
+    this.instruction,
   });
 
   factory FirstChapterState.fromJson(Map<String, dynamic> json) =>
@@ -65,6 +66,7 @@ class FirstChapterState {
         candidateContent: json['candidateContent'] as String?,
         sourceVersion: json['sourceVersion'] as String?,
         error: json['error'] as String?,
+        instruction: json['instruction'] as String?,
       );
 
   final String projectId;
@@ -77,6 +79,9 @@ class FirstChapterState {
   final String? sourceVersion;
   final String? error;
 
+  /// 用户填写的第一章生成指令（来自向导「第一章目标」维度）
+  final String? instruction;
+
   Map<String, dynamic> toJson() => {
         'projectId': projectId,
         'chapterId': chapterId,
@@ -87,6 +92,7 @@ class FirstChapterState {
         if (candidateContent != null) 'candidateContent': candidateContent,
         if (sourceVersion != null) 'sourceVersion': sourceVersion,
         if (error != null) 'error': error,
+        if (instruction != null) 'instruction': instruction,
       };
 
   FirstChapterState copyWith({
@@ -96,6 +102,7 @@ class FirstChapterState {
     String? candidateContent,
     String? sourceVersion,
     String? error,
+    String? instruction,
     bool clearError = false,
   }) =>
       FirstChapterState(
@@ -108,5 +115,6 @@ class FirstChapterState {
         candidateContent: candidateContent ?? this.candidateContent,
         sourceVersion: sourceVersion ?? this.sourceVersion,
         error: clearError ? null : error ?? this.error,
+        instruction: instruction ?? this.instruction,
       );
 }

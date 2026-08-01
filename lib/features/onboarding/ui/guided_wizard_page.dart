@@ -232,18 +232,18 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
         directoryPath: result.project.directoryPath,
       );
 
-      const chapterId = 'chapter-1';
       final targetFilePath =
-          '${result.project.directoryPath}${Platform.pathSeparator}$chapterId.md';
+          '${result.project.directoryPath}${Platform.pathSeparator}chapter-1.md';
       final stateStore = FileFirstChapterStateStore(
         projectDirectory: result.project.directoryPath,
       );
       await stateStore.write(FirstChapterState(
         projectId: result.project.id,
-        chapterId: chapterId,
+        chapterId: doc.id,
         targetFilePath: targetFilePath,
         stage: FirstChapterStage.idle,
         updatedAt: DateTime.now().toUtc(),
+        instruction: result.firstChapterInstruction,
       ));
 
       settings.updateOnboardingState(
@@ -257,11 +257,16 @@ class _GuidedWizardPageState extends State<GuidedWizardPage> {
       widget.onComplete(result.project, doc.id);
     }).catchError((Object error) {
       debugPrint('Wizard completion error: $error');
-      settings.updateOnboardingState(
-        settings.onboardingState.copyWith(
-          completed: true,
-          completedAt: DateTime.now(),
-          lastStep: 1,
+      if (!mounted) return;
+      setState(() => _isCompleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('创建项目失败：$error'),
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: '重试',
+            onPressed: _completeOnboarding,
+          ),
         ),
       );
     });

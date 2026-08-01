@@ -75,6 +75,7 @@ class _EditorPageState extends State<EditorPage> {
   // 第一章旅程状态
   bool _firstChapterLoading = false;
   String _firstChapterStatus = '';
+  String _lastFirstChapterInstruction = '';
   StreamSubscription<FirstChapterEvent>? _firstChapterSubscription;
 
   // AI 续写下一章（NovelWritingLoop）：待确认候选，采纳后原子写入新章节文件
@@ -276,11 +277,13 @@ class _EditorPageState extends State<EditorPage> {
     final state = await _chapterWorkflow?.resume(projectId);
     if (!mounted || state == null) return;
 
-    // 仅处理与当前文档匹配的工作流状态
-    if (state.chapterId != _document!.id &&
-        state.chapterId != 'chapter-1') {
+    // 仅处理与当前文档精确匹配的工作流状态
+    if (state.chapterId != _document!.id) {
       return;
     }
+
+    // 缓存 instruction 供重试使用
+    _lastFirstChapterInstruction = state.instruction ?? '';
 
     switch (state.stage) {
       case FirstChapterStage.idle:
@@ -328,6 +331,8 @@ class _EditorPageState extends State<EditorPage> {
   /// 启动第一章生成并订阅事件流
   void _startFirstChapterGeneration(FirstChapterState state) {
     if (_chapterWorkflow == null) return;
+    // 重入保护：已在生成中则不重复启动
+    if (_firstChapterLoading) return;
     setState(() {
       _firstChapterLoading = true;
       _firstChapterStatus = 'AI 正在创作第一章...';
@@ -338,7 +343,7 @@ class _EditorPageState extends State<EditorPage> {
       projectId: state.projectId,
       chapterId: state.chapterId,
       targetFilePath: state.targetFilePath,
-      instruction: '',
+      instruction: state.instruction ?? '',
     );
 
     _firstChapterSubscription?.cancel();
@@ -405,6 +410,7 @@ class _EditorPageState extends State<EditorPage> {
   void _retryFirstChapterGeneration() {
     final projectId = widget.projectId;
     if (projectId == null || _chapterWorkflow == null) return;
+    if (_document == null) return;
     final projectDir = widget.projectDirectoryPath;
     if (projectDir == null) return;
     setState(() {
@@ -415,10 +421,10 @@ class _EditorPageState extends State<EditorPage> {
     });
     final request = FirstChapterRequest(
       projectId: projectId,
-      chapterId: 'chapter-1',
+      chapterId: _document!.id,
       targetFilePath:
           '$projectDir${Platform.pathSeparator}chapter-1.md',
-      instruction: '',
+      instruction: _lastFirstChapterInstruction,
     );
     _firstChapterSubscription?.cancel();
     _firstChapterSubscription =
