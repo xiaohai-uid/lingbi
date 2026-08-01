@@ -14,6 +14,7 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
+import 'package:lingbi/shared/interfaces/run_store.dart';
 
 /// Agent 执行过程中的一步（供 UI 渲染时间线 / 测试断言）。
 class AgentStep {
@@ -61,6 +62,7 @@ class AgentToolLoop {
     this.temperature = 0.7,
     this.maxTokens = 4096,
     this.onStep,
+    this.runStore,
   }) : compactor = compactor ?? SessionCompactor.forProvider(provider);
 
   final AIProvider provider;
@@ -78,6 +80,9 @@ class AgentToolLoop {
 
   /// 步骤回调（实时上报给 UI）。
   final void Function(AgentStep step)? onStep;
+
+  /// Optional Run event store for durable execution tracking (ADR-011).
+  final RunStore? runStore;
 
   /// 取消标志 — 调用 [cancel] 后下一轮循环开始前中断。
   bool _cancelled = false;
