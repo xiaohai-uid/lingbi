@@ -5,14 +5,17 @@
 /// SkillExecutor 统一入口，将轻量/重量 Skill 路由到正确执行路径。
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/features/skill/data/skill/skill_audit_log.dart';
 import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
 import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
 import 'package:lingbi/features/skill/data/skill_action_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:path/path.dart' as path;
 
 /// 权限违反异常
@@ -63,6 +66,7 @@ class SandboxedSkillApi implements SkillApi {
     this.projectRoot,
     SkillExternalAccess? externalAccess,
     this.auditLog,
+    this.mutationProtocol,
   })  : capabilities = Set.unmodifiable(capabilities),
         _delegate = delegate,
         _externalAccess = externalAccess;
@@ -77,6 +81,10 @@ class SandboxedSkillApi implements SkillApi {
   final Set<String> capabilities;
   final String? projectRoot;
   final SkillAuditLog? auditLog;
+
+  /// 变更协议：canonWrite 经由此接口创建三记录不变量。
+  /// 为 null 时 fail-closed（拒绝写入）。
+  final MutationProtocol? mutationProtocol;
 
   /// 真实服务代理（生产环境注入 CanonService/DocumentService 适配器）
   final SkillApi _delegate;
@@ -112,10 +120,40 @@ class SandboxedSkillApi implements SkillApi {
   }
 
   @override
-  Future<void> canonWrite(String projectId, CanonEntry entry) {
+  Future<void> canonWrite(String projectId, CanonEntry entry) async {
     _checkProject(projectId);
     _checkPermission(SkillPermission.canonWrite);
-    return _delegate.canonWrite(projectId, entry);
+
+    // T01: fail-closed — Skill writes REQUIRE MutationProtocol
+    final protocol = mutationProtocol;
+    if (protocol == null) {
+      throw PermissionViolation(
+        'canonWrite requires MutationProtocol (fail-closed) [skill=$skillId]',
+      );
+    }
+
+    // T01: Skill origin is propose-only (ADR-010: "read-only unless
+    // it returns a proposal"). Physical write happens ONLY after explicit
+    // user approval via the commit path — never here.
+    final result = await protocol.propose(ChangeRequest(
+      projectId: projectId,
+      origin: ChangeOrigin.skill,
+      action: ChangeAction.replaceText,
+      target: ChangeTarget(
+        projectRelativePath: 'canon/${entry.type.name}/${entry.id}',
+        kind: 'canon_entry',
+      ),
+      baseRevision: 0,
+      payload: jsonEncode(entry.toJson()),
+    ));
+
+    // Fail-closed: if the proposal itself fails, surface the error.
+    final error = result.errorOrNull();
+    if (error != null) {
+      throw StateError(
+        'canonWrite propose failed [skill=$skillId]: $error',
+      );
+    }
   }
 
   @override

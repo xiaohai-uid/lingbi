@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/services/migrations/schema_versions.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 final class ProjectBriefConflict implements Exception {
   const ProjectBriefConflict(this.expectedRevision, this.actualRevision);
@@ -19,9 +21,13 @@ final class ProjectBriefConflict implements Exception {
 /// A recoverable backup prevents an interrupted replacement from hiding the
 /// last committed project metadata.
 final class ProjectBriefRepository {
-  ProjectBriefRepository(this.projectDirectory);
+  ProjectBriefRepository(this.projectDirectory, {this.mutationProtocol});
 
   final String projectDirectory;
+
+  /// 变更协议：write 经由此接口创建三记录不变量（candidate + approval + receipt）。
+  /// 为 null 时仅执行物理写入（userUi origin 允许隐式批准，ADR-010）。
+  final MutationProtocol? mutationProtocol;
 
   File get _metadata => File(
         '$projectDirectory${Platform.pathSeparator}.lingbi'
@@ -57,6 +63,24 @@ final class ProjectBriefRepository {
     }
 
     final committed = brief.copyWith(revision: actualRevision + 1);
+
+    // 经 MutationProtocol 路由（userUi origin — 隐式批准，ADR-010）
+    // protocol 为 null 时仅执行物理写入（向后兼容，用户直接编辑不阻断）
+    final protocol = mutationProtocol;
+    if (protocol != null) {
+      await protocol.applyUserEdit(ChangeRequest(
+        projectId: projectDirectory,
+        origin: ChangeOrigin.userUi,
+        action: ChangeAction.replaceText,
+        target: const ChangeTarget(
+          projectRelativePath: '.lingbi/project.json',
+          kind: 'project_brief',
+        ),
+        baseRevision: actualRevision,
+        payload: jsonEncode(committed.toJson()),
+      ));
+    }
+
     final merged = <String, dynamic>{
       ...existing,
       ...baseMetadata,

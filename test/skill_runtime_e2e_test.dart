@@ -7,6 +7,10 @@ import 'package:lingbi/features/skill/data/skill/skill_executor.dart';
 import 'package:lingbi/features/skill/data/skill/skill_loader.dart';
 import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
 import 'package:lingbi/features/skill/data/skill_action_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 // ==================== Fake SkillApi ====================
 
@@ -185,6 +189,13 @@ requires:
       final sandboxedApi = SandboxedSkillApi(
         permissions: heavySkill.permissions!,
         delegate: fakeApi,
+        mutationProtocol: LocalMutationProtocol(
+          journal: LocalMutationJournal(basePath: '${tempDir.path}/journal'),
+          store: FileCanonicalStore(
+            projectRoot: tempDir.path,
+            atomicStore: AtomicFileStore(),
+          ),
+        ),
       );
 
       final executor = SkillExecutor();
@@ -201,7 +212,7 @@ requires:
       expect(result.canonEntries, isNotEmpty);
       expect(result.output, '第一章内容');
 
-      // 验证 canonWrite 也能成功（有权限）
+      // 验证 canonWrite 也能成功（有权限，propose-only）
       await sandboxedApi.canonWrite(
         'proj-1',
         CanonEntry(
@@ -210,7 +221,8 @@ requires:
           name: '新地点',
         ),
       );
-      expect(fakeApi.callLog, contains('canonWrite:proj-1'));
+      // T01: Skill origin is propose-only — delegate NOT called
+      expect(fakeApi.callLog, isNot(contains('canonWrite:proj-1')));
     });
 
     // ─── 测试 4: Skill 未声明 canon.write → PermissionViolation ───
@@ -366,6 +378,13 @@ requires:
       final fullApi = SandboxedSkillApi(
         permissions: fullSkill.permissions!,
         delegate: FakeSkillApi(),
+        mutationProtocol: LocalMutationProtocol(
+          journal: LocalMutationJournal(basePath: '${tempDir.path}/journal2'),
+          store: FileCanonicalStore(
+            projectRoot: tempDir.path,
+            atomicStore: AtomicFileStore(),
+          ),
+        ),
       );
       // 不抛异常即为成功
       await fullApi.canonWrite(
