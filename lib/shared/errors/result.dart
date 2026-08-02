@@ -36,6 +36,12 @@ sealed class Result<T> {
 
   /// 创建失败
   static Result<T> failure<T>(AppError error) => Failure(error);
+
+  /// fail-closed 快捷工厂：MutationProtocol 未注入时统一返回此错误。
+  static Result<T> failClosed<T>(String service) => Failure(FileError(
+        '$service requires MutationProtocol (fail-closed)',
+        code: 'FAIL_CLOSED',
+      ));
 }
 
 /// 成功结果
