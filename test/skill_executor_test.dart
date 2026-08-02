@@ -1,11 +1,17 @@
 // ignore_for_file: avoid_print
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
-import 'package:lingbi/services/skill/skill_executor.dart';
-import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
+import 'package:lingbi/features/skill/data/skill/skill_executor.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 // ==================== Fake 服务 ====================
 
@@ -88,18 +94,29 @@ void main() {
       );
     });
 
-    test('有 canonWrite 权限时写入成功', () async {
+    test('有 canonWrite 权限时写入成功（propose-only，不委托物理写入）', () async {
+      final temp = Directory.systemTemp.createTempSync('lingbi_skill_perm_');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      final protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: '${temp.path}/journal'),
+        store: FileCanonicalStore(
+          projectRoot: temp.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
       final permissions = PermissionSet.fromStrings(['canon.write']);
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: protocol,
       );
 
       await sandbox.canonWrite(
         'proj-1',
         CanonEntry(projectId: 'proj-1', type: CanonEntryType.character, name: '角色A'),
       );
-      expect(fakeApi.callLog, contains('canonWrite:proj-1'));
+      // T01: Skill origin is propose-only — delegate NOT called
+      expect(fakeApi.callLog, isNot(contains('canonWrite:proj-1')));
     });
 
     test('无 canonWrite 权限时（仅有 canonRead）抛出 PermissionViolation',
@@ -215,7 +232,7 @@ void main() {
     }
 
     test('轻量 Skill 走 prompt 路径，结果含 promptForAI', () async {
-      final skill = makeSkill(type: SkillType.lightweight);
+      final skill = makeSkill();
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
@@ -311,7 +328,7 @@ void main() {
       );
 
       // 轻量 Skill → prompt 路径
-      final lightweightSkill = makeSkill(type: SkillType.lightweight);
+      final lightweightSkill = makeSkill();
       final lightweightResult = await executor.execute(
         skill: lightweightSkill,
         context: context,
@@ -414,11 +431,52 @@ void main() {
       );
     });
   });
+
+  group('SandboxedSkillApi MutationProtocol 集成', () {
+    test('canonWrite 经 MutationProtocol 创建 journal 记录', () async {
+      final temp = Directory.systemTemp.createTempSync('lingbi_skill_mutation_');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      final journalDir = Directory('${temp.path}/journal')..createSync();
+      final protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: journalDir.path),
+        store: FileCanonicalStore(
+          projectRoot: temp.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
+      final fakeApi = FakeSkillApi();
+      final permissions = PermissionSet.fromStrings(['canon.write']);
+      final sandbox = SandboxedSkillApi(
+        permissions: permissions,
+        delegate: fakeApi,
+        mutationProtocol: protocol,
+      );
+
+      final entry = CanonEntry(
+        id: 'entry-1',
+        projectId: 'proj-1',
+        name: '人物',
+        type: CanonEntryType.character,
+        description: '主角：李明',
+      );
+      await sandbox.canonWrite('proj-1', entry);
+
+      // T01: Skill origin is propose-only — delegate NOT called
+      expect(fakeApi.callLog, isNot(contains('canonWrite:proj-1')));
+
+      // T01: Skill origin uses propose-only (explicit approval required)
+      // Journal has proposed event but NOT approved/committed
+      final journal = LocalMutationJournal(basePath: journalDir.path);
+      final events = await journal.readAll();
+      final types = events.map((e) => e.eventType).toList();
+      expect(types, contains('candidate_proposed'));
+      expect(types, isNot(contains('candidate_committed')));
+    });
+  });
 }
 
 /// 辅助类：用于测试轻量 Skill 输入长度验证
 class _SkillWithMinInput extends DynamicPromptSkill {
-  final int minInputLength;
 
   _SkillWithMinInput({required this.minInputLength})
       : super(
@@ -429,6 +487,7 @@ class _SkillWithMinInput extends DynamicPromptSkill {
             promptTemplate: '请分析：{input}',
           ),
         );
+  final int minInputLength;
 
   @override
   ContextRequirements get contextRequirements => ContextRequirements(

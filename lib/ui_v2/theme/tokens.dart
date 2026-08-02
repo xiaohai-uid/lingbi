@@ -4,6 +4,9 @@ class LingBiTokens {
   LingBiTokens._();
 
   // ─── Brand Colors ───────────────────────────────────────────────
+  static const Color inkGold = Color(0xFFC9A96E); // 墨金 — 灵笔品牌色
+  static const Color inkGoldHover = Color(0xFFB8944F);
+  static const Color inkGoldLight = Color(0xFF9A7B3F); // 亮色背景用深金
   static const Color blue = Color(0xFF0075DE);
   static const Color blueHover = Color(0xFF005BAB);
   static const Color cinnabar = Color(0xFFC75B39);
@@ -35,7 +38,7 @@ class LingBiTokens {
   static const Color error = Color(0xFFDC2626);
 
   // ─── Typography ─────────────────────────────────────────────────
-  static const String fontDisplay = 'Noto Sans SC';
+  static const String fontDisplay = 'Noto Serif SC'; // 标题/品牌 — 衬线体
   static const String fontBody = 'Noto Sans SC';
   static const String fontMono = 'JetBrains Mono';
 
@@ -84,7 +87,7 @@ class LingBiTokens {
   // ─── Layout ─────────────────────────────────────────────────────
   static const double sidebarWidth = 240;
   static const double topBarHeight = 52;
-  static const double aiPanelWidth = 340;
+  static const double aiPanelWidth = 380;
   static const double containerMaxWidth = 1200;
 }
 
@@ -126,8 +129,8 @@ class LingBiColors extends ThemeExtension<LingBiColors> {
     muted: LingBiTokens.lightMuted,
     border: LingBiTokens.lightBorder,
     borderOpaque: LingBiTokens.lightBorderOpaque,
-    accent: LingBiTokens.blue,
-    accentHover: LingBiTokens.blueHover,
+    accent: LingBiTokens.inkGoldLight,
+    accentHover: LingBiTokens.inkGold,
     cinnabar: LingBiTokens.cinnabar,
     cinnabarSoft: LingBiTokens.cinnabarSoft,
   );
@@ -141,8 +144,8 @@ class LingBiColors extends ThemeExtension<LingBiColors> {
     muted: LingBiTokens.darkMuted,
     border: LingBiTokens.darkBorder,
     borderOpaque: LingBiTokens.darkBorderOpaque,
-    accent: Color(0xFF4B9FFF),
-    accentHover: Color(0xFF3385E8),
+    accent: LingBiTokens.inkGold,
+    accentHover: LingBiTokens.inkGoldHover,
     cinnabar: LingBiTokens.cinnabarSoft,
     cinnabarSoft: LingBiTokens.cinnabar,
   );

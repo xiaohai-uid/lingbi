@@ -2,25 +2,25 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/sensenova_provider.dart';
-import 'package:lingbi/core/database/story_beats_repository.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/di/service_locator.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
-import 'package:lingbi/core/file_system/sync_service.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/story_beat.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/database/story_beats_repository.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
+import 'package:lingbi/shared/file_system/sync_service.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/export_service.dart';
-import 'package:lingbi/services/project_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/import_export/data/export_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
-import 'package:lingbi/services/version_history_service.dart';
-import 'package:lingbi/utils/paths.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
+import 'package:lingbi/shared/utils/paths.dart';
 
 /// 灵笔全功能集成测试
 ///
@@ -91,7 +91,8 @@ void main() {
     });
 
     test('DocumentService CRUD 完整流程', () async {
-      final docSvc = DocumentService(zvecService: zvecService, fileService: fileService);
+      final docSvc =
+          DocumentService(zvecService: zvecService, fileService: fileService);
       final dir = '${tempDir.path}/docs';
       Directory(dir).createSync(recursive: true);
 
@@ -147,34 +148,29 @@ void main() {
 
     test('流式聊天返回非空内容', () async {
       final buffer = StringBuffer();
-      await for (final chunk in provider.chat(
-        messages: [ChatMessage(role: 'user', content: '用一句话介绍自己')],
+      await provider.chat(
+        messages: [const ChatMessage(role: 'user', content: '用一句话介绍自己')],
         maxTokens: 200,
-      )) {
-        buffer.write(chunk);
-      }
+      ).forEach(buffer.write);
       final result = buffer.toString();
       // 应返回有效内容（非错误提示）
-      expect(result.isNotEmpty, isTrue,
-          reason: 'AI 流式响应为空，请检查 API Key 和网络');
+      expect(result.isNotEmpty, isTrue, reason: 'AI 流式响应为空，请检查 API Key 和网络');
     }, timeout: const Timeout(Duration(seconds: 60)), skip: skipAi);
 
     test('同步聊天返回有效响应', () async {
       final result = await provider.chatSync(
-        messages: [ChatMessage(role: 'user', content: '回答:1+1等于?')],
+        messages: [const ChatMessage(role: 'user', content: '回答:1+1等于?')],
         maxTokens: 200,
       );
-      expect(result.isNotEmpty, isTrue,
-          reason: 'AI 同步响应为空，请检查 API Key 和网络');
+      expect(result.isNotEmpty, isTrue, reason: 'AI 同步响应为空，请检查 API Key 和网络');
       // 不应包含错误提示
-      expect(result, isNot(contains('请求失败')),
-          reason: 'AI 返回错误: $result');
+      expect(result, isNot(contains('请求失败')), reason: 'AI 返回错误: $result');
     }, timeout: const Timeout(Duration(seconds: 60)), skip: skipAi);
 
     test('无 Key 时返回友好提示', () async {
       final noKeyProvider = SenseNovaProvider();
       final result = await noKeyProvider.chatSync(
-        messages: [ChatMessage(role: 'user', content: 'hello')],
+        messages: [const ChatMessage(role: 'user', content: 'hello')],
       );
       expect(result, contains('配置'));
       await noKeyProvider.dispose();
@@ -218,8 +214,9 @@ void main() {
 
     test('StoryBeatsRepository 创建/排序/删除', () async {
       final repo = StoryBeatsRepository(storageService: storageService);
-      final beat1 = StoryBeat(id: 'beat_1', projectId: 'p1', title: '开端', sequence: 0);
-      final beat2 = StoryBeat(id: 'beat_2', projectId: 'p1', title: '高潮', sequence: 1);
+      final beat1 = StoryBeat(id: 'beat_1', projectId: 'p1', title: '开端');
+      final beat2 =
+          StoryBeat(id: 'beat_2', projectId: 'p1', title: '高潮', sequence: 1);
 
       await repo.saveBeat(beat1);
       await repo.saveBeat(beat2);
@@ -262,7 +259,8 @@ void main() {
         content: '# 第二版\n\n修改后内容',
       );
 
-      final versions = await vhs.getVersions(projectDir: projectDir, docId: 'doc1');
+      final versions =
+          await vhs.getVersions(projectDir: projectDir, docId: 'doc1');
       expect(versions.length, 2);
       expect(versions.first.wordCount, greaterThan(0));
 
@@ -291,7 +289,8 @@ void main() {
     test('exportAsTxt 去除 Markdown 标记', () async {
       final svc = ExportService();
       final path = '${tempDir.path}/export.txt';
-      await svc.exportAsTxt(content: '# Title\n\n**bold** text', savePath: path);
+      await svc.exportAsTxt(
+          content: '# Title\n\n**bold** text', savePath: path);
       final text = File(path).readAsStringSync();
       expect(text, isNot(contains('#')));
       expect(text, isNot(contains('**')));
@@ -365,7 +364,8 @@ void main() {
     });
 
     test('SyncService.fullSync 发现新文件', () async {
-      final syncSvc = SyncService(fileService: fileService, zvecService: zvecService);
+      final syncSvc =
+          SyncService(fileService: fileService, zvecService: zvecService);
       final projectDir = '${tempDir.path}/sync_proj';
       Directory(projectDir).createSync(recursive: true);
       File('$projectDir/new_chapter.md').writeAsStringSync('# 新章节');

@@ -4,8 +4,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/six_dimension_review_service.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/features/review/data/six_dimension_review_service.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mock ───
 

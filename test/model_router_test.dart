@@ -54,9 +54,7 @@ void main() {
     late ModelRouterService service;
 
     setUp(() {
-      service = ModelRouterService(
-        defaultEndpointId: 'free',
-      );
+      service = ModelRouterService();
     });
 
     test('未配置时降级为默认', () {
@@ -153,7 +151,7 @@ void main() {
     });
 
     test('路由状态摘要', () {
-      final service = ModelRouterService(defaultEndpointId: 'free');
+      final service = ModelRouterService();
       service.setRoute(RouteSlot.writing, 'openai');
 
       final summary = service.getRouteSummary();

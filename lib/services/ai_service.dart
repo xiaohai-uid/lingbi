@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:lingbi/services/interfaces/i_ai_service.dart';
-import '../core/ai/ai_provider.dart';
-import '../core/ai/ai_response_normalizer.dart';
-import '../core/ai/free_provider.dart';
-import '../core/ai/model_registry.dart';
-import '../core/ai/models/endpoint_config.dart';
-import '../core/ai/provider_factory.dart';
-import '../core/errors/ai_error.dart';
-import 'quota_service.dart';
+import 'package:lingbi/shared/interfaces/i_ai_service.dart';
+import '../shared/ai/ai_provider.dart';
+import '../shared/ai/ai_response_normalizer.dart';
+import '../shared/ai/free_provider.dart';
+import '../shared/ai/model_registry.dart';
+import '../shared/ai/models/endpoint_config.dart';
+import '../shared/ai/provider_factory.dart';
+import '../shared/errors/ai_error.dart';
+import '../features/settings/data/quota_service.dart';
 
 class AIService implements IAIService {
   AIService({required QuotaService quotaService}) : _quota = quotaService;
@@ -79,16 +79,19 @@ class AIService implements IAIService {
     } else if (key.isNotEmpty && provider != 'free') {
       // Auto-create endpoint for known providers (backward compatibility)
       final protocol = (provider == 'claude') ? Protocol.anthropic : Protocol.openai;
+      final baseUrl = provider == 'sensenova'
+          ? 'https://token.sensenova.cn/v1'
+          : 'https://api.$provider.com';
       addEndpoint(EndpointConfig(
         id: provider,
         name: provider,
-        baseUrl: 'https://api.$provider.com',
+        baseUrl: baseUrl,
         apiKey: key,
         protocol: protocol,
         modelId: provider == 'openai' ? 'gpt-4o' : 
                  provider == 'claude' ? 'claude-sonnet-4-20250514' :
                  provider == 'deepseek' ? 'deepseek-chat' :
-                 provider == 'sensenova' ? 'sensenova-6.7-flash-lite' : 'gpt-4o',
+                 provider == 'sensenova' ? 'deepseek-v4-flash' : 'gpt-4o',
       ));
     }
   }

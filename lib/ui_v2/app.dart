@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/di/service_locator.dart';
+import 'package:lingbi/shared/di/service_locator.dart';
 import 'theme/app_theme.dart';
-import 'components/onboarding_gate.dart';
+import 'package:lingbi/features/onboarding/ui/onboarding_gate.dart';
 
 class LingBiAppV3 extends StatefulWidget {
-
   const LingBiAppV3({super.key, required this.locator});
   final ServiceLocator locator;
 
@@ -55,6 +54,7 @@ class _LingBiAppV3State extends State<LingBiAppV3> {
       home: OnboardingGate(
         isDarkMode: isDark,
         onToggleTheme: _onToggleTheme,
+        settingsService: widget.locator.settingsService,
       ),
     );
   }

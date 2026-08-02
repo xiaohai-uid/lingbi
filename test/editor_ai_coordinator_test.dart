@@ -15,12 +15,12 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/pipeline/book_state.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'package:lingbi/modules/pipeline/generation_context.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
-import 'package:lingbi/modules/pipeline/project_scope_api.dart';
-import 'package:lingbi/ui_v2/controllers/editor_ai_coordinator.dart';
+import 'package:lingbi/features/writing/data/pipeline/book_state.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/generation_context.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_scope_api.dart';
+import 'package:lingbi/features/writing/ui/editor_ai_coordinator.dart';
 
 // ─── Fake 实现 ─────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ class FakePipelineApi implements NovelPipelineApi {
     int maxTokens = 4096,
   }) {
     generateCalled = true;
-    return generateStream ?? Stream.empty();
+    return generateStream ?? const Stream.empty();
   }
 
   @override
@@ -217,8 +217,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: '生成内容',
-          status: CandidateStatus.pending),
+          content: '生成内容'),
     ];
 
     final coordinator = createCoordinator();
@@ -249,8 +248,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
 
     final coordinator = createCoordinator();
@@ -313,8 +311,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
 
     final coordinator = createCoordinator();
@@ -348,8 +345,7 @@ void main() {
       CandidateEntry(
           id: 'c1',
           chapterId: 'ch-1',
-          content: 'x',
-          status: CandidateStatus.pending),
+          content: 'x'),
     ];
     fakeApi.adoptResult = const PipelineResult.failure(PipelineError(
       PipelineError.sourceVersionConflict,

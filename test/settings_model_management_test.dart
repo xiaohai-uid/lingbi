@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/shared/ai/model_registry.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 
 void main() {
   group('设置页模型管理功能', () {
@@ -52,7 +52,6 @@ void main() {
         completedAt: DateTime.now(),
         selectedProviderId: 'openai',
         selectedModelId: 'gpt-4o',
-        localOnlyMode: false,
         lastStep: 7,
       );
       expect(state.needsOnboarding, false);

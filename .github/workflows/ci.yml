@@ -15,11 +15,11 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.0'
+          flutter-version: '3.44.6'
           channel: 'stable'
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Analyze code
         run: flutter analyze lib/
@@ -30,24 +30,37 @@ jobs:
   build:
     needs: analyze-and-test
     runs-on: windows-2022
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.0'
+          flutter-version: '3.44.6'
           channel: 'stable'
 
       - name: Install dependencies
-        run: flutter pub get
+        run: flutter pub get --enforce-lockfile
 
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Upload artifacts
+      - name: Package release with checksums and provenance
+        shell: powershell
+        run: |
+          $packageDir = Join-Path $env:RUNNER_TEMP "lingbi-release-package"
+          tool/windows/package_release.ps1 -SkipBuild -OutputDir $packageDir
+          "LINGBI_PACKAGE_DIR=$packageDir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Verify release evidence
+        shell: powershell
+        run: |
+          Get-Item "$env:LINGBI_PACKAGE_DIR/SHA256SUMS.txt"
+          Get-Item "$env:LINGBI_PACKAGE_DIR/PROVENANCE.json"
+
+      - name: Upload packaged artifact and evidence
         uses: actions/upload-artifact@v4
         with:
-          name: lingbi-windows-release
-          path: build/windows/x64/runner/Release/
+          name: lingbi-windows-${{ github.sha }}
+          path: ${{ env.LINGBI_PACKAGE_DIR }}/
+          if-no-files-found: error

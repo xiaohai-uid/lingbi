@@ -1,13 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/skill/skill_manifest.dart';
-import 'package:lingbi/services/skill/skill_permission.dart';
-import 'package:lingbi/services/skill/dynamic_prompt_skill.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
+import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 void main() {
   group('DynamicPromptSkill 构建', () {
     test('从 SkillManifest 构建 — id/name/description 正确映射', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test-skill',
         name: '测试技能',
         description: '一个测试用的技能',
@@ -22,7 +21,7 @@ void main() {
     });
 
     test('默认 inputScope 为 selectionOrDocument', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '', promptTemplate: '',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
@@ -30,7 +29,7 @@ void main() {
     });
 
     test('默认 outputMode 为 candidate', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '', promptTemplate: '',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
@@ -38,7 +37,7 @@ void main() {
     });
 
     test('默认 mutationPolicy 为 insertAtCursor', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '', promptTemplate: '',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
@@ -48,12 +47,12 @@ void main() {
 
   group('DynamicPromptSkill buildPrompt', () {
     test('替换 input 占位符', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '',
         promptTemplate: '请基于以下内容续写：input',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
-      final context = SkillContext(
+      const context = SkillContext(
         selectedText: '选中的文本内容',
         fullDocument: '完整文档',
         projectId: 'proj-1',
@@ -65,14 +64,12 @@ void main() {
     });
 
     test('替换 canon_summary 占位符', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '',
         promptTemplate: '正典摘要：canon_summary\n请续写',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
-      final context = SkillContext(
-        selectedText: '',
-        fullDocument: '',
+      const context = SkillContext(
         projectId: 'proj-1',
         canonSummary: '角色A是英雄，角色B是反派',
       );
@@ -82,12 +79,12 @@ void main() {
     });
 
     test('无占位符时直接返回整篇模板作为 system prompt', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '',
         promptTemplate: '你是一个专业的小说编辑助手。请帮助用户优化文本。',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
-      final context = SkillContext(
+      const context = SkillContext(
         selectedText: 'some text',
         fullDocument: 'full doc',
         projectId: 'proj-1',
@@ -98,14 +95,13 @@ void main() {
     });
 
     test('替换用户参数占位符', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '',
         promptTemplate: '以style风格改写：input',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
-      final context = SkillContext(
+      const context = SkillContext(
         selectedText: '原文',
-        fullDocument: '',
         projectId: 'proj-1',
       );
 
@@ -120,12 +116,12 @@ void main() {
 
   group('DynamicPromptSkill execute', () {
     test('execute 返回成功的 SkillResult', () {
-      final manifest = SkillManifest(
+      const manifest = SkillManifest(
         id: 'test', name: 'Test', description: '',
         promptTemplate: '请续写：input',
       );
       final skill = DynamicPromptSkill(manifest: manifest);
-      final context = SkillContext(
+      const context = SkillContext(
         selectedText: '一段选中文本',
         fullDocument: '完整文档内容',
         projectId: 'proj-1',

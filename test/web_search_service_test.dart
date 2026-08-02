@@ -4,7 +4,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/web_search_service.dart';
+import 'package:lingbi/features/knowledge/data/web_search_service.dart';
 
 void main() {
   group('SearchResult 数据模型', () {
@@ -51,7 +51,6 @@ void main() {
     test('fromJson / toJson 往返一致', () {
       const config = SearchBackendConfig(
         baseUrl: 'http://searxng.local',
-        backendType: SearchBackendType.searxng,
         apiKey: 'test-key',
         maxResults: 8,
         timeoutSeconds: 15,

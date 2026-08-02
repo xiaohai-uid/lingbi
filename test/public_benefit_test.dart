@@ -10,8 +10,6 @@ void main() {
   group('BenefitQuota 数据模型', () {
     test('fromJson / toJson 往返一致', () {
       const quota = BenefitQuota(
-        dailyLimit: 30,
-        monthlyLimit: 500,
         dailyUsed: 10,
         monthlyUsed: 100,
         lastResetDay: '2026-7-25',
@@ -29,8 +27,6 @@ void main() {
 
     test('剩余量计算', () {
       const quota = BenefitQuota(
-        dailyLimit: 30,
-        monthlyLimit: 500,
         dailyUsed: 25,
         monthlyUsed: 480,
       );
@@ -43,7 +39,6 @@ void main() {
 
     test('超限判断', () {
       const quota = BenefitQuota(
-        dailyLimit: 30,
         dailyUsed: 30,
       );
       expect(quota.isDailyExhausted, isTrue);

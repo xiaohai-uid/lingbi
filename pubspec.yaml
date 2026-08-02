@@ -1,7 +1,7 @@
 name: lingbi
 description: 灵笔 - AI 写作助手桌面应用
 publish_to: 'none'
-version: 1.0.0
+version: 1.0.1
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -21,8 +21,11 @@ dependencies:
   # 工具
   uuid: ^4.3.0
   crypto: ^3.0.7
+  archive: ^4.0.9
   # 导出
   pdf: ^3.11.0
+  # Markdown 渲染（AI 回复富文本）
+  flutter_markdown: ^0.7.0
   # YAML 解析（GuidedFlow 定义文件）
   yaml: ^3.1.2
   # 安全存储
@@ -36,3 +39,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Noto Sans SC
+      fonts:
+        - asset: assets/fonts/NotoSansSC-Regular.ttf
+        - asset: assets/fonts/NotoSansSC-Bold.ttf
+          weight: 700
+    - family: Noto Serif SC
+      fonts:
+        - asset: assets/fonts/NotoSerifSC-Regular.ttf
+  assets:
+    - assets/market/rankings/
+    - assets/skills/novel-writer/
+    - assets/skills/novel-writer/references/
+    - assets/skills/skill-creator/

@@ -8,7 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/core/errors/ai_error.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 
 /// 错误提示横幅
 class ErrorBanner extends StatelessWidget {

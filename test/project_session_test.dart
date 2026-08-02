@@ -12,12 +12,10 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/modules/pipeline/book_state.dart';
-import 'package:lingbi/modules/pipeline/candidate_service.dart';
-import 'package:lingbi/modules/pipeline/generation_context.dart';
-import 'package:lingbi/modules/pipeline/novel_application_service.dart';
-import 'package:lingbi/modules/pipeline/project_scope_api.dart';
-import 'package:lingbi/ui_v2/controllers/editor_ai_coordinator.dart';
+import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/features/writing/data/pipeline/project_scope_api.dart';
+import 'package:lingbi/features/writing/ui/editor_ai_coordinator.dart';
 
 void main() {
   late Directory tempDirA;
@@ -222,7 +220,7 @@ class _FakePipelineApi implements NovelPipelineApi {
     double temperature = 0.8,
     int maxTokens = 4096,
   }) =>
-      Stream.empty();
+      const Stream.empty();
 
   @override
   List<CandidateEntry> listCandidates(String chapterId) => [];

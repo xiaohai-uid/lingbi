@@ -5,7 +5,7 @@
 /// 参数已经充分时直接执行；参数不足时显示确认卡。
 library;
 
-import 'skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 /// 参数充分性评估结果
 class IntentAssessment {

@@ -1,24 +1,23 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/sensenova_provider.dart';
-import 'package:lingbi/core/database/story_beats_repository.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
-import 'package:lingbi/core/file_system/sync_service.dart';
-import 'package:lingbi/core/models/canon_entry.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/models/project.dart';
-import 'package:lingbi/core/models/story_beat.dart';
+import 'package:lingbi/shared/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/database/story_beats_repository.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
+import 'package:lingbi/shared/file_system/sync_service.dart';
+import 'package:lingbi/shared/models/canon_entry.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/canon_service.dart';
+import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
-import 'package:lingbi/services/export_service.dart';
-import 'package:lingbi/services/project_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/import_export/data/export_service.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 import 'package:lingbi/services/storage_service.dart';
-import 'package:lingbi/services/version_history_service.dart';
+import 'package:lingbi/features/review/data/version_history_service.dart';
 
 /// 灵笔全链路端到端测试
 ///
@@ -67,12 +66,14 @@ void main() {
     await zvecService.initialize();
 
     projectService = ProjectService(zvecService: zvecService);
-    documentService = DocumentService(zvecService: zvecService, fileService: fileService);
+    documentService =
+        DocumentService(zvecService: zvecService, fileService: fileService);
     canonService = CanonService(zvecService: zvecService);
     storyBeatsRepo = StoryBeatsRepository(storageService: storageService);
     versionService = VersionHistoryService();
     exportService = ExportService();
-    syncService = SyncService(fileService: fileService, zvecService: zvecService);
+    syncService =
+        SyncService(fileService: fileService, zvecService: zvecService);
     quotaService = QuotaService();
     aiService = AIService(quotaService: quotaService);
     senseNovaProvider = SenseNovaProvider(apiKey: apiKey);
@@ -112,7 +113,8 @@ void main() {
         reason: '便携项目元数据文件应存在');
 
     // 设置 AI 项目上下文（模拟 AIPanel.initState）
-    aiService.setProjectContext('项目名称: ${project.name}\n描述: ${project.description}');
+    aiService
+        .setProjectContext('项目名称: ${project.name}\n描述: ${project.description}');
 
     // ═══════════════════════════════════════════════════════
     // 阶段 2: 创建文档并写入初始内容
@@ -131,8 +133,7 @@ void main() {
           '窗外的星空陌生而冷漠——没有一颗星是他认识的。',
     );
     expect(File(chapter1.filePath).existsSync(), isTrue);
-    expect(chapter1.wordCount, greaterThan(50),
-        reason: '文档字数应大于50');
+    expect(chapter1.wordCount, greaterThan(50), reason: '文档字数应大于50');
 
     chapter2 = await documentService.createDocument(
       projectId: project.id,
@@ -165,24 +166,21 @@ void main() {
     // 验证: AIService → SenseNovaProvider → 网络 → 解析 → 返回
     // ═══════════════════════════════════════════════════════
     aiStyleAnalysis = await aiService.analyzeStyle(ch1Content);
-    expect(aiStyleAnalysis.isNotEmpty, isTrue,
-        reason: 'AI 风格分析应返回非空结果');
+    expect(aiStyleAnalysis.isNotEmpty, isTrue, reason: 'AI 风格分析应返回非空结果');
     expect(aiStyleAnalysis, isNot(contains('请求失败')),
         reason: 'AI 不应返回错误: $aiStyleAnalysis');
-    expect(aiStyleAnalysis, isNot(contains('配置')),
-        reason: 'API Key 应已正确配置');
+    expect(aiStyleAnalysis, isNot(contains('配置')), reason: 'API Key 应已正确配置');
 
     // ═══════════════════════════════════════════════════════
     // 阶段 5: AI 续写（流式）→ 追加到文档 → 保存
     // 验证: 流式响应 → 内容拼接 → DocumentService.saveDocument → 磁盘写入
     // ═══════════════════════════════════════════════════════
     final continuationBuffer = StringBuffer();
-    await for (final chunk in aiService.continueWriting(ch1Content)) {
-      continuationBuffer.write(chunk);
-    }
+    await aiService
+        .continueWriting(ch1Content)
+        .forEach(continuationBuffer.write);
     aiContinuation = continuationBuffer.toString();
-    expect(aiContinuation.isNotEmpty, isTrue,
-        reason: 'AI 续写应返回非空内容');
+    expect(aiContinuation.isNotEmpty, isTrue, reason: 'AI 续写应返回非空内容');
     expect(aiContinuation.length, greaterThan(20),
         reason: '续写内容应有实质长度，实际: ${aiContinuation.length}');
 
@@ -194,8 +192,7 @@ void main() {
     final savedContent = await documentService.readContent(chapter1.filePath);
     expect(savedContent, contains(aiContinuation.substring(0, 20)),
         reason: '保存后磁盘文件应包含 AI 续写内容');
-    expect(chapter1.wordCount, greaterThan(100),
-        reason: '更新后字数应增加');
+    expect(chapter1.wordCount, greaterThan(100), reason: '更新后字数应增加');
 
     // ═══════════════════════════════════════════════════════
     // 阶段 6: 保存修改后版本 → 验证版本历史可恢复
@@ -235,7 +232,8 @@ void main() {
       attributes: {
         'personality': '冷静理性，但内心恐惧',
         'backstory': '前军事飞行员，因事故退役',
-        'ai_analysis': aiStyleAnalysis.substring(0, aiStyleAnalysis.length > 100 ? 100 : aiStyleAnalysis.length),
+        'ai_analysis': aiStyleAnalysis.substring(
+            0, aiStyleAnalysis.length > 100 ? 100 : aiStyleAnalysis.length),
       },
     );
     await canonService.create(protagonist, provider: senseNovaProvider);
@@ -249,7 +247,8 @@ void main() {
     await canonService.create(location);
 
     // 验证正典查询
-    final characters = await canonService.list(project.id, CanonEntryType.character);
+    final characters =
+        await canonService.list(project.id, CanonEntryType.character);
     expect(characters.length, 1);
     expect(characters.first.name, '林远舟');
     expect(characters.first.attributes['ai_analysis'], isNotEmpty,
@@ -269,7 +268,6 @@ void main() {
       projectId: project.id,
       title: '坠落与觉醒',
       description: '林远舟从冷冻睡眠中醒来，发现飞船坠毁在未知星域',
-      sequence: 0,
     );
     beat2 = StoryBeat(
       id: 'beat_ch2',
@@ -303,7 +301,8 @@ void main() {
         reason: '同步应发现手动创建的第三章');
 
     // 验证 FileService.scanMarkdownDocuments 与同步结果一致
-    final scannedDocs = await fileService.scanMarkdownDocuments(projectDir, project.id);
+    final scannedDocs =
+        await fileService.scanMarkdownDocuments(projectDir, project.id);
     expect(scannedDocs.length, 3, reason: '磁盘应有 3 个 .md 文件');
 
     // ═══════════════════════════════════════════════════════
@@ -323,10 +322,10 @@ void main() {
       documents: allDocs,
       contents: contents,
       outputDir: exportDir,
-      format: 'md',
     );
 
-    final exportedFiles = Directory(exportDir).listSync().whereType<File>().toList();
+    final exportedFiles =
+        Directory(exportDir).listSync().whereType<File>().toList();
     expect(exportedFiles.length, 3, reason: '应导出 3 个文件');
 
     // 验证导出内容包含 AI 续写
@@ -335,8 +334,7 @@ void main() {
       orElse: () => exportedFiles.first,
     );
     final exportedContent = exportedCh1.readAsStringSync();
-    expect(exportedContent, contains('坠落'),
-        reason: '导出内容应包含原始章节标题');
+    expect(exportedContent, contains('坠落'), reason: '导出内容应包含原始章节标题');
 
     // TXT 导出（验证 Markdown 标记被去除）
     final txtPath = '${tempDir.path}/export.txt';
@@ -350,8 +348,7 @@ void main() {
     // ═══════════════════════════════════════════════════════
     final reopened = await projectService.openPortableProject(projectDir);
     expect(reopened.project.name, '星际迷途');
-    expect(reopened.documents.length, 3,
-        reason: '重新打开应扫描到 3 个 .md 文件');
+    expect(reopened.documents.length, 3, reason: '重新打开应扫描到 3 个 .md 文件');
     expect(
       reopened.documents.map((d) => d.title),
       containsAll(['第一章_坠落', '第二章_信号', '第三章_接触']),
@@ -362,21 +359,19 @@ void main() {
     // ═══════════════════════════════════════════════════════
     // analyzeStyle/continueWriting 不经过配额，仅 chat() 消耗
     final chatBuffer = StringBuffer();
-    await for (final chunk in aiService.chat(message: '用一句话概括这个故事', maxTokens: 100)) {
-      chatBuffer.write(chunk);
-    }
-    expect(chatBuffer.toString().isNotEmpty, isTrue,
-        reason: 'AI chat 应返回内容');
-    expect(quotaService.dailyUsage, greaterThan(0),
-        reason: 'chat() 调用应消耗配额');
-    expect(quotaService.canUse, isTrue,
-        reason: '配额不应耗尽');
+    await aiService
+        .chat(message: '用一句话概括这个故事', maxTokens: 100)
+        .forEach(chatBuffer.write);
+    expect(chatBuffer.toString().isNotEmpty, isTrue, reason: 'AI chat 应返回内容');
+    expect(quotaService.dailyUsage, greaterThan(0), reason: 'chat() 调用应消耗配额');
+    expect(quotaService.canUse, isTrue, reason: '配额不应耗尽');
 
     // ═══════════════════════════════════════════════════════
     // 最终断言: 全链路数据一致性
     // ═══════════════════════════════════════════════════════
     // 正典条目仍存在
-    final finalCharacters = await canonService.list(project.id, CanonEntryType.character);
+    final finalCharacters =
+        await canonService.list(project.id, CanonEntryType.character);
     expect(finalCharacters.length, 1);
     // 故事节拍仍存在
     final finalBeats = await storyBeatsRepo.getBeats(project.id);

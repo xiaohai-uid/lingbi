@@ -9,11 +9,10 @@
 @Timeout(Duration(seconds: 30))
 library;
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/subscription_service.dart';
+import 'package:lingbi/features/settings/data/subscription_service.dart';
 import 'package:lingbi/services/license_service.dart';
 
 void main() {
@@ -51,7 +50,7 @@ void main() {
     test('JSON 序列化往返', () {
       final sub = SubscriptionState(
         tier: SubscriptionTier.pro,
-        expiresAt: DateTime(2027, 1, 1),
+        expiresAt: DateTime(2027),
         licenseKey: 'LINGBI-PRO-1234-5678-9ABC',
       );
       final json = sub.toJson();
@@ -230,8 +229,8 @@ void main() {
     test('LicenseInfo JSON 序列化', () {
       final license = LicenseInfo(
         key: 'LINGBI-PRO-JSON-TEST-001',
-        activatedAt: DateTime(2026, 7, 1),
-        expiresAt: DateTime(2027, 7, 1),
+        activatedAt: DateTime(2026, 7),
+        expiresAt: DateTime(2027, 7),
         machineId: 'test-machine',
       );
       final json = license.toJson();
@@ -287,7 +286,7 @@ void main() {
         id: 'lingbi-pro',
         name: '灵笔专业套餐',
         provider: 'lingbi',
-        pricePerMonth: 99.0,
+        pricePerMonth: 99,
         includedTokens: 2000000,
         models: ['deepseek-chat', 'gpt-4o', 'claude-sonnet'],
       );
@@ -304,8 +303,8 @@ void main() {
       final record = UsageRecord(
         planId: 'lingbi-standard',
         usedTokens: 125000,
-        periodStart: DateTime(2026, 7, 1),
-        periodEnd: DateTime(2026, 8, 1),
+        periodStart: DateTime(2026, 7),
+        periodEnd: DateTime(2026, 8),
       );
       expect(record.usedTokens, 125000);
       expect(record.periodStart.month, 7);

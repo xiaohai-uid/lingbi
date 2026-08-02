@@ -1,17 +1,22 @@
-import 'package:lingbi/services/interfaces/i_document_service.dart';
-import 'package:lingbi/core/models/document.dart';
-import 'package:lingbi/core/database/zvec_service.dart';
-import 'package:lingbi/core/file_system/file_service.dart';
+import 'dart:io';
+
+import 'package:lingbi/shared/interfaces/i_document_service.dart';
+import 'package:lingbi/shared/models/document.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/file_system/file_service.dart';
+import 'atomic_file_store.dart';
 
 class DocumentService implements IDocumentService {
-
   DocumentService({
     ZVecService? zvecService,
     required FileService fileService,
+    AtomicFileStore? atomicStore,
   })  : _zvec = zvecService,
-        _file = fileService;
+        _file = fileService,
+        _atomicStore = atomicStore ?? AtomicFileStore();
   final ZVecService? _zvec;
   final FileService _file;
+  final AtomicFileStore _atomicStore;
 
   String _sanitizeFileName(String title) {
     return title.replaceAll(RegExp(r'[<>:"/\\|?*\.]'), '_');
@@ -26,8 +31,10 @@ class DocumentService implements IDocumentService {
   }) async {
     final safeTitle = _sanitizeFileName(title);
     final filePath = '$directoryPath/$safeTitle.md'.replaceAll(r'\', '/');
-    await _file.writeDocument(
-        filePath, content.isEmpty ? '# $title\n\n' : content);
+    await _atomicStore.writeString(
+      filePath,
+      content.isEmpty ? '# $title\n\n' : content,
+    );
     final wordCount =
         _file.countWords(content.isEmpty ? '# $title\n\n' : content);
     final doc = Document(
@@ -54,7 +61,7 @@ class DocumentService implements IDocumentService {
 
   @override
   Future<Document> saveDocument(Document doc, String content) async {
-    await _file.writeDocument(doc.filePath, content);
+    await _atomicStore.writeString(doc.filePath, content);
     doc.wordCount = _file.countWords(content);
     doc.updatedAt = DateTime.now();
     await _zvec?.upsert('documents', doc.id, doc.toJson());
@@ -67,6 +74,27 @@ class DocumentService implements IDocumentService {
     final results =
         await _zvec.query('documents', filter: {'projectId': projectId});
     return results.map((json) => Document.fromJson(json)).toList();
+  }
+
+  @override
+  Future<List<Document>> searchDocuments(String projectId, String query) async {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return [];
+    final documents = await getDocuments(projectId);
+    final matches = <Document>[];
+    for (final document in documents) {
+      if (document.title.toLowerCase().contains(normalized)) {
+        matches.add(document);
+        continue;
+      }
+      try {
+        final content = await readContent(document.filePath);
+        if (content.toLowerCase().contains(normalized)) matches.add(document);
+      } on FileSystemException {
+        // A stale index entry should not make global search fail.
+      }
+    }
+    return matches;
   }
 
   @override

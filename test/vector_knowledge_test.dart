@@ -4,9 +4,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/vector_knowledge_service.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/features/knowledge/data/vector_knowledge_service.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mocks ───
 
@@ -187,7 +187,7 @@ void main() {
         metaRepository: metaRepo,
         aiProvider: aiProvider,
         topK: 3,
-        similarityThreshold: 0.0,
+        similarityThreshold: 0,
       );
     });
 

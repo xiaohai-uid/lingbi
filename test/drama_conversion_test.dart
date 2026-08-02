@@ -6,8 +6,8 @@ library;
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/drama_conversion_service.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/features/import_export/data/drama_conversion_service.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mock ───
 
@@ -221,7 +221,6 @@ void main() {
 
       final result = await service.convert(
         novelText: '林逸站在山巅，远眺云海。苏瑶从林中走出。',
-        style: VisualStyle.guoman,
       );
 
       expect(result.isSuccess, isTrue);

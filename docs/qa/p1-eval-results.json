@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-07-27T17:52:07.087883Z",
+  "corpus": "test/fixtures/eval_novel/corpus.json",
+  "chapters": 5,
+  "total_chars": 289,
+  "expected_facts": 5,
+  "metrics": {
+    "cold_open_ms": 0,
+    "context_compile_ms": 0,
+    "compiled_chars": 293,
+    "entity_search_ms": 0,
+    "entity_mentions_found": 10,
+    "save_ms": 2,
+    "review_ms": 0,
+    "continuity_issues": 0,
+    "export_ms": 0,
+    "export_chars": 324
+  },
+  "quality_gates": {
+    "cold_open_under_500ms": true,
+    "context_compile_under_1000ms": true,
+    "continuity_issues_zero": true,
+    "all_facts_present": true
+  }
+}

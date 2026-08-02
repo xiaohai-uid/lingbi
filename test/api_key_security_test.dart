@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 
 void main() {
   group('maskApiKey 日志脱敏', () {

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 
 void main() {
   group('testGeneration 隔离保证', () {
@@ -50,8 +50,6 @@ void main() {
   group('testGeneration 与 chat 隔离', () {
     test('chat 消耗配额而 testGeneration 不消耗', () {
       final quotaService = QuotaService();
-      final aiService = AIService(quotaService: quotaService);
-
       // 记录初始配额
       final initialRemaining = quotaService.remaining;
 

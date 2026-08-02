@@ -1,5 +1,0 @@
-include: package:dart_frog_lint/analysis_options.yaml
-
-linter:
-  rules:
-    public_member_api_docs: false

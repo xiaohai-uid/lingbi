@@ -1,208 +1,68 @@
 # 灵笔 (Lingbi)
 
-> AI 赋能的小说创作桌面工具 — Flutter Desktop · Local-First · Skill 生态
+灵笔是面向中文长篇小说作者与小型工作室的 Windows 桌面写作工具。项目坚持 local-first：项目、文档、资产和导出不因授权状态而失去本地访问能力；AI 写入遵循候选稿、差异检查、人工批准和可恢复写入流程。
 
-灵笔是一款面向网络小说作者的开源桌面写作工具，融合 AI 辅助创作、写作流水线、市场情报、Skill 生态与专业的全流程写作管理功能。从世界观构建到分镜成剧，从长篇连载到短篇精修，一站式覆盖。
+## 当前发布状态
 
-## 下载安装
+仓库版本为 **1.0.1**。当前代码可以从受 Git 跟踪的源码和 `pubspec.lock` 复现依赖、测试、Windows release build 与便携包；GitHub PR CI 会上传包含相对路径 SHA-256 和源码 provenance 的未签名便携包。
 
-**→ [下载 Lingbi-Setup-1.0.0.exe（Windows x64）](https://github.com/xiaohai-uid/lingbi/releases/latest)**
+这不是“商业就绪”声明。Inno Setup 元数据已统一到 `Lingbi-Setup-1.0.1.exe`，但 Task 1 CI 产物是未签名便携包，尚未证明安装、升级、卸载保留数据和回滚矩阵。Windows 代码签名、商户支付、法律文本审批、授权市场数据、真实提供商验收及专业作者试用均为 `BLOCKED_EXTERNAL`。
 
-双击安装即可使用，无需配置运行环境。
+详细能力证据和限制见 [商业发布报告](docs/qa/commercial-release-report.md) 与 [P0 Windows 发布门禁](docs/qa/p0-windows-release-checklist.md)。
 
-## 功能特性
+## 已验证与受限范围
 
-### 核心写作
+| 范围 | 状态 | 说明 |
+|------|------|------|
+| 本地项目/文档访问与编辑 | REAL | Windows 本地文件和项目数据不依赖订阅权限 |
+| 候选稿、人工采用与原子文件写入 | REAL | 自动化测试覆盖候选稿不直接覆盖正文及可恢复写入 |
+| Windows 快捷键、命令面板和基础响应式布局 | REAL | 有针对性 Flutter 测试 |
+| 题材建项、三问引导、首章恢复链路 | PARTIAL | 组件存在，端到端 golden path 尚未闭合 |
+| 运行时模型切换、许可证、隐私诊断 | PARTIAL | 生产信任根和真实连接验证尚未完成；购买入口保持禁用 |
+| 恢复中心、便携项目导入、迁移回滚 | PARTIAL | 服务骨架/单测存在，干净目录重启事务尚未闭合 |
+| 上下文编译、Skill 执行、WebDAV、市场情报 | PARTIAL | 不能把单元级实现当作完整生产链路或外部兼容证据 |
+| DOCX、系统拖放、稳定章节选择 | NOT_IMPLEMENTED | 不宣称 Word 导出或完整拖放体验 |
+| 终端/通用 system command 工具 | DISABLED | 在单独审查的沙箱存在前不会启用 |
 
-- ✍️ **WYSIWYG 编辑器** — 基于 flutter_quill 的所见即所得富文本编辑
-- 🤖 **AI 写作助手** — 智能续写、风格分析、模糊请求前置提问（Clarity Check）
-- 📚 **世界构建 (Canon)** — 角色、地点、传说、情节线索管理
-- 🎨 **故事画布** — 可视化情节节拍编排与拖拽排序
-- 📄 **文档管理** — 项目/文档树组织，多项目 Tab 并行
-- 💾 **自动保存** — 30 秒定时 + Ctrl+S + 版本快照
-- 📤 **导出/导入** — Markdown/TXT/Word 导出，.md/.txt 批量导入
-- 🌙 **深色模式** — 系统/亮色/暗色主题切换
+## 开发与验证
 
-### 写作流水线（Pipeline）
+前置要求：Flutter 3.44.6、Windows 10/11 x64。
 
-- 🔄 **上下文组装** — 自动收集前文、大纲、角色、伏笔、风格、世界观、RAG 召回
-- 🎯 **创作罗盘** — 作者意图 + 当前焦点永不截断
-- 📊 **Token 预算裁剪** — 按优先级智能裁剪，确保关键信息不丢失
-- 📈 **市场情报注入** — 自动加载平台热门趋势数据到 AI 上下文
-- ✅ **候选管理** — AI 输出只写候选区，人工确认后才采纳
-- 🔒 **写锁 + 源版本追踪** — 防止并发冲突
-- 🛡️ **反幻觉三定律** — 约束注入/发明标识/状态回写，AI 不编造设定
-
-### AI 智能体
-
-- 🧠 **多模型路由** — 规划/正文/审阅三槽位独立配置，自动降级
-- 🔍 **六维审稿** — 爽点/一致性/节奏/OOC/连续性/追读力评分 + 问题定位
-- ✨ **去AI味引擎** — 规则库检测 + AI 改写，消除模板化表达
-- 📡 **变更传播** — 设定修改后 RAG 语义检索影响范围，逐章修复建议
-- 🚫 **反幻觉监督** — 硬约束注入 + 发明标识 + 一致性审校
-
-### 知识 & 素材
-
-- 📖 **向量知识库 (RAG)** — 纯 Dart 余弦相似度语义检索，增量索引/全量重建
-- 📚 **拆书知识库** — 参考书管理/断点续爬/四层深度分析（风格/人物/情节/氛围）
-- 🌐 **AI 联网搜索** — SearXNG/AnySearch 多后端，结果注入上下文
-- 📊 **市场情报扫榜** — 起点/番茄/七猫趋势 + AI 分析 + ContextAssembler 注入
-- 🎨 **风格蒸馏** — 从 Canon + 文档中 AI 提炼专属写作风格 Profile
-
-### 叙事管理
-
-- 🎭 **伏笔全生命周期** — 埋设/回收/逾期检测/活跃伏笔自动注入
-- 🎵 **StrandWeave 节奏控制** — 多线叙事配比约束/红线门禁/分布记录
-- 🌳 **平行世界** — 剧情分支/上下文快照继承/多线并行/差异对比/成剧下游
-- 🕸️ **角色关系图谱** — 力导向布局/关系类型可视化/AI 自动提取/高亮交互
-
-### 创作模式
-
-- 📝 **长篇模式** — 世界观→大纲→章节的标准引导流程
-- ⚡ **短篇模式** — 情绪设计→反转构思→精修出稿，聚焦故事核和情绪曲线
-- 📋 **短篇拆文** — 五维拆解：故事核/结构/情感线/反转设计/共鸣点
-- 📈 **短篇扫榜** — 知乎盐言/番茄短篇风口趋势分析
-- 🎬 **一键成剧** — 小说→角色提示词卡 + 分镜脚本 + 场景描述（国漫/日漫/写实/3D）
-
-### 引导 & 工作流
-
-- 🧭 **GuidedFlowEngine** — 题材引导状态机，AI 判定步骤完成度
-- 🎯 **7 个官方题材 Skill** — 玄幻/仙侠/都市/悬疑/言情/科幻/历史
-- ✅ **工作流审批** — 草稿→待审→通过/拒绝，拒绝附意见 + AI 重生成
-- 🚦 **流水线门禁** — 只有 approved 内容才进入后续生产环节
-- 📦 **批量生成 + 任务队列** — 异步调度/取消/自动重试/批量编排/进度上报
-
-### Skill 生态系统
-
-- 🧩 **17+ 可安装技能** — 社区贡献的写作辅助 Skill
-- 📦 **Skill Store** — 一键安装/卸载，GitHub 基础设施分发
-- ⚗️ **蒸馏创作** — 从你的 Canon + 文档中 AI 提炼出专属 SKILL.md
-- 🔐 **声明式权限** — 轻量 Skill 只读，重量 Skill 沙箱执行
-- 🎬 **重量 Skill** — 一键成剧等复杂 Skill 走 SandboxedSkillApi
-
-### 云同步 & 商业化
-
-- ☁️ **WebDAV 云同步** — 增量同步/冲突检测/时间戳优先策略
-- 🔑 **Free/Pro 分层** — Free 本地编辑 + 自带 Key；Pro 解锁高级功能
-- 🎁 **公益模型配额** — 无 Key 用户每日/每月免费额度，自动切换
-- 📜 **离线许可证** — 格式验证 + 机器指纹绑定，无需联网激活
-
-## 快速开始（开发者）
-
-### 前置要求
-
-- Flutter SDK ≥3.38
-- Windows 10/11 (x64)
-
-### 从源码运行
-
-```bash
+```powershell
 git clone https://github.com/xiaohai-uid/lingbi.git
 cd lingbi
-flutter pub get
+flutter pub get --enforce-lockfile
+flutter analyze lib/
+flutter test
+flutter build windows --release
+tool/windows/package_release.ps1 -SkipBuild
+```
+
+便携包输出到传入的 `-OutputDir`（未传入时为系统临时目录下的 `lingbi-release-package`）；CI 使用 runner 临时目录，其中：
+
+- `SHA256SUMS.txt` 使用包内相对路径，避免机器相关绝对路径；
+- `PROVENANCE.json` 记录应用版本、Git commit/ref、dirty 状态、构建配置和平台；
+- `source_dirty: true` 的本地产物只能用于诊断，不能作为正式发布证据。
+
+运行应用：
+
+```powershell
 flutter run -d windows
 ```
 
-### 配置 AI
-
-1. 启动应用后进入 **设置 → AI 模型** 选择提供商
-2. 在 **API 密钥** 页输入对应 Key
-3. 也可通过环境变量配置（优先级更高）：
-   - `SENSENOVA_API_KEY`
-   - `DEEPSEEK_API_KEY`
-   - `OPENAI_API_KEY`
-   - `ANTHROPIC_API_KEY`
-
-### 运行测试
-
-```powershell
-# 静态分析（CI 门禁）
-flutter analyze lib/
-
-# 全量测试（847 个用例）
-flutter test
-
-# 单个测试文件
-flutter test test/workflow_approval_test.dart
-```
-
-### 构建安装包
-
-```powershell
-flutter build windows --release
-cd installer
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" lingbi_setup.iss
-# 输出: installer\Output\Lingbi-Setup-x.x.x.exe
-```
-
-## 技术栈
-
-| 技术 | 用途 |
-|------|------|
-| Flutter 3.38 | 桌面框架 (Windows) |
-| flutter_quill | WYSIWYG 富文本编辑器 |
-| ServiceLocator | 依赖注入（拓扑序初始化，30+ 服务） |
-| ZVec / JSON 文件 | 数据持久化（自动降级） |
-| IProjectMetaRepository | 项目级结构化元数据存储 |
-| ContextAssembler | 写作流水线上下文组装（含 RAG 注入） |
-| GuidedFlowEngine | 题材引导状态机 |
-| SkillExecutor + Sandbox | Skill 声明式执行沙箱 |
-| dart:io HttpClient | WebDAV 同步 / 市场情报 / 联网搜索 |
-| Inno Setup 6 | Windows 安装包打包 |
+AI 提供商配置位于应用设置页。不要把 API Key 写入仓库、日志、诊断事件或 provenance。
 
 ## 项目结构
 
+```text
+lib/                         Flutter 应用与服务
+test/                        自动化测试与发布契约
+tool/windows/                Windows release 包装脚本
+installer/                   Inno Setup 元数据（未进入 Task 1 CI 产物）
+docs/qa/                     发布证据、限制与人工门禁
+.github/workflows/ci.yml     PR/push 分析、测试、release build/package
 ```
-lingbi/
-├── lib/
-│   ├── core/               # AI Providers（5个）、数据库、DI、领域模型
-│   ├── modules/pipeline/   # 写作流水线（上下文组装→生成→候选→结算）
-│   ├── services/           # 业务服务层（30+ 服务）
-│   │   ├── skill/          # Skill 运行时（manifest/permission/loader/executor/distillation）
-│   │   ├── skills/         # 7 个官方题材 GuidedFlow Skill
-│   │   ├── sync/           # WebDAV 云同步
-│   │   └── interfaces/     # 服务接口定义
-│   ├── ui_v2/              # 新版 UI（组件化 + Design Tokens）
-│   │   ├── components/     # 可复用组件（AI助手/市场面板/ProGate）
-│   │   ├── pages/          # 页面（编辑器/设置/技能市场）
-│   │   └── theme/          # 主题 Tokens + 图标
-│   └── utils/
-├── test/                   # 847 个测试用例
-├── community/skills/       # 17 个社区 Skill
-├── launcher/               # 一键启动器
-├── installer/              # Inno Setup 安装脚本
-├── lingbi_server/          # 可选微服务（Docker 部署）
-└── docs/                   # ADR + 决策文档
-```
-
-## 微服务（可选）
-
-灵笔为 **local-first** 架构，微服务不是运行前提。如需多设备协作或部署云端：
-
-```bash
-cp .env.example .env
-docker-compose up -d
-```
-
-详见 [DEPLOY.md](DEPLOY.md)
-
-## 贡献指南
-
-请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证
 
 [MIT](LICENSE)
-
-## 相关链接
-
-- [Release 下载](https://github.com/xiaohai-uid/lingbi/releases)
-- [领域语言 (CONTEXT.md)](CONTEXT.md)
-- [部署指南 (DEPLOY.md)](DEPLOY.md)
-- [安全说明 (SECURITY.md)](SECURITY.md)
-
-## 安全说明
-
-- **API Key 存储**：本地 JSON (`{用户文档}/lingbi_data/settings.json`)，环境变量优先级更高。
-- **离线优先**：许可证验证、Skill 执行、写作流水线均不依赖网络。
-- **报告漏洞**：请参阅 [SECURITY.md](SECURITY.md)

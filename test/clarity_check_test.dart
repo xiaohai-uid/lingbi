@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/clarity_check_service.dart';
+import 'package:lingbi/features/review/data/clarity_check_service.dart';
 
 void main() {
   late ClarityCheckService service;
@@ -125,14 +125,14 @@ void main() {
     group('长输入自动跳过', () {
       test('超过50字符的文本自动跳过确认', () {
         // 51 个字符
-        final longInput = '这是一段非常长的输入文本，目的是测试当输入超过五十个字符时系统是否会自动跳过确认流程。';
+        const longInput = '这是一段非常长的输入文本，目的是测试当输入超过五十个字符时系统是否会自动跳过确认流程。';
         final result = service.assess(longInput);
         expect(result.needsClarification, isFalse);
       });
 
       test('包含模糊关键词但超过50字符也跳过', () {
         // 包含"帮我写"但总长度 > 50
-        final longWithKeyword =
+        const longWithKeyword =
             '帮我写一篇关于人工智能在医疗领域应用的深度分析报告，需要包含最新的案例研究和未来发展趋势的完整章节内容。';
         final result = service.assess(longWithKeyword);
         expect(result.needsClarification, isFalse);
@@ -169,14 +169,14 @@ void main() {
       test('刚好50字符的模糊输入触发规则', () {
         // trim 后恰好 50 字符，包含模糊关键词，应该触发
         // 构造：以"帮我写"开头，总长度 = 50
-        final input = '帮我写' + '一' * 47; // 3 + 47 = 50
+        final input = '帮我写${'一' * 47}'; // 3 + 47 = 50
         expect(input.trim().length, 50);
         final result = service.assess(input);
         expect(result.needsClarification, isTrue);
       });
 
       test('51字符的模糊输入自动跳过', () {
-        final input = '帮我写' + '一' * 48; // 3 + 48 = 51
+        final input = '帮我写${'一' * 48}'; // 3 + 48 = 51
         expect(input.trim().length, 51);
         final result = service.assess(input);
         expect(result.needsClarification, isFalse);

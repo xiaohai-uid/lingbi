@@ -1,6 +1,6 @@
 name: launcher
 description: 灵笔一键启动器 — 管理所有微服务的桌面 GUI
-version: 1.0.0+1
+version: 1.0.1+1
 publish_to: none
 
 environment:

@@ -2,14 +2,15 @@
 ///
 /// 覆盖：AiResponseNormalizer / AiErrorMapper / SkillActionService /
 /// IntentConfirmationService / GenerationTask
+library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_response_normalizer.dart';
-import 'package:lingbi/core/ai/generation_task.dart';
-import 'package:lingbi/core/errors/ai_error.dart';
+import 'package:lingbi/shared/ai/ai_response_normalizer.dart';
+import 'package:lingbi/shared/ai/generation_task.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/services/intent_confirmation_service.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 void main() {
   group('AiResponseNormalizer', () {
@@ -340,7 +341,7 @@ void main() {
     });
 
     test('selectionOrDocument 无选中 → 取全文', () {
-      const ctx = SkillContext(selectedText: '', fullDocument: '全文');
+      const ctx = SkillContext(fullDocument: '全文');
       expect(ctx.effectiveInput(InputScope.selectionOrDocument), '全文');
     });
   });

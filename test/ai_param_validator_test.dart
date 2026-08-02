@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/utils/ai_param_validator.dart';
+import 'package:lingbi/shared/utils/ai_param_validator.dart';
 
 void main() {
   group('AiParamValidator.validateTemperature', () {
     test('valid temperature returns null', () {
       expect(AiParamValidator.validateTemperature(0.7), isNull);
-      expect(AiParamValidator.validateTemperature(0.0), isNull);
-      expect(AiParamValidator.validateTemperature(2.0), isNull);
+      expect(AiParamValidator.validateTemperature(0), isNull);
+      expect(AiParamValidator.validateTemperature(2), isNull);
     });
 
     test('too low temperature returns error', () {
@@ -65,7 +65,7 @@ void main() {
   group('Word export helpers', () {
     test('stripMarkdown handles basic content', () {
       // Test via ExportService - just verify the HTML generation logic
-      final md = '# Title\n\nParagraph 1\n\nParagraph 2';
+      const md = '# Title\n\nParagraph 1\n\nParagraph 2';
       // This is a simple test of the markdown stripping logic
       expect(md.contains('# '), true);
     });

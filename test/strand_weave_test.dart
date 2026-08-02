@@ -4,11 +4,11 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/strand_weave_config.dart';
-import 'package:lingbi/core/models/chapter_state_snapshot.dart';
-import 'package:lingbi/services/strand_weave_service.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/shared/models/strand_weave_config.dart';
+import 'package:lingbi/shared/models/chapter_state_snapshot.dart';
+import 'package:lingbi/features/strand/data/strand_weave_service.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mock IProjectMetaRepository ───
 
@@ -120,10 +120,8 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
-        enabled: true,
       );
 
       final json = config.toJson();
@@ -173,7 +171,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       ).toJson());
@@ -191,7 +188,7 @@ void main() {
 
     test('未启用时返回空字符串', () async {
       await metaRepo.write('proj1', 'strand_weave.json', const StrandWeaveConfig(
-        strands: [Strand(name: '主线', ratio: 1.0)],
+        strands: [Strand(name: '主线', ratio: 1)],
         enabled: false,
       ).toJson());
 
@@ -269,7 +266,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       );
@@ -301,7 +297,6 @@ void main() {
             id: 'rl_1',
             description: '连续3章不得无主线推进',
             strandName: '主线',
-            maxConsecutiveAbsence: 3,
           ),
         ],
       );
@@ -441,7 +436,6 @@ void main() {
         'proj1',
         strandName: '主线',
         description: '连续3章不得无主线推进',
-        maxConsecutiveAbsence: 3,
       );
       expect(config.redLines.length, 1);
 

@@ -1,11 +1,17 @@
 /// WebDAV 云同步 — 单元测试
 ///
-/// 覆盖：上传/下载/冲突/增量
+/// 覆盖：上传/下载/冲突/增量/MutationProtocol 集成
 library;
 
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/sync/webdav_service.dart';
-import 'package:lingbi/services/sync/sync_manager.dart';
+import 'package:lingbi/features/sync/data/sync/webdav_service.dart';
+import 'package:lingbi/features/sync/data/sync/sync_manager.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   group('WebDavConfig', () {
@@ -32,7 +38,6 @@ void main() {
         serverUrl: 'https://nextcloud.local/remote.php/dav/files/user',
         username: 'admin',
         password: 'secret',
-        syncProjects: true,
         syncSkills: false,
         syncConversations: true,
       );
@@ -170,6 +175,45 @@ void main() {
         isCollection: true,
       );
       expect(dir.isCollection, true);
+    });
+  });
+
+  group('SyncManager applyIncoming MutationProtocol', () {
+    test('applyIncoming 经 MutationProtocol 创建 journal 记录', () async {
+      final temp = Directory.systemTemp.createTempSync('lingbi_sync_mutation_');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      final journalDir = Directory('${temp.path}/journal')..createSync();
+      final protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: journalDir.path),
+        store: FileCanonicalStore(
+          projectRoot: temp.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
+      final manager = SyncManager(
+        config: const WebDavConfig(serverUrl: '', username: '', password: ''),
+        mutationProtocol: protocol,
+      );
+
+      // Apply incoming file from remote
+      await manager.applyIncoming(
+        relativePath: 'chapters/ch1.md',
+        content: '# 第1章\n\n远端内容',
+        projectDir: temp.path,
+      );
+
+      // T01: batchImport origin uses propose-only (explicit approval required)
+      // File is NOT written until user approves the candidate
+      final file = File('${temp.path}/chapters/ch1.md');
+      expect(file.existsSync(), isFalse,
+          reason: 'sync incoming must not auto-write; requires approval');
+
+      // Journal has proposed event only (no auto-commit)
+      final journal = LocalMutationJournal(basePath: journalDir.path);
+      final events = await journal.readAll();
+      final types = events.map((e) => e.eventType).toList();
+      expect(types, contains('candidate_proposed'));
+      expect(types, isNot(contains('candidate_committed')));
     });
   });
 }

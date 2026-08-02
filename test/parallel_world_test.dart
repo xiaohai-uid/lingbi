@@ -4,9 +4,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/parallel_world_service.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/features/parallel_world/data/parallel_world_service.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mock ───
 
@@ -104,7 +104,6 @@ void main() {
         name: '黑暗线',
         forkPoint: '第3章结尾',
         parentBranchId: 'main',
-        status: BranchStatus.active,
         tags: ['黑暗', '反转'],
       );
 

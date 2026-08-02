@@ -6,6 +6,7 @@
 /// - 未配置时降级为当前默认模型
 library;
 
+import '../shared/ai/task_model_runtime.dart';
 
 // ─── 数据模型 ───
 
@@ -112,16 +113,22 @@ class RouteResolution {
 // ─── 服务 ───
 
 /// 多模型路由服务
-class ModelRouterService {
+class ModelRouterService implements TaskModelRouter {
   ModelRouterService({
     ModelRouteConfig? config,
     this.defaultEndpointId = 'free',
-  }) : _config = config ?? const ModelRouteConfig();
+    Iterable<String> fallbackEndpointIds = const [],
+    Iterable<String> localEndpointIds = const {'free'},
+  })  : _config = config ?? const ModelRouteConfig(),
+        _fallbackEndpointIds = List.unmodifiable(fallbackEndpointIds),
+        _localEndpointIds = Set.unmodifiable(localEndpointIds);
 
   ModelRouteConfig _config;
 
   /// 默认 endpoint（未配置槽位时使用）
   final String defaultEndpointId;
+  final List<String> _fallbackEndpointIds;
+  final Set<String> _localEndpointIds;
 
   /// 可用 endpoint 列表（由外部注入）
   List<String> availableEndpoints = [];
@@ -194,6 +201,48 @@ class ModelRouterService {
     return {
       for (final slot in RouteSlot.values) slot: resolve(slot),
     };
+  }
+
+  @override
+  List<TaskModelRoute> resolveCandidates(
+    TaskModelKind kind, {
+    bool localOnly = false,
+  }) {
+    final slot = RouteSlot.values.byName(kind.name);
+    final configured = _config.getEndpointId(slot);
+    final configuredIsAvailable = configured.isNotEmpty &&
+        (availableEndpoints.isEmpty || availableEndpoints.contains(configured));
+    final endpointIds = <String>[
+      if (configuredIsAvailable) configured,
+      ..._fallbackEndpointIds.where(
+        (id) => availableEndpoints.isEmpty || availableEndpoints.contains(id),
+      ),
+      defaultEndpointId,
+    ];
+    final uniqueEndpointIds = <String>[];
+    for (final endpointId in endpointIds) {
+      if (!uniqueEndpointIds.contains(endpointId)) {
+        uniqueEndpointIds.add(endpointId);
+      }
+    }
+    final candidates = localOnly
+        ? uniqueEndpointIds.where(_localEndpointIds.contains)
+        : uniqueEndpointIds;
+    return [
+      for (final endpointId in candidates)
+        TaskModelRoute(
+          endpointId: endpointId,
+          isFallback: endpointId != configured,
+          isLocal: _localEndpointIds.contains(endpointId),
+          fallbackReason: endpointId == configured
+              ? null
+              : localOnly
+                  ? TaskModelFallbackReason.localOnly
+                  : configured.isNotEmpty && !configuredIsAvailable
+                      ? TaskModelFallbackReason.unavailable
+                      : TaskModelFallbackReason.defaultRoute,
+        ),
+    ];
   }
 
   /// 获取指定任务类型应使用的 provider ID

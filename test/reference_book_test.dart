@@ -4,9 +4,9 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/services/reference_book_service.dart';
-import 'package:lingbi/services/interfaces/i_project_meta_repository.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
+import 'package:lingbi/features/knowledge/data/reference_book_service.dart';
+import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 
 // ─── Mocks ───
 
@@ -94,7 +94,7 @@ void main() {
         sourceUrl: 'https://example.com/novel',
         author: '天蚕土豆',
         crawlStatus: CrawlStatus.completed,
-        crawlProgress: 1.0,
+        crawlProgress: 1,
         totalChapters: 100,
         crawledChapters: 100,
         content: '内容...',
@@ -125,7 +125,6 @@ void main() {
         id: 'ref_002',
         title: '测试',
         sourceType: ReferenceSourceType.file,
-        crawlStatus: CrawlStatus.idle,
       );
 
       final updated = book.copyWith(
@@ -283,7 +282,7 @@ void main() {
         'books': books.map((b) => b.toJson()).toList(),
       });
 
-      var fetchedIndices = <int>[];
+      final fetchedIndices = <int>[];
       final result = await service.crawl(
         projectId: 'proj1',
         bookId: book.id,

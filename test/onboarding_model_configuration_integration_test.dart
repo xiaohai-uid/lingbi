@@ -1,9 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/ai/ai_provider.dart';
-import 'package:lingbi/core/ai/model_registry.dart';
-import 'package:lingbi/services/settings_service.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:lingbi/services/ai_service.dart';
-import 'package:lingbi/services/quota_service.dart';
+import 'package:lingbi/features/settings/data/quota_service.dart';
 
 void main() {
   group('异常和兼容验证 — 12 种场景', () {
@@ -139,10 +138,9 @@ void main() {
       final oldState = OnboardingState(
         completed: true,
         schemaVersion: currentOnboardingSchemaVersion - 1,
-        completedAt: DateTime(2025, 1, 1),
+        completedAt: DateTime(2025),
         selectedProviderId: 'openai',
         selectedModelId: 'gpt-4o',
-        localOnlyMode: false,
         lastStep: 7,
       );
       // 旧版本配置需要重新展示向导

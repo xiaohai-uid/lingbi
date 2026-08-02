@@ -10,6 +10,7 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 *.lock
+!pubspec.lock
 
 # IDE
 .idea/
@@ -33,11 +34,37 @@ build/
 .env.local
 lingbi_data/
 
-# Documentation generated
-docs/superpowers/
+# AI workflow internals (not part of the product)
+.agents/
+.ai/
+.scratch/
+.superpowers/
+openspec/
+reports/
+community/
+coverage/
+skills-lock.json
+litellm_config.yaml
+
+# Incomplete sub-projects (not required to run the app)
+/lingbi_server/
+/services/
+/launcher/
+/docs/*
+!/docs/qa/
+!/docs/qa/**
+
+# Docker (not a runtime prerequisite)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# External skills linked via junction (machine-local, do not commit)
+.claude/skills/*
+!.claude/skills/gitnexus-*/
 
 # Temp / dev scripts
 fix_*.js
 tmp_*.dart
 *.png
-*.bmp.scratch/
+*.bmp

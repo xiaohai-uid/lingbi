@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/services/skill_action_service.dart';
+import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 /// 斜杠命令菜单组件
 class SlashCommandMenu extends StatefulWidget {

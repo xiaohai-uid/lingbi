@@ -1,0 +1,15 @@
+{
+  "platform": "番茄",
+  "genre": "玄幻",
+  "fetched_at": "2025-06-01T00:00:00.000Z",
+  "source": "bundled",
+  "avg_chapter_words": 2200,
+  "hot_tags": ["东方玄幻", "热血", "升级流", "系统", "扮猪吃虎", "宗门"],
+  "trends": [
+    {"title": "万古神帝路", "platform": "番茄", "genre": "玄幻", "rank": 1, "heat_score": 9820, "tags": ["东方玄幻", "升级流", "热血"], "author": "样例作者", "word_count": 3200000},
+    {"title": "我在宗门当杂役", "platform": "番茄", "genre": "玄幻", "rank": 2, "heat_score": 9410, "tags": ["宗门", "扮猪吃虎", "日常"], "author": "样例作者", "word_count": 2100000},
+    {"title": "签到十年一剑破天", "platform": "番茄", "genre": "玄幻", "rank": 3, "heat_score": 9180, "tags": ["系统", "签到", "剑修"], "author": "样例作者", "word_count": 1800000},
+    {"title": "从吞噬妖丹开始", "platform": "番茄", "genre": "玄幻", "rank": 4, "heat_score": 8960, "tags": ["吞噬流", "妖族", "热血"], "author": "样例作者", "word_count": 1500000},
+    {"title": "废脉觉醒逆苍天", "platform": "番茄", "genre": "玄幻", "rank": 5, "heat_score": 8770, "tags": ["废柴逆袭", "血脉", "复仇"], "author": "样例作者", "word_count": 1250000}
+  ]
+}

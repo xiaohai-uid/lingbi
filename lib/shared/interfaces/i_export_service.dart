@@ -1,0 +1,35 @@
+import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/models/document.dart';
+
+/// 导出服务接口
+abstract class IExportService {
+  Future<void> exportAsMarkdown({
+    required String content,
+    required String savePath,
+  });
+
+  Future<void> exportAsTxt({
+    required String content,
+    required String savePath,
+  });
+
+  Future<void> exportAsPdf({
+    required String title,
+    required String content,
+    required String savePath,
+  });
+
+  Future<void> exportAsDocx({
+    required String title,
+    required String content,
+    required String savePath,
+  });
+
+  Future<void> exportProjectToDirectory({
+    required Project project,
+    required List<Document> documents,
+    required Map<String, String> contents,
+    required String outputDir,
+    String format = 'md',
+  });
+}

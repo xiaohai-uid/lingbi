@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lingbi/core/models/story_beat.dart';
-import 'package:lingbi/core/errors/result.dart';
-import 'package:lingbi/core/errors/app_error.dart';
+import 'package:lingbi/shared/models/story_beat.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
 
 void main() {
   group('StoryBeat', () {
@@ -34,7 +34,7 @@ void main() {
     });
 
     test('copyWith preserves unchanged fields', () {
-      final beat = StoryBeat(projectId: 'proj-1', title: '开场', description: '开始', colorIndex: 0);
+      final beat = StoryBeat(projectId: 'proj-1', title: '开场', description: '开始');
       final updated = beat.copyWith(description: '新的开始');
       expect(updated.title, '开场');
       expect(updated.description, '新的开始');

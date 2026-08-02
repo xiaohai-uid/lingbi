@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "themeMode": "system",
+  "selectedProvider": "free",
+  "selectedModelIds": {},
+  "customEndpoints": [],
+  "analyticsConsent": {
+    "enabled": false
+  }
+}
