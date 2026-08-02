@@ -5,6 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/project/data/project_brief_repository.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   late Directory tempDir;
@@ -72,6 +76,40 @@ void main() {
     expect(loaded.targetPlatform, '番茄');
     expect(loaded.premise, '旧版一句话创意');
     expect(loaded.revision, 0);
+  });
+
+  test('write via MutationProtocol creates journal records', () async {
+    final journalDir =
+        Directory.systemTemp.createTempSync('lingbi_brief_journal_');
+    final protocol = LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: journalDir.path),
+      store: FileCanonicalStore(
+        projectRoot: tempDir.path,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+    final repository = ProjectBriefRepository(
+      tempDir.path,
+      mutationProtocol: protocol,
+    );
+    const brief = ProjectBrief(
+      title: '协议之路',
+      genreId: 'xuanhuan',
+      templateId: 'genre:xuanhuan',
+    );
+
+    final saved = await repository.write(brief, expectedRevision: 0);
+    expect(saved.revision, 1);
+
+    // Verify journal has propose + approve + commit records
+    final journal = LocalMutationJournal(basePath: journalDir.path);
+    final events = await journal.readAll();
+    final types = events.map((e) => e.eventType).toList();
+    expect(types, contains('candidate_proposed'));
+    expect(types, contains('candidate_approved'));
+    expect(types, contains('candidate_committed'));
+
+    journalDir.deleteSync(recursive: true);
   });
 
   test('portable project writes the complete brief on first persistence',

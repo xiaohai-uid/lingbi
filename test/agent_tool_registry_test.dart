@@ -4,21 +4,38 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   group('AgentToolRegistry 沙箱', () {
     late Directory dir;
+    late Directory journalDir;
     late AgentToolRegistry registry;
 
     setUp(() {
       dir = Directory.systemTemp.createTempSync('lingbi-agent-registry-');
+      journalDir = Directory.systemTemp.createTempSync('lingbi-reg-journal-');
+      final protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: journalDir.path),
+        store: FileCanonicalStore(
+          projectRoot: dir.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
       registry = AgentToolRegistry(
         projectDir: dir.path,
         confirmWrite: (path, content) async => true,
+        mutationProtocol: protocol,
       );
     });
 
-    tearDown(() => dir.deleteSync(recursive: true));
+    tearDown(() {
+      dir.deleteSync(recursive: true);
+      journalDir.deleteSync(recursive: true);
+    });
 
     ToolCall call(String name, Map<String, dynamic> args) => ToolCall(
           id: 'id-$name',
@@ -65,14 +82,23 @@ void main() {
     });
 
     test('confirmWrite 拒绝时不落盘', () async {
+      final rejJournal = Directory.systemTemp.createTempSync('lingbi-rej-');
       final reg = AgentToolRegistry(
         projectDir: dir.path,
         confirmWrite: (p, c) async => false,
+        mutationProtocol: LocalMutationProtocol(
+          journal: LocalMutationJournal(basePath: rejJournal.path),
+          store: FileCanonicalStore(
+            projectRoot: dir.path,
+            atomicStore: AtomicFileStore(),
+          ),
+        ),
       );
       final w = await reg
           .execute(call('file_write', {'path': 'x.md', 'content': 'hi'}));
       expect(w.content, contains('拒绝'));
       expect(File('${dir.path}/x.md').existsSync(), isFalse);
+      rejJournal.deleteSync(recursive: true);
     });
 
     test('specs 按回调可用性暴露 question / skill_lookup', () {
@@ -84,6 +110,90 @@ void main() {
       );
       final names = reg2.specs.map((s) => s.name).toList();
       expect(names, containsAll(['file_read', 'file_write', 'list_dir', 'question', 'skill_lookup']));
+    });
+  });
+
+  group('AgentToolRegistry MutationProtocol 集成', () {
+    late Directory dir;
+    late Directory journalDir;
+    late LocalMutationProtocol protocol;
+    late AgentToolRegistry registry;
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('lingbi-agent-mutation-');
+      journalDir = Directory.systemTemp.createTempSync('lingbi-journal-');
+      protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: journalDir.path),
+        store: FileCanonicalStore(
+          projectRoot: dir.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
+      registry = AgentToolRegistry(
+        projectDir: dir.path,
+        confirmWrite: (path, content) async => true,
+        mutationProtocol: protocol,
+      );
+    });
+
+    tearDown(() {
+      dir.deleteSync(recursive: true);
+      journalDir.deleteSync(recursive: true);
+    });
+
+    ToolCall call(String name, Map<String, dynamic> args) => ToolCall(
+          id: 'id-$name',
+          name: name,
+          argumentsJson: jsonEncode(args),
+        );
+
+    test('file_write 经 MutationProtocol 创建 candidate + approval + receipt',
+        () async {
+      final w = await registry.execute(
+          call('file_write', {'path': '章节内容/第1章.md', 'content': '# 第1章\n\n正文'}));
+      expect(w.isError, isFalse);
+      expect(w.content, contains('已写入'));
+
+      // 验证 journal 中有 propose + approve + commit 三条记录
+      final journal = LocalMutationJournal(basePath: journalDir.path);
+      final allEvents = await journal.readAll();
+      final types = allEvents.map((e) => e.eventType).toList();
+      expect(types, contains('candidate_proposed'));
+      expect(types, contains('candidate_approved'));
+      expect(types, contains('candidate_committed'));
+    });
+
+    test('file_write 用户拒绝时经 MutationProtocol reject', () async {
+      final reg = AgentToolRegistry(
+        projectDir: dir.path,
+        confirmWrite: (p, c) async => false,
+        mutationProtocol: protocol,
+      );
+      final w = await reg
+          .execute(call('file_write', {'path': 'x.md', 'content': 'hi'}));
+      expect(w.content, contains('拒绝'));
+      expect(File('${dir.path}/x.md').existsSync(), isFalse);
+
+      // 验证 journal 中有 propose + reject
+      final journal = LocalMutationJournal(basePath: journalDir.path);
+      final allEvents = await journal.readAll();
+      final types = allEvents.map((e) => e.eventType).toList();
+      expect(types, contains('candidate_proposed'));
+      expect(types, contains('candidate_rejected'));
+      expect(types, isNot(contains('candidate_committed')));
+    });
+
+    test('file_write 无 MutationProtocol 时 fail-closed 拒绝写入', () async {
+      final reg = AgentToolRegistry(
+        projectDir: dir.path,
+        confirmWrite: (p, c) async => true,
+        // 不传 mutationProtocol
+      );
+      final w = await reg
+          .execute(call('file_write', {'path': 'y.md', 'content': 'hello'}));
+      expect(w.isError, isTrue);
+      expect(w.content, contains('APPROVAL_REQUIRED'));
+      expect(File('${dir.path}/y.md').existsSync(), isFalse);
     });
   });
 }

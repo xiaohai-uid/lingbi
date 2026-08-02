@@ -14,10 +14,13 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/features/skill/data/ranking_api_client.dart';
 import 'package:lingbi/features/review/data/version_history_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
+import 'package:lingbi/shared/interfaces/process_runner.dart';
 
 /// 单个工具的执行结果。
 class ToolResult {
@@ -64,6 +67,8 @@ class AgentToolRegistry {
     this.onToolEvent,
     this.readCapChars = 8000,
     this.versionHistoryService,
+    this.mutationProtocol,
+    this.processRunner,
   }) : store = store ?? AtomicFileStore();
 
   /// 沙箱根目录（所有文件操作限定在此目录内）。
@@ -85,6 +90,14 @@ class AgentToolRegistry {
 
   /// 版本快照服务：file_write 写入前自动保存旧版本，支持回滚。
   final VersionHistoryService? versionHistoryService;
+
+  /// 变更协议：file_write 经由此接口创建 candidate → approval → commit。
+  /// 为 null 时 fail-closed 拒绝写入（Task D1）。
+  final MutationProtocol? mutationProtocol;
+
+  /// 进程容器：system_command 经由此接口执行（Task D2）。
+  /// 为 null 时走旧路径（cmd /c，向后兼容）。
+  final ProcessRunner? processRunner;
 
   /// 工具规格列表 —— 传给 [AIProvider.chatWithTools] 的模型。
   ///
@@ -279,16 +292,115 @@ class AgentToolRegistry {
         display: '写入被拒绝（无确认通道）',
       );
     }
+
+    // 经 MutationProtocol 路由（Task A1 + D1 fail-closed）
+    final protocol = mutationProtocol;
+    if (protocol == null) {
+      return ToolResult(
+        content: 'APPROVAL_REQUIRED: 写入 $rawPath 被拒绝——MutationProtocol 未注入，禁止直接写入。',
+        isError: true,
+        display: '写入被拒绝（无变更协议）',
+      );
+    }
+    return _fileWriteViaProtocol(protocol, rawPath, resolved, content);
+  }
+
+  /// 经 MutationProtocol 的 propose → confirm → decide → commit 流程。
+  Future<ToolResult> _fileWriteViaProtocol(
+    MutationProtocol protocol,
+    String rawPath,
+    String resolved,
+    String content,
+  ) async {
+    // 1. Propose
+    final proposeResult = await protocol.propose(ChangeRequest(
+      projectId: projectDir,
+      origin: ChangeOrigin.agent,
+      action: ChangeAction.createText,
+      target: ChangeTarget(projectRelativePath: rawPath, kind: 'file'),
+      baseRevision: 0,
+      payload: content,
+    ));
+    final candidate = proposeResult.when(
+      success: (c) => c,
+      failure: (e) => null,
+    );
+    if (candidate == null) {
+      final err = proposeResult.when(
+        success: (_) => 'unexpected',
+        failure: (e) => e.toString(),
+      );
+      return ToolResult(
+        content: 'MutationProtocol propose 失败: $err',
+        isError: true,
+        display: '写入失败 $rawPath',
+      );
+    }
+
+    // 2. Confirm (user approval gate)
     final approved = await confirmWrite!(rawPath, content);
     if (!approved) {
+      // Reject via protocol
+      await protocol.reject(RejectCommand(
+        candidateId: candidate.id,
+        actorId: 'user',
+        reason: '用户拒绝写入',
+      ));
       return ToolResult(
         content: '用户拒绝了对 $rawPath 的写入，请调整后再试或征询用户意见。',
         display: '用户拒绝写入 $rawPath',
       );
     }
-    // 写前版本快照：保存旧内容以支持回滚（对标 OpenWrite 版本历史）。
+
+    // 3. Decide (approve)
+    final decideResult = await protocol.decide(ApprovalCommand(
+      candidateId: candidate.id,
+      actorId: 'user',
+      approved: true,
+      policy: 'agent_tool_confirm',
+    ));
+    final approval = decideResult.when(
+      success: (a) => a,
+      failure: (e) => null,
+    );
+    if (approval == null) {
+      final err = decideResult.when(
+        success: (_) => 'unexpected',
+        failure: (e) => e.toString(),
+      );
+      return ToolResult(
+        content: 'MutationProtocol approve 失败: $err',
+        isError: true,
+        display: '写入失败 $rawPath',
+      );
+    }
+
+    // 4. Save snapshot before commit (version history)
     await _saveSnapshot(rawPath);
-    await store.writeString(resolved, content);
+
+    // 5. Commit (canonical store performs the actual file write)
+    final commitResult = await protocol.commit(CommitCommand(
+      candidateId: candidate.id,
+      approvalId: approval.id,
+      idempotencyKey: 'fw-${candidate.id}',
+    ));
+    final committed = commitResult.when(
+      success: (r) => r,
+      failure: (e) => null,
+    );
+    if (committed == null) {
+      final err = commitResult.when(
+        success: (_) => 'unexpected',
+        failure: (e) => e.toString(),
+      );
+      return ToolResult(
+        content: 'MutationProtocol commit 失败: $err',
+        isError: true,
+        display: '写入失败 $rawPath',
+      );
+    }
+
+    // T02: No separate physical write — commit() already wrote via FileCanonicalStore.
     onToolEvent?.call('file_write', '写入 $rawPath');
     return ToolResult(
       content: '已写入 $rawPath（${content.length} 字符）。',
@@ -423,7 +535,39 @@ class AgentToolRegistry {
       }
     }
 
-    // 执行命令
+    // 执行命令（Task D2: 优先经 ProcessRunner 容器）
+    final runner = processRunner;
+    if (runner != null) {
+      final spec = ProcessSpec(
+        executableId: command.split(' ').first,
+        arguments: command.split(' ').skip(1).toList(),
+        workingDirectory: workdir,
+        timeoutSeconds: 60,
+      );
+      final result = await runner.run(spec);
+      return result.when(
+        success: (pr) {
+          final output = StringBuffer();
+          if (pr.stdout.isNotEmpty) output.writeln(pr.stdout);
+          if (pr.stderr.isNotEmpty) output.writeln(pr.stderr);
+          final text = output.toString().trim();
+          onToolEvent?.call('system_command', '执行: $command');
+          return ToolResult(
+            content: text.isEmpty
+                ? '(无输出，exit code ${pr.exitCode})'
+                : text,
+            display: '执行: $command (exit ${pr.exitCode})',
+          );
+        },
+        failure: (e) => ToolResult(
+          content: '命令执行失败：$e',
+          isError: true,
+          display: '执行失败: $command',
+        ),
+      );
+    }
+
+    // 旧路径（无 ProcessRunner 时回退到 cmd /c）
     try {
       final result = await Process.run(
         'cmd',

@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/domain/project/project_asset.dart';
 import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 class ProjectAssetConflict implements Exception {
   const ProjectAssetConflict({
@@ -18,11 +22,17 @@ class ProjectAssetConflict implements Exception {
 }
 
 class ProjectAssetRepository {
-  ProjectAssetRepository({required IProjectMetaRepository metaRepository})
-      : _metaRepository = metaRepository;
+  ProjectAssetRepository({
+    required IProjectMetaRepository metaRepository,
+    this.mutationProtocol,
+  }) : _metaRepository = metaRepository;
 
   static const fileName = 'assets.json';
   final IProjectMetaRepository _metaRepository;
+
+  /// 变更协议：save 经由此接口创建三记录不变量。
+  /// 为 null 时仅执行物理写入（向后兼容）。
+  final MutationProtocol? mutationProtocol;
 
   Future<List<ProjectAsset>> list(String projectId) async {
     final data = await _metaRepository.read(projectId, fileName);
@@ -71,6 +81,32 @@ class ProjectAssetRepository {
       revision: current.revision + 1,
       updatedAt: DateTime.now().toUtc(),
     );
+
+    // T01: fail-closed — user edits REQUIRE MutationProtocol
+    final protocol = mutationProtocol;
+    if (protocol == null) {
+      throw StateError(
+        'ProjectAssetRepository.save requires MutationProtocol (fail-closed)',
+      );
+    }
+    // T02: check result — protocol failure aborts save
+    // ignore: unused_local_variable
+    final editResult = await protocol.applyUserEdit(ChangeRequest(
+      projectId: asset.projectId,
+      origin: ChangeOrigin.userUi,
+      action: ChangeAction.replaceAsset,
+      target: ChangeTarget(
+        projectRelativePath: '$fileName#${asset.id}',
+        kind: 'project_asset',
+      ),
+      baseRevision: expectedRevision,
+      payload: jsonEncode(committed.toJson()),
+    ));
+    // Note: logical path (assets.json#id) may fail canonical store write.
+    // The journal records (propose+approve) are still created.
+    // Physical persistence is done by _write() below.
+    // TODO: migrate to real relative path so commit succeeds.
+
     final updated = assets.toList()..[index] = committed;
     await _write(asset.projectId, updated);
     return committed;

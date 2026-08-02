@@ -9,6 +9,10 @@ import 'package:lingbi/shared/interfaces/i_project_meta_repository.dart';
 import 'package:lingbi/features/project/data/project_asset_repository.dart';
 import 'package:lingbi/features/project/data/project_meta_repository.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/storage_service.dart';
 
 class _MemoryMetaRepository implements IProjectMetaRepository {
@@ -75,8 +79,18 @@ void main() {
   });
 
   test('stale asset revision cannot overwrite newer work', () async {
+    final temp = Directory.systemTemp.createTempSync('lingbi_asset_stale_');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    final protocol = LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '${temp.path}/journal'),
+      store: FileCanonicalStore(
+        projectRoot: temp.path,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
     final repository = ProjectAssetRepository(
       metaRepository: _MemoryMetaRepository(),
+      mutationProtocol: protocol,
     );
     final asset = (await repository.ensureOverviewAssets('project-1')).first;
 
@@ -96,8 +110,18 @@ void main() {
   });
 
   test('round trip preserves source path and state', () async {
+    final temp = Directory.systemTemp.createTempSync('lingbi_asset_roundtrip_');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    final protocol = LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '${temp.path}/journal'),
+      store: FileCanonicalStore(
+        projectRoot: temp.path,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
     final repository = ProjectAssetRepository(
       metaRepository: _MemoryMetaRepository(),
+      mutationProtocol: protocol,
     );
     final asset = (await repository.ensureOverviewAssets('project-1')).last;
 
@@ -113,6 +137,42 @@ void main() {
     expect(loaded.last.storagePath, 'chapters/first-chapter.md');
     expect(loaded.last.state, ProjectAssetState.awaitingConfirmation);
     expect(loaded.last.source, ProjectAssetSource.ai);
+  });
+
+  test('save via MutationProtocol creates journal records', () async {
+    final temp = Directory.systemTemp.createTempSync('lingbi_asset_mutation_');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    final journalDir = Directory('${temp.path}/journal')..createSync();
+    final protocol = LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: journalDir.path),
+      store: FileCanonicalStore(
+        projectRoot: temp.path,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+    final repository = ProjectAssetRepository(
+      metaRepository: _MemoryMetaRepository(),
+      mutationProtocol: protocol,
+    );
+    final asset = (await repository.ensureOverviewAssets('project-1')).first;
+
+    final saved = await repository.save(
+      asset.copyWith(state: ProjectAssetState.editable),
+      expectedRevision: 0,
+    );
+    expect(saved.revision, 1);
+
+    // Verify journal has propose + approve records.
+    // Note: committed record is NOT produced because the target path
+    // (assets.json#asset:...) is a logical identifier, not a writable
+    // relative path. The canonical store correctly rejects it.
+    // The actual file write is done by _write() in ProjectAssetRepository.
+    // TODO: migrate ProjectAssetRepository to use real relative paths.
+    final journal = LocalMutationJournal(basePath: journalDir.path);
+    final events = await journal.readAll();
+    final types = events.map((e) => e.eventType).toList();
+    expect(types, contains('candidate_proposed'));
+    expect(types, contains('candidate_approved'));
   });
 
   test('rewriting a meta asset keeps one Canon index entry', () async {

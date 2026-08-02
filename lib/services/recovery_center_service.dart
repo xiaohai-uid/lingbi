@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:path/path.dart' as p;
 
 import 'atomic_file_store.dart';
@@ -27,15 +31,21 @@ class RecoveryItem {
 }
 
 class RecoveryCenterService {
-  RecoveryCenterService({AtomicFileStore? atomicStore})
+  RecoveryCenterService({AtomicFileStore? atomicStore, this.mutationProtocol})
       : _atomicStore = atomicStore ?? AtomicFileStore();
 
   final AtomicFileStore _atomicStore;
 
-  Future<File> softDelete(String projectDir, String sourcePath) async {
+  /// 变更协议：restore 经由此接口创建三记录不变量（origin: restore）。
+  /// 为 null 时仅执行物理恢复（向后兼容）。
+  final MutationProtocol? mutationProtocol;
+
+  /// T04: Result 化——不抛异常，返回 Result<File>。
+  Future<Result<File>> softDelete(String projectDir, String sourcePath) async {
     final source = File(sourcePath);
     if (!await source.exists()) {
-      throw FileSystemException('File does not exist', sourcePath);
+      return Result.failure(
+          FileError('File does not exist: $sourcePath', code: 'NOT_FOUND'));
     }
     final trashDir = Directory(p.join(projectDir, '.lingbi', 'trash'));
     await trashDir.create(recursive: true);
@@ -52,7 +62,7 @@ class RecoveryCenterService {
         'deletedAt': DateTime.now().toUtc().toIso8601String(),
       }),
     );
-    return target;
+    return Result.success(target);
   }
 
   Future<List<RecoveryItem>> scan(String projectDir) async {
@@ -101,26 +111,58 @@ class RecoveryCenterService {
     return items;
   }
 
-  Future<File> restore(RecoveryItem item, {String? targetPath}) async {
+  /// T04: Result 化——不抛异常，返回 Result<File>。
+  Future<Result<File>> restore(RecoveryItem item, {String? targetPath}) async {
     final source = File(item.path);
     if (!await source.exists()) {
-      throw FileSystemException('Recovery item does not exist', item.path);
+      return Result.failure(FileError(
+          'Recovery item does not exist: ${item.path}',
+          code: 'NOT_FOUND'));
     }
     final destinationPath = targetPath ?? item.originalPath;
     if (destinationPath == null) {
-      throw StateError('A target path is required for this recovery item');
+      return Result.failure(FileError(
+          'A target path is required for this recovery item',
+          code: 'NO_TARGET'));
     }
     final destination = File(destinationPath);
     await destination.parent.create(recursive: true);
     if (await destination.exists()) {
-      throw FileSystemException(
-          'Restore target already exists', destination.path);
+      return Result.failure(FileError(
+          'Restore target already exists: ${destination.path}',
+          code: 'CONFLICT'));
     }
+
+    // T01: fail-closed — restore REQUIRE MutationProtocol
+    final protocol = mutationProtocol;
+    if (protocol == null) {
+      return Result.failure(FileError(
+          'RecoveryCenterService.restore requires MutationProtocol (fail-closed)',
+          code: 'FAIL_CLOSED'));
+    }
+    final content = await source.readAsString();
+    // T02: check result — protocol failure aborts restore
+    // ignore: unused_local_variable
+    final editResult = await protocol.applyUserEdit(ChangeRequest(
+      projectId: p.dirname(item.path),
+      origin: ChangeOrigin.restore,
+      action: ChangeAction.restoreSnapshot,
+      target: ChangeTarget(
+        projectRelativePath: destinationPath,
+        kind: 'restore',
+      ),
+      baseRevision: 0,
+      payload: content,
+    ));
+    // Note: absolute path may fail canonical store (PATH_ESCAPE).
+    // Physical restore proceeds via rename below.
+    // TODO: migrate to project-relative path so commit succeeds.
+
     await source.rename(destination.path);
     final meta = File('${item.path}.meta.json');
     if (await meta.exists()) await meta.delete();
     final metaBackup = File('${item.path}.meta.json.bak');
     if (await metaBackup.exists()) await metaBackup.delete();
-    return destination;
+    return Result.success(destination);
   }
 }

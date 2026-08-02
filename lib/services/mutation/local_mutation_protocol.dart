@@ -50,12 +50,12 @@ final class LocalMutationProtocol implements MutationProtocol {
       runId: request.runId,
     );
 
-    // Persist to journal
+    // Persist to journal (payload content stored for commit retrieval)
     await journal.append(JournalEvent(
       eventId: 'evt-propose-${candidate.id}',
       eventType: 'candidate_proposed',
       aggregateId: candidate.id,
-      payload: candidate.toJson(),
+      payload: {...candidate.toJson(), 'content': request.payload},
       idempotencyKey: request.idempotencyKey,
     ));
 
@@ -162,7 +162,65 @@ final class LocalMutationProtocol implements MutationProtocol {
       ));
     }
 
-    // Apply to canonical store (plan prepared for future multi-file support)
+    // Retrieve payload content from the proposal event
+    final proposalPayload = proposalEvents.last.payload;
+    final content = proposalPayload['content'] as String?;
+    if (content == null) {
+      return Result.failure(FileError(
+        'PAYLOAD_MISSING: no content in proposal for ${command.candidateId}',
+        code: 'PAYLOAD_MISSING',
+      ));
+    }
+
+    // Verify payload integrity
+    if (canonicalTextHash(content) != candidate.payloadHash) {
+      return Result.failure(FileError(
+        'PAYLOAD_HASH_MISMATCH: content corrupted for ${command.candidateId}',
+        code: 'PAYLOAD_HASH_MISMATCH',
+      ));
+    }
+
+    // Apply to canonical store via prepare/apply
+    final plan = CommitPlan(
+      transactionId: 'txn-${command.candidateId}',
+      targets: [
+        CommitTarget(
+          relativePath: candidate.target.projectRelativePath,
+          newContent: content,
+          expectedHash: null,
+        ),
+      ],
+    );
+
+    final Result<PreparedCommit> prepareResult;
+    try {
+      prepareResult = await store.prepare(plan);
+    } catch (e) {
+      return Result.failure(FileError(
+        'STORE_PREPARE_ERROR: $e',
+        code: 'STORE_ERROR',
+      ));
+    }
+    final prepared = prepareResult.getOrNull();
+    if (prepared == null) {
+      return Result.failure(prepareResult.errorOrNull()!);
+    }
+
+    final Result<CommitResult> applyResult;
+    try {
+      applyResult = await store.apply(prepared);
+    } catch (e) {
+      return Result.failure(FileError(
+        'STORE_APPLY_ERROR: $e',
+        code: 'STORE_ERROR',
+      ));
+    }
+    final commitResult = applyResult.getOrNull();
+    if (commitResult == null) {
+      return Result.failure(applyResult.errorOrNull()!);
+    }
+
+    // Canonical write succeeded — now create receipt
     final receipt = CommitReceipt(
       id: _generateId('rcpt'),
       candidateId: command.candidateId,
@@ -170,8 +228,8 @@ final class LocalMutationProtocol implements MutationProtocol {
       idempotencyKey: command.idempotencyKey,
       beforeRevision: candidate.baseRevision,
       afterRevision: candidate.baseRevision + 1,
-      affectedPaths: [candidate.target.projectRelativePath],
-      committedAt: DateTime.now().toUtc(),
+      affectedPaths: commitResult.affectedPaths,
+      committedAt: commitResult.committedAt,
       receiptHash: canonicalTextHash(
           '${command.candidateId}:${command.approvalId}:${command.idempotencyKey}'),
     );

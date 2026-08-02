@@ -6,6 +6,11 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
+import 'package:lingbi/services/runtime/jsonl_run_store.dart';
 
 /// 脚本化的 function-calling Provider：按顺序返回预设的 [ToolTurn]。
 class ScriptedToolProvider extends AIProvider {
@@ -89,6 +94,15 @@ void main() {
     });
 
     test('多轮工具循环：执行工具并以 role:tool 回灌直到 stop', () async {
+      final journalDir = Directory.systemTemp.createTempSync('lingbi-loop-j-');
+      addTearDown(() => journalDir.deleteSync(recursive: true));
+      final protocol = LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: journalDir.path),
+        store: FileCanonicalStore(
+          projectRoot: dir.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      );
       final provider = ScriptedToolProvider([
         ToolTurn(toolCalls: [
           ToolCall(
@@ -104,6 +118,7 @@ void main() {
         registry: AgentToolRegistry(
                   projectDir: dir.path,
                   confirmWrite: (p, c) async => true,
+                  mutationProtocol: protocol,
                 ),
         compactor: const SessionCompactor(),
       );
@@ -145,6 +160,54 @@ void main() {
       expect(result.iterations, 3);
       expect(result.finalText, isEmpty);
       expect(result.steps.any((s) => s.kind == 'error'), isTrue);
+    });
+
+    test('RunStore 持久化 RunEvents 并验证哈希链', () async {
+      final runDir = Directory('${dir.path}/runs')..createSync();
+      final runStore = JsonlRunStore(basePath: runDir.path);
+      final provider = ScriptedToolProvider([
+        ToolTurn(toolCalls: [
+          ToolCall(
+            id: 'c1',
+            name: 'file_write',
+            argumentsJson:
+                jsonEncode({'path': 'ch.md', 'content': 'hello'}),
+          ),
+        ], finishReason: 'tool_calls'),
+        const ToolTurn(content: '完成。', finishReason: 'stop'),
+      ]);
+      final loop = AgentToolLoop(
+        provider: provider,
+        registry: AgentToolRegistry(
+          projectDir: dir.path,
+          confirmWrite: (p, c) async => true,
+        ),
+        compactor: const SessionCompactor(),
+        runStore: runStore,
+      );
+
+      final result = await loop.run(systemPrompt: 'sys', userGoal: '写');
+      expect(result.usedFallback, isFalse);
+
+      // Verify events were persisted
+      final runs = await runStore.listRuns();
+      final runIds = runs.orThrow();
+      expect(runIds, isNotEmpty);
+
+      final runId = runIds.first;
+      final events = await runStore.readAll(runId);
+      final eventList = events.orThrow();
+      expect(eventList.length, greaterThanOrEqualTo(3));
+
+      // Verify event types include run_start, tool_call, run_end
+      final types = eventList.map((e) => e.eventType).toList();
+      expect(types, contains('run_start'));
+      expect(types, contains('tool_call'));
+      expect(types, contains('run_end'));
+
+      // Validate hash chain integrity
+      final chainValid = await runStore.validateChain(runId);
+      expect(chainValid.orThrow(), isTrue);
     });
   });
 }

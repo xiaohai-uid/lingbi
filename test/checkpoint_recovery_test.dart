@@ -1,10 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/runtime/checkpoint.dart';
 import 'package:lingbi/domain/runtime/run_models.dart';
 import 'package:lingbi/services/runtime/file_checkpoint_store.dart';
+import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
+import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
+import 'package:lingbi/services/runtime/jsonl_run_store.dart';
 
 void main() {
   late Directory tempDir;
@@ -111,4 +117,99 @@ void main() {
       expect(restored.projectBriefRevision, 2);
     });
   });
+
+  group('AgentToolLoop checkpoint integration', () {
+    test('saves checkpoint before provider call and deletes on success',
+        () async {
+      final projectDir =
+          Directory.systemTemp.createTempSync('lingbi_cp_integration_');
+      final cpDir = Directory('${projectDir.path}/checkpoints')..createSync();
+      final runDir = Directory('${projectDir.path}/runs')..createSync();
+      addTearDown(() => projectDir.deleteSync(recursive: true));
+
+      final cpStore = FileCheckpointStore(basePath: cpDir.path);
+      final runStore = JsonlRunStore(basePath: runDir.path);
+
+      // Scripted provider: one tool call then stop
+      final provider = _ScriptedProvider([
+        ToolTurn(toolCalls: [
+          ToolCall(
+            id: 'c1',
+            name: 'list_dir',
+            argumentsJson: jsonEncode({'path': ''}),
+          ),
+        ], finishReason: 'tool_calls'),
+        const ToolTurn(content: 'done', finishReason: 'stop'),
+      ]);
+
+      final loop = AgentToolLoop(
+        provider: provider,
+        registry: AgentToolRegistry(
+          projectDir: projectDir.path,
+          confirmWrite: (p, c) async => true,
+        ),
+        compactor: const SessionCompactor(),
+        runStore: runStore,
+        checkpointStore: cpStore,
+      );
+
+      final result = await loop.run(systemPrompt: 'sys', userGoal: 'test');
+      expect(result.usedFallback, isFalse);
+
+      // After successful run, checkpoint should be cleaned up
+      final runs = (await runStore.listRuns()).orThrow();
+      expect(runs, isNotEmpty);
+      final cpResult = await cpStore.load(runs.first);
+      expect((cpResult as Success).value, isNull);
+    });
+  });
+}
+
+/// Minimal scripted provider for checkpoint tests.
+class _ScriptedProvider extends AIProvider {
+  _ScriptedProvider(this.turns);
+  final List<ToolTurn> turns;
+  int _idx = 0;
+
+  @override
+  bool get supportsTools => true;
+  @override
+  String get name => 'scripted-cp';
+  @override
+  String get displayName => 'Scripted CP';
+  @override
+  bool get isAvailable => true;
+
+  @override
+  Stream<String> chat({
+    required List<ChatMessage> messages,
+    double temperature = 0.7,
+    int maxTokens = 2048,
+  }) async* {
+    yield 'fallback';
+  }
+
+  @override
+  Future<String> chatSync({
+    required List<ChatMessage> messages,
+    double temperature = 0.7,
+    int maxTokens = 2048,
+  }) async =>
+      'fallback';
+
+  @override
+  Future<ToolTurn> chatWithTools({
+    required List<ChatMessage> messages,
+    required List<ToolSpec> tools,
+    double temperature = 0.7,
+    int maxTokens = 4096,
+  }) async {
+    if (_idx < turns.length) return turns[_idx++];
+    return const ToolTurn(content: 'end', finishReason: 'stop');
+  }
+
+  @override
+  Future<List<double>> embed(String text) async => [];
+  @override
+  Future<void> dispose() async {}
 }

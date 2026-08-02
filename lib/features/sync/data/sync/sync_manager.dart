@@ -7,6 +7,10 @@
 /// - 匿名数据贡献（opt-in）
 library;
 
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
+import 'package:lingbi/shared/interfaces/staged_restore.dart';
 import 'package:uuid/uuid.dart';
 
 import 'webdav_service.dart';
@@ -139,12 +143,17 @@ class SyncManager {
   SyncManager({
     required WebDavConfig config,
     WebDavService? webDavService,
+    this.mutationProtocol,
   })  : _config = config,
         _webDav = webDavService ??
             (config.isEnabled ? WebDavService(config: config) : null);
 
   final WebDavConfig _config;
   final WebDavService? _webDav;
+
+  /// 变更协议：applyIncoming 经由此接口创建三记录不变量（origin: batchImport）。
+  /// 为 null 时仅执行物理写入（向后兼容）。
+  final MutationProtocol? mutationProtocol;
 
   SyncStatus _status = const SyncStatus(state: SyncState.idle);
 
@@ -293,6 +302,53 @@ class SyncManager {
   Future<bool> testConnection() async {
     if (_webDav == null) return false;
     return _webDav.testConnection();
+  }
+
+  /// 应用远端拉取的文件到本地（经 MutationProtocol，origin: batchImport）。
+  ///
+  /// T01: fail-closed + propose-only。远端写入需要显式审批。
+  Future<void> applyIncoming({
+    required String relativePath,
+    required String content,
+    required String projectDir,
+  }) async {
+    // T01: fail-closed — sync writes REQUIRE MutationProtocol
+    final protocol = mutationProtocol;
+    if (protocol == null) {
+      throw StateError(
+        'applyIncoming requires MutationProtocol (fail-closed)',
+      );
+    }
+
+    // T01: batchImport origin uses propose-only (explicit approval required).
+    // The file is NOT written until user approves the candidate.
+    await protocol.propose(ChangeRequest(
+      projectId: projectDir,
+      origin: ChangeOrigin.batchImport,
+      action: ChangeAction.replaceText,
+      target: ChangeTarget(
+        projectRelativePath: relativePath,
+        kind: 'sync_incoming',
+      ),
+      baseRevision: 0,
+      payload: content,
+    ));
+  }
+
+  /// Task E2: 经 StagedRestore 做完整项目恢复（hash 验证 + 原子应用）。
+  ///
+  /// 返回 RestoreReceiptBase 证明恢复已完成。
+  Future<Result<RestoreReceiptBase>> restoreProject({
+    required StagedRestore restoreService,
+    required String packageId,
+    required String expectedManifestHash,
+    required String projectId,
+  }) {
+    return restoreService.restore(
+      packageId: packageId,
+      expectedManifestHash: expectedManifestHash,
+      projectId: projectId,
+    );
   }
 
   void dispose() {

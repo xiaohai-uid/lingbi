@@ -25,6 +25,12 @@ sealed class Result<T> {
         failure: (e) => throw e,
       );
 
+  /// T05: 成功时返回值，失败时返回 null。
+  T? getOrNull() => when(success: (v) => v, failure: (_) => null);
+
+  /// T05: 失败时返回错误，成功时返回 null。
+  AppError? errorOrNull() => when(success: (_) => null, failure: (e) => e);
+
   /// 创建成功
   static Result<T> success<T>(T value) => Success(value);
 

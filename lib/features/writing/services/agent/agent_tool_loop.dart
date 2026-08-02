@@ -10,10 +10,13 @@
 ///   自动回退到确定性的 NovelWritingLoop，保证免费模型也能出稿。
 library;
 
+import 'package:lingbi/domain/runtime/checkpoint.dart';
+import 'package:lingbi/domain/runtime/run_models.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
 import 'package:lingbi/features/writing/services/agent/novel_writing_loop.dart';
 import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
+import 'package:lingbi/shared/interfaces/checkpoint_store.dart';
 import 'package:lingbi/shared/interfaces/run_store.dart';
 
 /// Agent 执行过程中的一步（供 UI 渲染时间线 / 测试断言）。
@@ -63,6 +66,7 @@ class AgentToolLoop {
     this.maxTokens = 4096,
     this.onStep,
     this.runStore,
+    this.checkpointStore,
   }) : compactor = compactor ?? SessionCompactor.forProvider(provider);
 
   final AIProvider provider;
@@ -84,8 +88,17 @@ class AgentToolLoop {
   /// Optional Run event store for durable execution tracking (ADR-011).
   final RunStore? runStore;
 
+  /// Optional checkpoint store for crash recovery (Task B2).
+  final CheckpointStore? checkpointStore;
+
   /// 取消标志 — 调用 [cancel] 后下一轮循环开始前中断。
   bool _cancelled = false;
+
+  /// 当前运行的唯一 ID（每次 [run] 调用重新生成）。
+  String _runId = '';
+
+  /// RunEvent 序列号计数器。
+  int _eventSeq = 0;
 
   /// 取消当前运行中的工具循环。
   ///
@@ -99,11 +112,19 @@ class AgentToolLoop {
     required String userGoal,
   }) async {
     _cancelled = false; // 重置取消标志，支持复用
+    _runId = 'run-${DateTime.now().microsecondsSinceEpoch}';
+    _eventSeq = 0;
     final steps = <AgentStep>[];
     void emit(AgentStep s) {
       steps.add(s);
       onStep?.call(s);
     }
+
+    // Task B1: 持久化 run_start 事件
+    await _emitRunEvent('run_start', {'userGoal': userGoal});
+
+    // Task B2: 保存初始 checkpoint
+    await _saveCheckpoint(RunStatus.running);
 
     if (!provider.supportsTools) {
       emit(const AgentStep(
@@ -187,6 +208,11 @@ class AgentToolLoop {
       // 逐个执行工具调用，把结果以 role:'tool' 追加。
       for (final call in turn.toolCalls) {
         final result = await registry.execute(call);
+        // Task B1: 持久化 tool_call 事件
+        await _emitRunEvent('tool_call', {
+          'tool': call.name,
+          'isError': result.isError,
+        });
         emit(AgentStep(
           kind: result.isError ? 'error' : 'tool',
           text: result.display ?? call.name,
@@ -207,6 +233,15 @@ class AgentToolLoop {
         text: '已达到最大工具轮次（$maxIterations），请缩小任务范围或手动继续。',
       ));
     }
+
+    // Task B1: 持久化 run_end 事件
+    await _emitRunEvent('run_end', {
+      'iterations': iterations,
+      'finalTextLength': finalBuffer.length,
+    });
+
+    // Task B2: 成功完成后清除 checkpoint
+    await _deleteCheckpoint();
 
     return AgentRunResult(
       finalText: finalBuffer.toString().trim(),
@@ -246,5 +281,50 @@ class AgentToolLoop {
     final content = result.candidate.content;
     emit(AgentStep(kind: 'final', text: content.trim()));
     return content;
+  }
+
+  /// Task B1: 向 RunStore 追加一个 RunEvent（哈希链由 store 维护）。
+  Future<void> _emitRunEvent(
+    String eventType,
+    Map<String, dynamic> payload,
+  ) async {
+    final store = runStore;
+    if (store == null) return;
+    _eventSeq++;
+    final event = RunEvent(
+      eventId: '$_runId-evt-$_eventSeq',
+      runId: _runId,
+      sequence: _eventSeq,
+      eventType: eventType,
+      occurredAt: DateTime.now().toUtc().toIso8601String(),
+      projectBriefRevision: 0,
+      payloadHash: '',
+      previousEventHash: '',
+      payload: payload,
+    );
+    await store.append(event);
+  }
+
+  /// Task B2: 保存 checkpoint 以支持崩溃恢复。
+  Future<void> _saveCheckpoint(RunStatus status) async {
+    final store = checkpointStore;
+    if (store == null) return;
+    final cp = Checkpoint(
+      runId: _runId,
+      lastEventSequence: _eventSeq,
+      lastEventHash: '',
+      status: status,
+      projectBriefRevision: 0,
+      projectBriefHash: '',
+      checkpointHash: '',
+    );
+    await store.save(cp);
+  }
+
+  /// Task B2: 成功完成后删除 checkpoint。
+  Future<void> _deleteCheckpoint() async {
+    final store = checkpointStore;
+    if (store == null) return;
+    await store.delete(_runId);
   }
 }
