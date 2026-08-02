@@ -89,23 +89,23 @@ class ProjectAssetRepository {
         'ProjectAssetRepository.save requires MutationProtocol (fail-closed)',
       );
     }
-    // T02: check result — protocol failure aborts save
-    // ignore: unused_local_variable
     final editResult = await protocol.applyUserEdit(ChangeRequest(
       projectId: asset.projectId,
       origin: ChangeOrigin.userUi,
       action: ChangeAction.replaceAsset,
-      target: ChangeTarget(
-        projectRelativePath: '$fileName#${asset.id}',
+      target: const ChangeTarget(
+        projectRelativePath: 'project_meta/$fileName',
         kind: 'project_asset',
       ),
       baseRevision: expectedRevision,
       payload: jsonEncode(committed.toJson()),
     ));
-    // Note: logical path (assets.json#id) may fail canonical store write.
-    // The journal records (propose+approve) are still created.
-    // Physical persistence is done by _write() below.
-    // TODO: migrate to real relative path so commit succeeds.
+    if (editResult.errorOrNull() != null) {
+      throw StateError(
+        'MutationProtocol journal failed for asset ${asset.id}: '
+        '${editResult.errorOrNull()}',
+      );
+    }
 
     final updated = assets.toList()..[index] = committed;
     await _write(asset.projectId, updated);

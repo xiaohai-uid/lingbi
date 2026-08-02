@@ -136,27 +136,26 @@ class RecoveryCenterService {
     // T01: fail-closed — restore REQUIRE MutationProtocol
     final protocol = mutationProtocol;
     if (protocol == null) {
-      return Result.failure(FileError(
-          'RecoveryCenterService.restore requires MutationProtocol (fail-closed)',
-          code: 'FAIL_CLOSED'));
+      return Result.failClosed('RecoveryCenterService.restore');
     }
     final content = await source.readAsString();
-    // T02: check result — protocol failure aborts restore
-    // ignore: unused_local_variable
+    // Derive project dir from item.path: <projectDir>/.lingbi/<type>/<file>
+    final projectDir = p.dirname(p.dirname(p.dirname(item.path)));
+    final relativePath = p.relative(destinationPath, from: projectDir);
     final editResult = await protocol.applyUserEdit(ChangeRequest(
-      projectId: p.dirname(item.path),
+      projectId: projectDir,
       origin: ChangeOrigin.restore,
       action: ChangeAction.restoreSnapshot,
       target: ChangeTarget(
-        projectRelativePath: destinationPath,
+        projectRelativePath: relativePath,
         kind: 'restore',
       ),
       baseRevision: 0,
       payload: content,
     ));
-    // Note: absolute path may fail canonical store (PATH_ESCAPE).
-    // Physical restore proceeds via rename below.
-    // TODO: migrate to project-relative path so commit succeeds.
+    if (editResult.errorOrNull() != null) {
+      return Result.failure(editResult.errorOrNull()!);
+    }
 
     await source.rename(destination.path);
     final meta = File('${item.path}.meta.json');
