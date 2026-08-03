@@ -1,170 +1,131 @@
-/// Commit reconciliation for crash recovery.
+/// Journal-driven crash reconciliation for unresolved commit intents.
 ///
-/// Before a multi-file apply, an intent.json is persisted describing
-/// all targets, before-hashes, and after-hashes. On restart, the
-/// reconciler inspects actual file state and determines recovery action.
+/// ADR-010 crash consistency: a `commit_intent` event is durable before the
+/// target write. After a crash the target bytes decide the outcome:
+///   - target matches the intent's expected hash → the apply happened; the
+///     receipt is completed (receiptCompleted)
+///   - target matches the intent's base hash (or a create target is still
+///     absent) → the apply never ran; the intent is abandoned explicitly
+///   - otherwise the bytes are indeterminate → the target is frozen and the
+///     current bytes are preserved; no automatic overwrite or rollback
+///
+/// Every resolution is recorded as a `recovery_outcome` journal event; the
+/// intent is never silently deleted.
 library;
 
-import 'dart:convert';
-import 'dart:io';
+import 'package:lingbi/domain/mutation/canonical_revision.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/shared/errors/result.dart';
 
-import 'package:crypto/crypto.dart';
-
-/// Possible recovery states for an interrupted transaction.
-enum ReconciliationOutcome {
-  /// All targets match after-hashes; transaction completed.
-  alreadyApplied,
-
-  /// All targets match before-hashes; safe to retry.
-  safeToRetry,
-
-  /// Mixed state; staged data can roll forward.
-  rollForward,
-
-  /// Inconsistent state; manual recovery required.
-  manualRecoveryRequired,
-
-  /// No pending transaction found.
-  noPendingTransaction,
-}
-
-/// Result of a reconciliation check.
-final class ReconciliationResult {
-  const ReconciliationResult({
-    required this.outcome,
-    this.transactionId,
-    this.details = '',
-  });
-
-  final ReconciliationOutcome outcome;
-  final String? transactionId;
-  final String details;
-}
-
-/// Inspects interrupted transactions and determines recovery action.
+/// Resolves every unresolved intent of one project against current bytes.
 final class CommitReconciler {
-  CommitReconciler({required this.projectRoot});
+  CommitReconciler({
+    required this.journal,
+    required FileCanonicalStore store,
+  }) : _store = store;
 
-  final String projectRoot;
+  final LocalMutationJournal journal;
+  final FileCanonicalStore _store;
 
-  String _intentPath(String transactionId) =>
-      '$projectRoot/.lingbi/mutations/transactions/$transactionId/intent.json';
+  /// Reconcile all unresolved intents and return the recorded outcomes.
+  Future<Result<List<RecoveryOutcome>>> reconcileAll() async {
+    final intents = await journal.readUnresolvedIntents();
+    final outcomes = <RecoveryOutcome>[];
 
-  /// Persist the intent before applying a multi-file transaction.
-  Future<void> persistIntent({
-    required String transactionId,
-    required List<IntentEntry> entries,
-  }) async {
-    final path = _intentPath(transactionId);
-    final file = File(path);
-    await file.parent.create(recursive: true);
-    final intent = {
-      'transaction_id': transactionId,
-      'state': 'prepared',
-      'entries': entries.map((e) => e.toJson()).toList(),
-      'created_at': DateTime.now().toUtc().toIso8601String(),
-    };
-    await file.writeAsString(jsonEncode(intent), flush: true);
+    for (final intent in intents) {
+      final outcome = await _reconcileOne(intent);
+      if (outcome == null) continue;
+      await journal.appendRecoveryOutcome(outcome);
+      outcomes.add(outcome);
+    }
+
+    return Result.success(outcomes);
   }
 
-  /// Mark a transaction as fully applied.
-  Future<void> markApplied(String transactionId) async {
-    final path = _intentPath(transactionId);
-    final file = File(path);
-    if (!await file.exists()) return;
-    final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    json['state'] = 'applied';
-    json['applied_at'] = DateTime.now().toUtc().toIso8601String();
-    await file.writeAsString(jsonEncode(json), flush: true);
+  Future<RecoveryOutcome?> _reconcileOne(CommitIntent intent) async {
+    final snapshot = await _store.read(intent.targetPath);
+    final targetHash = snapshot.getOrNull()?.hash;
+
+    if (targetHash != null && targetHash == intent.expectedContentHash) {
+      // The apply already reached the target; complete the receipt.
+      await _completeReceipt(intent);
+      return _outcome(intent, RecoveryOutcomeType.receiptCompleted);
+    }
+
+    final targetMissing = snapshot.errorOrNull() != null;
+    final atBase = targetMissing
+        ? intent.baseContentHash.isEmpty
+        : targetHash == intent.baseContentHash &&
+            intent.baseContentHash.isNotEmpty;
+    if (atBase) {
+      return _outcome(intent, RecoveryOutcomeType.intentAbandoned);
+    }
+
+    return _outcome(intent, RecoveryOutcomeType.targetFrozen);
   }
 
-  /// Check the state of a pending transaction against actual file content.
-  Future<ReconciliationResult> reconcile(String transactionId) async {
-    final path = _intentPath(transactionId);
-    final file = File(path);
-    if (!await file.exists()) {
-      return const ReconciliationResult(
-        outcome: ReconciliationOutcome.noPendingTransaction,
-      );
-    }
+  /// Complete the receipt for an apply that already landed, mirroring the
+  /// normal commit receipt.
+  Future<void> _completeReceipt(CommitIntent intent) async {
+    final events = await journal.readByAggregate(intent.candidateId);
+    final approval = events
+        .where((e) => e.eventType == 'candidate_approved')
+        .map((e) => ApprovalDecision.fromJson(e.payload))
+        .lastOrNull;
 
-    final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    final state = json['state'] as String? ?? '';
-    if (state == 'applied') {
-      return ReconciliationResult(
-        outcome: ReconciliationOutcome.alreadyApplied,
-        transactionId: transactionId,
-      );
-    }
-
-    final entries = (json['entries'] as List<dynamic>)
-        .map((e) => IntentEntry.fromJson(e as Map<String, dynamic>))
-        .toList();
-
-    var allAfter = true;
-    var allBefore = true;
-
-    for (final entry in entries) {
-      final target = File('$projectRoot/${entry.relativePath}');
-      if (!await target.exists()) {
-        allAfter = false;
-        allBefore = false;
-        break;
-      }
-      final actual = await target.readAsString();
-      final actualHash = _hashText(actual);
-      if (actualHash != entry.afterHash) allAfter = false;
-      if (actualHash != entry.beforeHash) allBefore = false;
-    }
-
-    if (allAfter) {
-      return ReconciliationResult(
-        outcome: ReconciliationOutcome.alreadyApplied,
-        transactionId: transactionId,
-        details: 'All targets match after-hashes',
-      );
-    }
-    if (allBefore) {
-      return ReconciliationResult(
-        outcome: ReconciliationOutcome.safeToRetry,
-        transactionId: transactionId,
-        details: 'All targets match before-hashes',
-      );
-    }
-    return ReconciliationResult(
-      outcome: ReconciliationOutcome.manualRecoveryRequired,
-      transactionId: transactionId,
-      details: 'Mixed state detected',
+    final receipt = CommitReceipt(
+      id: _generateId('rcpt'),
+      candidateId: intent.candidateId,
+      approvalId: approval?.id ?? 'reconciled',
+      idempotencyKey: intent.idempotencyKey,
+      beforeRevision: intent.baseRevision,
+      afterRevision: intent.expectedRevision,
+      affectedPaths: [intent.targetPath],
+      committedAt: DateTime.now().toUtc(),
+      receiptHash: canonicalTextHash(
+        '${intent.candidateId}:${approval?.id ?? 'reconciled'}:${intent.idempotencyKey}',
+      ),
     );
+
+    await journal.append(JournalEvent(
+      eventId: 'evt-commit-${receipt.id}',
+      eventType: LocalMutationJournal.receiptEventType,
+      aggregateId: intent.candidateId,
+      payload: receipt.toJson(),
+      idempotencyKey: intent.idempotencyKey,
+    ));
   }
 
-  String _hashText(String content) {
-    final normalized = content.replaceAll('\r\n', '\n');
-    return sha256.convert(utf8.encode(normalized)).toString();
+  RecoveryOutcome _outcome(
+    CommitIntent intent,
+    RecoveryOutcomeType outcome,
+  ) =>
+      RecoveryOutcome(
+        id: _generateId('outcome'),
+        intentId: intent.id,
+        projectId: intent.projectId,
+        targetPath: intent.targetPath,
+        outcome: outcome,
+        resolvedAt: DateTime.now().toUtc(),
+        reason: switch (outcome) {
+          RecoveryOutcomeType.receiptCompleted =>
+            'target matched expected content; receipt completed',
+          RecoveryOutcomeType.intentAbandoned =>
+            'target untouched at base; intent abandoned',
+          RecoveryOutcomeType.targetFrozen =>
+            'target bytes indeterminate; frozen pending user decision',
+        },
+      );
+
+  static int _counter = 0;
+  String _generateId(String prefix) {
+    _counter++;
+    return '$prefix-${DateTime.now().microsecondsSinceEpoch}-$_counter';
   }
 }
 
-/// One entry in a transaction intent record.
-final class IntentEntry {
-  const IntentEntry({
-    required this.relativePath,
-    required this.beforeHash,
-    required this.afterHash,
-  });
-
-  factory IntentEntry.fromJson(Map<String, dynamic> json) => IntentEntry(
-        relativePath: json['relative_path'] as String? ?? '',
-        beforeHash: json['before_hash'] as String? ?? '',
-        afterHash: json['after_hash'] as String? ?? '',
-      );
-
-  final String relativePath;
-  final String beforeHash;
-  final String afterHash;
-
-  Map<String, dynamic> toJson() => {
-        'relative_path': relativePath,
-        'before_hash': beforeHash,
-        'after_hash': afterHash,
-      };
+extension _LastOrNull<T> on Iterable<T> {
+  T? get lastOrNull => isEmpty ? null : last;
 }
