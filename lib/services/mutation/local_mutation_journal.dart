@@ -12,6 +12,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/interfaces/project_root_resolver.dart';
 
 /// A single journal event (immutable value).
 final class JournalEvent {
@@ -97,18 +99,47 @@ final class AppendResult {
 final class LocalMutationJournal {
   LocalMutationJournal({required this.basePath});
 
+  /// The authoritative journal location for one resolved project root
+  /// (ADR-012): `<root>/.lingbi/mutations/events.jsonl`.
+  ///
+  /// The path is derived from the resolved root and never from a
+  /// request-supplied absolute path.
+  LocalMutationJournal.projectOwned(ResolvedProjectRoot root)
+      : this(basePath: '${root.rootPath}/.lingbi/mutations');
+
   final String basePath;
+
+  /// Wire name of the durable commit-intent event (ADR-010 crash recovery).
+  static const commitIntentEventType = 'commit_intent';
+
+  /// Wire name of the explicit recovery-outcome event.
+  static const recoveryOutcomeEventType = 'recovery_outcome';
+
+  /// Wire name of the receipt event that resolves a matching intent.
+  static const receiptEventType = 'candidate_committed';
 
   static const _zeroHash =
       '0000000000000000000000000000000000000000000000000000000000000000';
 
   File get _eventsFile => File('$basePath/events.jsonl');
 
+  /// Absolute path of the journal file on disk.
+  String get eventsFilePath => _eventsFile.path;
+
+  /// Serializes concurrent appends so each read-modify-write runs in order.
+  Future<void> _writeQueue = Future.value();
+
   /// Append an event to the journal.
   ///
   /// Returns the persisted event. If event_id or idempotency_key already
   /// exists, returns the existing record with duplicate=true.
-  Future<AppendResult> append(JournalEvent event) async {
+  Future<AppendResult> append(JournalEvent event) {
+    final run = _writeQueue.then((_) => _append(event));
+    _writeQueue = run.then((_) {}, onError: (_) {});
+    return run;
+  }
+
+  Future<AppendResult> _append(JournalEvent event) async {
     final existing = await readAll();
 
     // Duplicate event_id check
@@ -117,10 +148,14 @@ final class LocalMutationJournal {
       return AppendResult(event: byId.first, duplicate: true);
     }
 
-    // Duplicate idempotency_key check
+    // Duplicate idempotency_key check. Scoped to the event type so one
+    // logical operation may persist distinct event kinds (proposal, intent,
+    // receipt) that share the same key; retrying the same event kind is
+    // still detected as a duplicate.
     if (event.idempotencyKey != null) {
-      final byKey =
-          existing.where((e) => e.idempotencyKey == event.idempotencyKey);
+      final byKey = existing.where((e) =>
+          e.idempotencyKey == event.idempotencyKey &&
+          e.eventType == event.eventType);
       if (byKey.isNotEmpty) {
         return AppendResult(event: byKey.first, duplicate: true);
       }
@@ -174,6 +209,67 @@ final class LocalMutationJournal {
   Future<List<JournalEvent>> readByAggregate(String aggregateId) async {
     final all = await readAll();
     return all.where((e) => e.aggregateId == aggregateId).toList();
+  }
+
+  /// Persist a [CommitIntent] before any canonical target write (ADR-010).
+  ///
+  /// Appending the same intent again is idempotent and returns the existing
+  /// event; an intent is never deleted, only resolved by a receipt or an
+  /// explicit recovery outcome.
+  Future<AppendResult> appendCommitIntent(CommitIntent intent) => append(
+        JournalEvent(
+          eventId: 'evt-intent-${intent.id}',
+          eventType: commitIntentEventType,
+          aggregateId: intent.candidateId,
+          payload: intent.toJson(),
+          idempotencyKey: intent.idempotencyKey,
+        ),
+      );
+
+  /// Record the explicit resolution of an in-flight [CommitIntent].
+  Future<AppendResult> appendRecoveryOutcome(RecoveryOutcome outcome) => append(
+        JournalEvent(
+          eventId: 'evt-outcome-${outcome.id}',
+          eventType: recoveryOutcomeEventType,
+          aggregateId: outcome.intentId,
+          payload: outcome.toJson(),
+        ),
+      );
+
+  /// Read every persisted [CommitIntent] that has no resolution yet.
+  ///
+  /// An intent is resolved by a recovery-outcome event naming its id, or by a
+  /// receipt event whose idempotency key matches the intent's key. Resolved
+  /// intents remain in the journal; they are never silently discarded.
+  Future<List<CommitIntent>> readUnresolvedIntents() async {
+    final events = await readAll();
+
+    final intents = <CommitIntent>[];
+    for (final event in events) {
+      if (event.eventType == commitIntentEventType) {
+        intents.add(CommitIntent.fromJson(event.payload));
+      }
+    }
+    if (intents.isEmpty) return intents;
+
+    final resolvedById = <String>{};
+    final resolvedByKey = <String>{};
+    for (final event in events) {
+      if (event.eventType == recoveryOutcomeEventType) {
+        resolvedById.add(RecoveryOutcome.fromJson(event.payload).intentId);
+      } else if (event.eventType == receiptEventType) {
+        final key =
+            (event.payload['idempotency_key'] as String?) ?? event.idempotencyKey;
+        if (key != null && key.isNotEmpty) resolvedByKey.add(key);
+      }
+    }
+
+    return [
+      for (final intent in intents)
+        if (!resolvedById.contains(intent.id) &&
+            !resolvedByKey.contains(intent.idempotencyKey))
+          intent,
+    ];
   }
 
   /// Validate the hash chain integrity.
