@@ -116,6 +116,7 @@ final class CommitIntent {
     required this.expectedRevision,
     required this.expectedContentHash,
     required this.idempotencyKey,
+    this.baseContentHash = '',
   });
 
   factory CommitIntent.fromJson(Map<String, dynamic> json) {
@@ -132,6 +133,7 @@ final class CommitIntent {
       expectedRevision: json['expected_revision'] as int? ?? 0,
       expectedContentHash: json['expected_content_hash'] as String? ?? '',
       idempotencyKey: json['idempotency_key'] as String? ?? '',
+      baseContentHash: json['base_content_hash'] as String? ?? '',
     );
   }
 
@@ -146,6 +148,11 @@ final class CommitIntent {
   final String expectedContentHash;
   final String idempotencyKey;
 
+  /// Content hash of the target at propose time; empty when the target did
+  /// not exist (create). Used to distinguish an untouched base from an
+  /// indeterminate target during crash reconciliation.
+  final String baseContentHash;
+
   Map<String, dynamic> toJson() => {
         'schema_version': currentSchemaVersion,
         'id': id,
@@ -156,6 +163,7 @@ final class CommitIntent {
         'expected_revision': expectedRevision,
         'expected_content_hash': expectedContentHash,
         'idempotency_key': idempotencyKey,
+        'base_content_hash': baseContentHash,
       };
 
   @override
@@ -169,7 +177,8 @@ final class CommitIntent {
           baseRevision == other.baseRevision &&
           expectedRevision == other.expectedRevision &&
           expectedContentHash == other.expectedContentHash &&
-          idempotencyKey == other.idempotencyKey;
+          idempotencyKey == other.idempotencyKey &&
+          baseContentHash == other.baseContentHash;
 
   @override
   int get hashCode => Object.hash(
@@ -181,6 +190,7 @@ final class CommitIntent {
         expectedRevision,
         expectedContentHash,
         idempotencyKey,
+        baseContentHash,
       );
 }
 

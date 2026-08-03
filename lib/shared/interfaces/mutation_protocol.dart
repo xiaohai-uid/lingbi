@@ -43,12 +43,16 @@ final class ApprovalCommand {
     required this.actorId,
     required this.approved,
     required this.policy,
+    this.projectId = '',
   });
 
   final String candidateId;
   final String actorId;
   final bool approved;
   final String policy;
+
+  /// Stable project identity for root resolution in project-bound mode.
+  final String projectId;
 }
 
 /// Command to commit an approved candidate.
@@ -57,11 +61,15 @@ final class CommitCommand {
     required this.candidateId,
     required this.approvalId,
     required this.idempotencyKey,
+    this.projectId = '',
   });
 
   final String candidateId;
   final String approvalId;
   final String idempotencyKey;
+
+  /// Stable project identity for root resolution in project-bound mode.
+  final String projectId;
 }
 
 /// Command to reject a candidate.
@@ -70,11 +78,15 @@ final class RejectCommand {
     required this.candidateId,
     required this.actorId,
     this.reason,
+    this.projectId = '',
   });
 
   final String candidateId;
   final String actorId;
   final String? reason;
+
+  /// Stable project identity for root resolution in project-bound mode.
+  final String projectId;
 }
 
 /// The single interface through which all canonical mutations flow.
@@ -95,4 +107,11 @@ abstract interface class MutationProtocol {
 
   /// Reject a proposed candidate.
   Future<MutationResult<void>> reject(RejectCommand command);
+
+  /// Reconcile every unresolved commit intent for a project (ADR-010
+  /// crash consistency): complete a matching receipt, abandon an untouched
+  /// base intent with an explicit outcome, or freeze an indeterminate
+  /// target. Never auto-overwrites or auto-rolls back.
+  Future<MutationResult<List<RecoveryOutcome>>> reconcilePending(
+      String projectId);
 }

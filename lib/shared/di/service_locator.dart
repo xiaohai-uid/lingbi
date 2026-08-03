@@ -472,4 +472,8 @@ final class _UnavailableMutationProtocol implements MutationProtocol {
   @override
   Future<Result<void>> reject(RejectCommand command) async =>
       _unavailable('reject');
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(String projectId) async =>
+      _unavailable('reconcilePending');
 }

@@ -54,6 +54,7 @@ void main() {
         'expected_content_hash':
             '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         'idempotency_key': 'idem-001',
+        'base_content_hash': '',
       });
     });
 
@@ -200,4 +201,8 @@ final class _ResultBoundaryProbe implements MutationProtocol {
   @override
   Future<Result<void>> reject(RejectCommand command) async =>
       Result.failure<void>(FileError('probe'));
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(String projectId) async =>
+      Result.failure<List<RecoveryOutcome>>(FileError('probe'));
 }
