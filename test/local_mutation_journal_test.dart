@@ -181,6 +181,30 @@ void main() {
     });
   });
 
+  group('serialized concurrent append', () {
+    test('concurrent appends are serialized with an intact chain', () async {
+      final futures = [
+        for (var i = 0; i < 15; i++)
+          journal.append(JournalEvent(
+            eventId: 'evt-$i',
+            eventType: 'proposed',
+            aggregateId: 'cand-$i',
+            payload: {'i': i},
+          )),
+      ];
+      final results = await Future.wait(futures);
+      expect(results.every((r) => !r.duplicate), isTrue);
+
+      final events = await journal.readAll();
+      expect(events.length, 15);
+      expect(
+        events.map((e) => e.sequence).toList(),
+        List.generate(15, (i) => i + 1),
+      );
+      expect(await journal.validateChain(), isTrue);
+    });
+  });
+
   group('read by aggregate', () {
     test('readByAggregate filters correctly', () async {
       await journal.append(
