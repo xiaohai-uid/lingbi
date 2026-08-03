@@ -7,6 +7,12 @@ library;
 import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/shared/errors/result.dart';
 
+/// The named Result boundary shared by every canonical mutation operation.
+///
+/// This alias keeps the public contract explicit without introducing another
+/// result implementation or allowing nullable/boolean mutation outcomes.
+typedef MutationResult<T> = Result<T>;
+
 /// Command to propose a new change.
 final class ChangeRequest {
   const ChangeRequest({
@@ -74,19 +80,19 @@ final class RejectCommand {
 /// The single interface through which all canonical mutations flow.
 abstract interface class MutationProtocol {
   /// Propose a new candidate change. Persists the candidate record.
-  Future<Result<CandidateChange>> propose(ChangeRequest request);
+  Future<MutationResult<CandidateChange>> propose(ChangeRequest request);
 
   /// Record an approval or rejection decision.
-  Future<Result<ApprovalDecision>> decide(ApprovalCommand command);
+  Future<MutationResult<ApprovalDecision>> decide(ApprovalCommand command);
 
   /// Commit an approved candidate to canonical storage.
-  Future<Result<CommitReceipt>> commit(CommitCommand command);
+  Future<MutationResult<CommitReceipt>> commit(CommitCommand command);
 
   /// Deep convenience: persist candidate + implicit approval + commit.
   ///
   /// Internally creates all three records. Does NOT bypass the protocol.
-  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request);
+  Future<MutationResult<CommitReceipt>> applyUserEdit(ChangeRequest request);
 
   /// Reject a proposed candidate.
-  Future<Result<void>> reject(RejectCommand command);
+  Future<MutationResult<void>> reject(RejectCommand command);
 }

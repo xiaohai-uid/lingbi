@@ -10,7 +10,10 @@ enum ChangeOrigin {
   agent,
   batchImport,
   skill,
-  restore;
+  restore,
+  recovery,
+  externalMutation,
+  legacyMigration;
 
   String get wireName {
     return switch (this) {
@@ -19,6 +22,9 @@ enum ChangeOrigin {
       batchImport => 'batch_import',
       skill => 'skill',
       restore => 'restore',
+      recovery => 'recovery',
+      externalMutation => 'external_mutation',
+      legacyMigration => 'legacy_migration',
     };
   }
 
@@ -28,6 +34,9 @@ enum ChangeOrigin {
         'batch_import' => batchImport,
         'skill' => skill,
         'restore' => restore,
+        'recovery' => recovery,
+        'external_mutation' => externalMutation,
+        'legacy_migration' => legacyMigration,
         _ => throw FormatException('Unknown ChangeOrigin: $value'),
       };
 }
@@ -93,6 +102,181 @@ final class UnsupportedSchemaVersionException implements Exception {
       'UnsupportedSchemaVersionException($typeName: schema_version=$version)';
 }
 
+/// The durable marker written before an approved canonical target is replaced.
+///
+/// A commit intent is recovery state, not a commit receipt. It remains
+/// immutable until a receipt or explicit recovery outcome resolves it.
+final class CommitIntent {
+  const CommitIntent({
+    required this.id,
+    required this.projectId,
+    required this.candidateId,
+    required this.targetPath,
+    required this.baseRevision,
+    required this.expectedRevision,
+    required this.expectedContentHash,
+    required this.idempotencyKey,
+  });
+
+  factory CommitIntent.fromJson(Map<String, dynamic> json) {
+    final version = json['schema_version'];
+    if (version != currentSchemaVersion) {
+      throw UnsupportedSchemaVersionException(version, 'CommitIntent');
+    }
+    return CommitIntent(
+      id: json['id'] as String? ?? '',
+      projectId: json['project_id'] as String? ?? '',
+      candidateId: json['candidate_id'] as String? ?? '',
+      targetPath: json['target_path'] as String? ?? '',
+      baseRevision: json['base_revision'] as int? ?? 0,
+      expectedRevision: json['expected_revision'] as int? ?? 0,
+      expectedContentHash: json['expected_content_hash'] as String? ?? '',
+      idempotencyKey: json['idempotency_key'] as String? ?? '',
+    );
+  }
+
+  static const currentSchemaVersion = 1;
+
+  final String id;
+  final String projectId;
+  final String candidateId;
+  final String targetPath;
+  final int baseRevision;
+  final int expectedRevision;
+  final String expectedContentHash;
+  final String idempotencyKey;
+
+  Map<String, dynamic> toJson() => {
+        'schema_version': currentSchemaVersion,
+        'id': id,
+        'project_id': projectId,
+        'candidate_id': candidateId,
+        'target_path': targetPath,
+        'base_revision': baseRevision,
+        'expected_revision': expectedRevision,
+        'expected_content_hash': expectedContentHash,
+        'idempotency_key': idempotencyKey,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CommitIntent &&
+          id == other.id &&
+          projectId == other.projectId &&
+          candidateId == other.candidateId &&
+          targetPath == other.targetPath &&
+          baseRevision == other.baseRevision &&
+          expectedRevision == other.expectedRevision &&
+          expectedContentHash == other.expectedContentHash &&
+          idempotencyKey == other.idempotencyKey;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        projectId,
+        candidateId,
+        targetPath,
+        baseRevision,
+        expectedRevision,
+        expectedContentHash,
+        idempotencyKey,
+      );
+}
+
+/// The explicit result recorded when an in-flight commit intent is resolved.
+enum RecoveryOutcomeType {
+  receiptCompleted,
+  intentAbandoned,
+  targetFrozen;
+
+  String get wireName => switch (this) {
+        receiptCompleted => 'receipt_completed',
+        intentAbandoned => 'intent_abandoned',
+        targetFrozen => 'target_frozen',
+      };
+
+  static RecoveryOutcomeType fromWire(String value) => switch (value) {
+        'receipt_completed' => receiptCompleted,
+        'intent_abandoned' => intentAbandoned,
+        'target_frozen' => targetFrozen,
+        _ => throw FormatException('Unknown RecoveryOutcomeType: $value'),
+      };
+
+  /// More precise vocabulary for the untouched-base reconciliation case.
+  static const intentAbandonedAtBase = intentAbandoned;
+}
+
+/// An immutable, auditable resolution of a [CommitIntent].
+final class RecoveryOutcome {
+  const RecoveryOutcome({
+    required this.id,
+    required this.intentId,
+    required this.projectId,
+    required this.targetPath,
+    required this.outcome,
+    required this.resolvedAt,
+    this.reason,
+  });
+
+  factory RecoveryOutcome.fromJson(Map<String, dynamic> json) {
+    final version = json['schema_version'];
+    if (version != currentSchemaVersion) {
+      throw UnsupportedSchemaVersionException(version, 'RecoveryOutcome');
+    }
+    return RecoveryOutcome(
+      id: json['id'] as String? ?? '',
+      intentId: json['intent_id'] as String? ?? '',
+      projectId: json['project_id'] as String? ?? '',
+      targetPath: json['target_path'] as String? ?? '',
+      outcome: RecoveryOutcomeType.fromWire(json['outcome'] as String? ?? ''),
+      resolvedAt: DateTime.parse(json['resolved_at'] as String? ??
+          DateTime.utc(1970).toIso8601String()),
+      reason: json['reason'] as String?,
+    );
+  }
+
+  static const currentSchemaVersion = 1;
+
+  final String id;
+  final String intentId;
+  final String projectId;
+  final String targetPath;
+  final RecoveryOutcomeType outcome;
+  final DateTime resolvedAt;
+  final String? reason;
+
+  Map<String, dynamic> toJson() => {
+        'schema_version': currentSchemaVersion,
+        'id': id,
+        'intent_id': intentId,
+        'project_id': projectId,
+        'target_path': targetPath,
+        'outcome': outcome.wireName,
+        'resolved_at': resolvedAt.toUtc().toIso8601String(),
+        if (reason != null) 'reason': reason,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RecoveryOutcome &&
+          id == other.id &&
+          intentId == other.intentId &&
+          projectId == other.projectId &&
+          targetPath == other.targetPath &&
+          outcome == other.outcome &&
+          resolvedAt == other.resolvedAt &&
+          reason == other.reason;
+
+  @override
+  int get hashCode => Object.hash(
+      id, intentId, projectId, targetPath, outcome, resolvedAt, reason);
+}
+
+/// Compatibility name for callers that describe the record explicitly.
+typedef RecoveryOutcomeRecord = RecoveryOutcome;
+
 /// The file or asset targeted by a mutation.
 final class ChangeTarget {
   const ChangeTarget({
@@ -101,8 +285,7 @@ final class ChangeTarget {
   });
 
   factory ChangeTarget.fromJson(Map<String, dynamic> json) => ChangeTarget(
-        projectRelativePath:
-            json['project_relative_path'] as String? ?? '',
+        projectRelativePath: json['project_relative_path'] as String? ?? '',
         kind: json['kind'] as String? ?? '',
       );
 

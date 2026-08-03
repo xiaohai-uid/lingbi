@@ -120,6 +120,9 @@ class ProjectService implements IProjectService {
     // an interrupted storage move recoverable when metadata still has the
     // previous absolute path.
     project.directoryPath = directoryPath;
+    // Keep the registry's location projection aligned with the directory the
+    // user actually opened. The stable project ID remains unchanged.
+    await _zvec?.upsert('projects', project.id, project.toJson());
 
     final docs = await scanDocumentsFromDisk(directoryPath, project.id);
     return (project: project, documents: docs);

@@ -416,13 +416,16 @@ void main() {
   });
 
   group('Enum coverage', () {
-    test('ChangeOrigin has all five values', () {
-      expect(ChangeOrigin.values.length, 5);
+    test('ChangeOrigin has all eight values', () {
+      expect(ChangeOrigin.values.length, 8);
       expect(ChangeOrigin.values, contains(ChangeOrigin.userUi));
       expect(ChangeOrigin.values, contains(ChangeOrigin.agent));
       expect(ChangeOrigin.values, contains(ChangeOrigin.batchImport));
       expect(ChangeOrigin.values, contains(ChangeOrigin.skill));
       expect(ChangeOrigin.values, contains(ChangeOrigin.restore));
+      expect(ChangeOrigin.values, contains(ChangeOrigin.recovery));
+      expect(ChangeOrigin.values, contains(ChangeOrigin.externalMutation));
+      expect(ChangeOrigin.values, contains(ChangeOrigin.legacyMigration));
     });
 
     test('ChangeAction has all four values', () {

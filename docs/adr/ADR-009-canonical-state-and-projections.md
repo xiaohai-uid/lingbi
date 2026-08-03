@@ -23,6 +23,7 @@ truth, and crash recovery cannot know what to protect.
 | Chapters and accepted assets | canonical |
 | Canon and author-confirmed facts | canonical |
 | CandidateChange, ApprovalDecision, CommitReceipt | canonical audit state |
+| CommitIntent for an in-flight mutation | canonical recovery state |
 | Run, RunEvent, Checkpoint | canonical operational state until retention policy archives it |
 | Backup/restore manifest and restore receipt | canonical audit state |
 | Search index, vector embedding, UI summaries, caches | projection |
@@ -30,25 +31,51 @@ truth, and crash recovery cannot know what to protect.
 
 ### Revision rules
 
-1. Every canonical file carries a monotonically increasing `revision` integer
-   and a deterministic `content_hash` (lowercase SHA-256 hex).
-2. A mutation is only valid if its `base_revision` matches the current revision
-   of the target. Mismatch produces a typed `REVISION_CONFLICT` result.
-3. `content_hash` is computed over the canonical serialization of the file
-   content, not over transport or display representations.
-4. Projections and caches never carry revision authority. They may be deleted
+1. Every structured canonical JSON file uses a canonical envelope carrying a
+   monotonically increasing `revision` integer and a deterministic
+   `content_hash` (lowercase SHA-256 hex) alongside its complete `payload`.
+   The content hash describes the payload only; `revision` and `content_hash`
+   are envelope metadata and do not participate in that payload hash.
+2. Human-readable canonical text files remain raw text. Their `content_hash`
+   is computed from normalized text, while `revision`, the latest hash, and
+   the evidence that advances them are authoritative in the project's
+   mutation journal rather than embedded in the text or a per-file sidecar.
+3. A mutation is only valid if its `base_revision` matches the current
+   revision of the target (from the envelope for JSON or the journal for
+   text). Mismatch produces a typed `REVISION_CONFLICT` result.
+4. For structured canonical JSON, `content_hash` is computed over the
+   canonical serialization of `payload`, not over envelope metadata, transport,
+   or display representations. This avoids self-referential hashing and keeps
+   a revision increment distinct from content identity.
+5. Projections and caches never carry revision authority. They may be deleted
    and rebuilt from canonical state at any time.
-5. Replaceable external caches may be stale indefinitely; they never participate
+6. Replaceable external caches may be stale indefinitely; they never participate
    in conflict detection.
 
 ### Canonical hashing
 
-- **JSON:** recursively sort object keys lexicographically, preserve list order,
-  encode as UTF-8, compute SHA-256. No fields are excluded unless the caller
-  explicitly passes a reduced map.
+- **JSON payload:** recursively sort object keys lexicographically, preserve
+  list order, encode as UTF-8, and compute SHA-256. The envelope's
+  `content_hash` and `revision` are excluded by the envelope contract, not by
+  an ad-hoc caller choice.
 - **Text:** normalize CRLF (`\r\n`) to LF (`\n`). Do not trim leading/trailing
   whitespace. Encode as UTF-8, compute SHA-256.
 - Output is always lowercase hexadecimal (64 characters for SHA-256).
+
+### Legacy format migration
+
+- Versioned read adapters may parse legacy canonical files that do not yet
+  contain the canonical envelope. Reading them is side-effect free.
+- Before the first protocol write, the system records a migration baseline:
+  original bytes, detected source format, and normalized content hash.
+- The first envelope write is represented by an explicit migration candidate
+  or migration event. Opening or indexing a legacy file never silently rewrites
+  it.
+- The project remains read-only with respect to the legacy file until the user
+  explicitly accepts the one-time storage-format upgrade. Acceptance produces
+  the migration evidence required by the mutation protocol.
+- A migration must preserve the business payload; if parsing is ambiguous or
+  lossy, the file remains read-only and produces a typed migration failure.
 
 ## Consequences
 
