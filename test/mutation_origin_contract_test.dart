@@ -17,6 +17,12 @@ import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 void main() {
+  test('includes recovery, external, and legacy migration origins', () {
+    expect(ChangeOrigin.values, contains(ChangeOrigin.recovery));
+    expect(ChangeOrigin.values, contains(ChangeOrigin.externalMutation));
+    expect(ChangeOrigin.values, contains(ChangeOrigin.legacyMigration));
+  });
+
   late Directory tempDir;
   late LocalMutationProtocol protocol;
 

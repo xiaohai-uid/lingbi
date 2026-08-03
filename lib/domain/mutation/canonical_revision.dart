@@ -45,8 +45,16 @@ final class CanonicalRevision {
 /// preserved. All values are included (null, nested maps, lists).
 /// The result is lowercase hexadecimal (64 characters).
 String canonicalJsonHash(Map<String, dynamic> value) {
-  final canonical = _canonicalize(value);
-  final bytes = utf8.encode(canonical);
+  return canonicalPayloadHash(value);
+}
+
+/// Computes a deterministic SHA-256 hash over any JSON-compatible payload.
+///
+/// Map keys are sorted recursively and list order is preserved. Envelope
+/// metadata is not involved when this function is used on an envelope's
+/// payload.
+String canonicalPayloadHash(Object? value) {
+  final bytes = utf8.encode(canonicalJsonEncode(value));
   return sha256.convert(bytes).toString();
 }
 
@@ -67,6 +75,9 @@ String _canonicalize(Object? value) {
   _writeValue(value, buffer);
   return buffer.toString();
 }
+
+/// Serializes a JSON-compatible value with recursively sorted map keys.
+String canonicalJsonEncode(Object? value) => _canonicalize(value);
 
 void _writeValue(Object? value, StringBuffer buffer) {
   if (value == null) {

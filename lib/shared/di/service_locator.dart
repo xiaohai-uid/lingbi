@@ -1,4 +1,7 @@
 import 'package:path_provider/path_provider.dart';
+import '../../domain/mutation/mutation_models.dart';
+import '../errors/app_error.dart';
+import '../errors/result.dart';
 
 import 'package:lingbi/features/review/data/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
@@ -17,8 +20,11 @@ import '../../features/project/data/project_asset_repository.dart';
 import '../../features/onboarding/data/wizard_completion_workflow.dart';
 import '../../features/onboarding/data/onboarding_di_adapters.dart';
 import '../../features/project/data/project_service.dart';
+import '../../features/project/data/project_root_resolver.dart';
 import '../../features/project/data/project_tab_controller.dart';
 import '../../shared/interfaces/i_project_service.dart';
+import '../../shared/interfaces/mutation_protocol.dart';
+import '../../shared/interfaces/project_root_resolver.dart';
 import '../../features/settings/data/quota_service.dart';
 import '../../features/settings/data/settings_service.dart';
 import '../../features/skill/data/skill_action_service.dart';
@@ -47,8 +53,6 @@ import '../database/story_beats_repository.dart';
 import '../../features/review/data/version_history_service.dart';
 import '../../services/atomic_file_store.dart';
 import '../../services/mutation/local_mutation_journal.dart';
-import '../../services/mutation/local_mutation_protocol.dart';
-import '../../services/mutation/file_canonical_store.dart';
 import '../../services/recovery_center_service.dart';
 import '../../features/import_export/data/portable_project_package_service.dart';
 import '../database/zvec_service.dart';
@@ -96,7 +100,7 @@ class ServiceLocator {
   late final QuotaService quotaService;
   late final AtomicFileStore atomicFileStore;
   late final LocalMutationJournal mutationJournal;
-  late final LocalMutationProtocol mutationProtocol;
+  late final MutationProtocol mutationProtocol;
   late final RecoveryCenterService recoveryCenterService;
   late final PortableProjectPackageService portableProjectPackageService;
 
@@ -112,6 +116,7 @@ class ServiceLocator {
   late final CanonService canonService;
   late final ProjectService projectService;
   IProjectService get projectServiceApi => projectService;
+  late final ProjectRootResolver projectRootResolver;
   late final AIService aiService;
   late final CanonLinkingService canonLinkingService;
   late final SettingsService settingsService;
@@ -178,17 +183,6 @@ class ServiceLocator {
       locator.mutationJournal = LocalMutationJournal(
         basePath: '${appDir.path}/mutations',
       );
-      locator.mutationProtocol = LocalMutationProtocol(
-        journal: locator.mutationJournal,
-        store: FileCanonicalStore(
-          projectRoot: appDir.path,
-          atomicStore: locator.atomicFileStore,
-        ),
-      );
-      locator.recoveryCenterService = RecoveryCenterService(
-        atomicStore: locator.atomicFileStore,
-        mutationProtocol: locator.mutationProtocol,
-      );
 
       // 层级 2: 依赖叶子服务
       locator.zvecService = ZVecService(storageService: locator.storageService);
@@ -205,6 +199,16 @@ class ServiceLocator {
       );
       locator.canonService = CanonService(zvecService: locator.zvecService);
       locator.projectService = ProjectService(zvecService: locator.zvecService);
+      locator.projectRootResolver = ProjectRootResolverAdapter(
+        projectService: locator.projectService,
+      );
+      locator.mutationProtocol = _UnavailableMutationProtocol(
+        projectRootResolver: locator.projectRootResolver,
+      );
+      locator.recoveryCenterService = RecoveryCenterService(
+        atomicStore: locator.atomicFileStore,
+        mutationProtocol: locator.mutationProtocol,
+      );
       locator.aiService = AIService(quotaService: locator.quotaService);
 
       // 层级 4: 依赖特性服务
@@ -428,4 +432,39 @@ class ServiceLocator {
     final appDir = await getApplicationDocumentsDirectory();
     return '${appDir.path}/lingbi_skills';
   }
+}
+
+/// Keeps canonical writes fail-closed until the project-owned mutation
+/// factory is introduced by the later journal/commit tickets.
+final class _UnavailableMutationProtocol implements MutationProtocol {
+  const _UnavailableMutationProtocol({required this.projectRootResolver});
+
+  final ProjectRootResolver projectRootResolver;
+
+  Result<T> _unavailable<T>(String operation) => Result.failure(
+        FileError(
+          '$operation requires a project-root-aware MutationProtocol',
+          typedCode: MutationErrorCode.protocolUnavailable,
+        ),
+      );
+
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      _unavailable('propose');
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      _unavailable('decide');
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      _unavailable('commit');
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      _unavailable('applyUserEdit');
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      _unavailable('reject');
 }

@@ -85,6 +85,19 @@ void main() {
     });
   });
 
+  group('canonicalPayloadHash', () {
+    test('hashes an arbitrary JSON-compatible payload', () {
+      expect(
+        canonicalPayloadHash([
+          {'z': 1, 'a': 2},
+        ]),
+        equals(canonicalPayloadHash([
+          {'a': 2, 'z': 1},
+        ])),
+      );
+    });
+  });
+
   group('canonicalTextHash', () {
     test('produces a 64-character lowercase hex string', () {
       final hash = canonicalTextHash('hello world');
