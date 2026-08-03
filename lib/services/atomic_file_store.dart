@@ -13,6 +13,7 @@ class AtomicFileStore {
   }
 
   Future<void> writeString(String path, String content) async {
+    _assertSupportedPath(path);
     final temp = File('$path.tmp');
     await temp.parent.create(recursive: true);
     await temp.writeAsString(content, flush: true);
@@ -20,10 +21,17 @@ class AtomicFileStore {
   }
 
   Future<void> writeBytes(String path, List<int> content) async {
+    _assertSupportedPath(path);
     final temp = File('$path.tmp');
     await temp.parent.create(recursive: true);
     await temp.writeAsBytes(content, flush: true);
     await _commit(path, temp);
+  }
+
+  void _assertSupportedPath(String path) {
+    if (path.contains('\u0000')) {
+      throw ArgumentError.value(path, 'path', 'NUL segment is not supported');
+    }
   }
 
   Future<void> _commit(String path, File temp) async {
