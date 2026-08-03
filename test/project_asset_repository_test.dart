@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,58 +15,38 @@ import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/storage_service.dart';
-
-class _MemoryMetaRepository implements IProjectMetaRepository {
-  final Map<String, Map<String, dynamic>> values = {};
-  int writes = 0;
-
-  String _key(String projectId, String fileName) => '$projectId/$fileName';
-
-  @override
-  Future<Map<String, dynamic>?> read(String projectId, String fileName) async {
-    final value = values[_key(projectId, fileName)];
-    return value == null ? null : Map<String, dynamic>.from(value);
-  }
-
-  @override
-  Future<void> write(
-    String projectId,
-    String fileName,
-    Map<String, dynamic> data,
-  ) async {
-    writes++;
-    values[_key(projectId, fileName)] = Map<String, dynamic>.from(data);
-  }
-
-  @override
-  Future<void> delete(String projectId, String fileName) async {
-    values.remove(_key(projectId, fileName));
-  }
-
-  @override
-  Future<List<String>> list(String projectId) async => values.keys
-      .where((key) => key.startsWith('$projectId/'))
-      .map((key) => key.split('/').last)
-      .toList();
-
-  @override
-  Future<String> getMetaDirPath(String projectId) async => projectId;
-
-  @override
-  Future<WorldConstitution?> readConstitution(String projectId) async => null;
-
-  @override
-  Future<void> writeConstitution(
-    String projectId,
-    WorldConstitution constitution,
-  ) async {}
-}
+import 'package:lingbi/shared/errors/result.dart';
 
 void main() {
+  late Directory tempDir;
+  late LocalMutationProtocol protocol;
+  late _FileBackedMeta meta;
+
+  setUp(() {
+    tempDir = Directory.systemTemp.createTempSync('asset_repo_test_');
+    Directory('${tempDir.path}/project').createSync(recursive: true);
+    protocol = LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '${tempDir.path}/journal'),
+      store: FileCanonicalStore(
+        projectRoot: '${tempDir.path}/project',
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+    meta = _FileBackedMeta(Directory('${tempDir.path}/project'));
+  });
+
+  tearDown(() {
+    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+  });
+
+  ProjectAssetRepository buildRepository() => ProjectAssetRepository(
+        metaRepository: meta,
+        mutationProtocol: protocol,
+      );
+
   test('overview assets have stable IDs and are initialized idempotently',
       () async {
-    final meta = _MemoryMetaRepository();
-    final repository = ProjectAssetRepository(metaRepository: meta);
+    final repository = buildRepository();
 
     final first = await repository.ensureOverviewAssets('project-1');
     final second = await repository.ensureOverviewAssets('project-1');
@@ -75,54 +56,31 @@ void main() {
     expect(first.map((asset) => asset.type), ProjectAssetType.values);
     expect(first.every((asset) => asset.state == ProjectAssetState.notStarted),
         isTrue);
-    expect(meta.writes, 1);
+    // One canonical file exists on disk; the second call reads it back.
+    final file = File('${tempDir.path}/project/project_meta/assets.json');
+    expect(file.existsSync(), isTrue);
+    expect(jsonDecode(await file.readAsString())['revision'], 1);
   });
 
-  test('stale asset revision cannot overwrite newer work', () async {
-    final temp = Directory.systemTemp.createTempSync('lingbi_asset_stale_');
-    addTearDown(() => temp.deleteSync(recursive: true));
-    final protocol = LocalMutationProtocol(
-      journal: LocalMutationJournal(basePath: '${temp.path}/journal'),
-      store: FileCanonicalStore(
-        projectRoot: temp.path,
-        atomicStore: AtomicFileStore(),
-      ),
-    );
-    final repository = ProjectAssetRepository(
-      metaRepository: _MemoryMetaRepository(),
-      mutationProtocol: protocol,
-    );
+  test('stale file revision cannot overwrite newer work', () async {
+    final repository = buildRepository();
     final asset = (await repository.ensureOverviewAssets('project-1')).first;
 
     final saved = await repository.save(
       asset.copyWith(state: ProjectAssetState.editable),
-      expectedRevision: 0,
+      expectedRevision: 1,
     );
+    expect((saved as Success<ProjectAsset>).value.revision, 1);
 
-    expect(saved.revision, 1);
-    expect(
-      () => repository.save(
-        asset.copyWith(state: ProjectAssetState.failed),
-        expectedRevision: 0,
-      ),
-      throwsA(isA<ProjectAssetConflict>()),
+    final stale = await repository.save(
+      asset.copyWith(state: ProjectAssetState.failed),
+      expectedRevision: 1,
     );
+    expect(stale, isA<Failure>());
   });
 
   test('round trip preserves source path and state', () async {
-    final temp = Directory.systemTemp.createTempSync('lingbi_asset_roundtrip_');
-    addTearDown(() => temp.deleteSync(recursive: true));
-    final protocol = LocalMutationProtocol(
-      journal: LocalMutationJournal(basePath: '${temp.path}/journal'),
-      store: FileCanonicalStore(
-        projectRoot: temp.path,
-        atomicStore: AtomicFileStore(),
-      ),
-    );
-    final repository = ProjectAssetRepository(
-      metaRepository: _MemoryMetaRepository(),
-      mutationProtocol: protocol,
-    );
+    final repository = buildRepository();
     final asset = (await repository.ensureOverviewAssets('project-1')).last;
 
     await repository.save(
@@ -130,7 +88,7 @@ void main() {
         state: ProjectAssetState.awaitingConfirmation,
         source: ProjectAssetSource.ai,
       ),
-      expectedRevision: 0,
+      expectedRevision: 1,
     );
     final loaded = await repository.list('project-1');
 
@@ -139,52 +97,34 @@ void main() {
     expect(loaded.last.source, ProjectAssetSource.ai);
   });
 
-  test('save via MutationProtocol creates journal records', () async {
-    final temp = Directory.systemTemp.createTempSync('lingbi_asset_mutation_');
-    addTearDown(() => temp.deleteSync(recursive: true));
-    final journalDir = Directory('${temp.path}/journal')..createSync();
-    final protocol = LocalMutationProtocol(
-      journal: LocalMutationJournal(basePath: journalDir.path),
-      store: FileCanonicalStore(
-        projectRoot: temp.path,
-        atomicStore: AtomicFileStore(),
-      ),
-    );
-    final repository = ProjectAssetRepository(
-      metaRepository: _MemoryMetaRepository(),
-      mutationProtocol: protocol,
-    );
+  test('save via MutationProtocol creates all three journal records',
+      () async {
+    final repository = buildRepository();
     final asset = (await repository.ensureOverviewAssets('project-1')).first;
 
     final saved = await repository.save(
       asset.copyWith(state: ProjectAssetState.editable),
-      expectedRevision: 0,
+      expectedRevision: 1,
     );
-    expect(saved.revision, 1);
+    expect((saved as Success<ProjectAsset>).value.revision, 1);
 
-    // Verify journal has propose + approve records.
-    // Note: committed record is NOT produced because the target path
-    // (assets.json#asset:...) is a logical identifier, not a writable
-    // relative path. The canonical store correctly rejects it.
-    // The actual file write is done by _write() in ProjectAssetRepository.
-    // TODO: migrate ProjectAssetRepository to use real relative paths.
-    final journal = LocalMutationJournal(basePath: journalDir.path);
-    final events = await journal.readAll();
+    final events = await LocalMutationJournal(
+      basePath: '${tempDir.path}/journal',
+    ).readAll();
     final types = events.map((e) => e.eventType).toList();
     expect(types, contains('candidate_proposed'));
     expect(types, contains('candidate_approved'));
+    expect(types, contains('candidate_committed'));
   });
 
   test('rewriting a meta asset keeps one Canon index entry', () async {
-    final temp = Directory.systemTemp.createTempSync('lingbi_asset_canon_');
-    addTearDown(() => temp.deleteSync(recursive: true));
     final storage = StorageService();
     final zvec = ZVecService(storageService: storage);
-    await zvec.initialize(dbPath: '${temp.path}/db');
+    await zvec.initialize(dbPath: '${tempDir.path}/db');
     final projects = ProjectService(zvecService: zvec);
     final project = await projects.createPortableProject(
       name: '幂等项目',
-      directoryPath: '${temp.path}/project',
+      directoryPath: '${tempDir.path}/project',
     );
     final canon = CanonService(zvecService: zvec);
     final meta = ProjectMetaRepository(
@@ -200,4 +140,79 @@ void main() {
         hasLength(1));
     expect(indexes.single.description, '修订版');
   });
+}
+
+class _FileBackedMeta implements IProjectMetaRepository {
+  _FileBackedMeta(this.root);
+
+  final Directory root;
+
+  File _file(String projectId, String fileName) =>
+      File('${root.path}/project_meta/$fileName');
+
+  @override
+  Future<Map<String, dynamic>?> read(String projectId, String fileName) async {
+    final file = _file(projectId, fileName);
+    if (!await file.exists()) return null;
+    return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  }
+
+  @override
+  Future<({Map<String, dynamic>? payload, int fileRevision})> readCanonical(
+    String projectId,
+    String fileName,
+  ) async {
+    final raw = await read(projectId, fileName);
+    if (raw == null) return (payload: null, fileRevision: 0);
+    final payload = raw['payload'];
+    if (payload is Map<String, dynamic>) {
+      return (
+        payload: payload,
+        fileRevision: raw['revision'] is int ? raw['revision'] as int : 0,
+      );
+    }
+    return (payload: raw, fileRevision: 0);
+  }
+
+  @override
+  Future<void> write(
+    String projectId,
+    String fileName,
+    Map<String, dynamic> data,
+  ) async {
+    final file = _file(projectId, fileName);
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(data));
+  }
+
+  @override
+  Future<void> delete(String projectId, String fileName) async {
+    final file = _file(projectId, fileName);
+    if (await file.exists()) await file.delete();
+  }
+
+  @override
+  Future<List<String>> list(String projectId) async {
+    final dir = Directory('${root.path}/project_meta');
+    if (!await dir.exists()) return [];
+    return dir
+        .listSync()
+        .whereType<File>()
+        .map((f) => f.uri.pathSegments.last)
+        .where((name) => name.endsWith('.json'))
+        .toList();
+  }
+
+  @override
+  Future<String> getMetaDirPath(String projectId) async =>
+      '${root.path}/project_meta';
+
+  @override
+  Future<WorldConstitution?> readConstitution(String projectId) async => null;
+
+  @override
+  Future<void> writeConstitution(
+    String projectId,
+    WorldConstitution constitution,
+  ) async {}
 }

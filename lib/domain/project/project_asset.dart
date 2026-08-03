@@ -68,6 +68,9 @@ class ProjectAsset {
   final ProjectAssetType type;
   final String title;
   final String storagePath;
+
+  /// 展示级版本号，随每次保存递增。正典冲突权威是 canonical 文件的
+  /// 文件 revision（由 MutationProtocol 校验），不是此字段。
   final int revision;
   final ProjectAssetSource source;
   final ProjectAssetState state;
