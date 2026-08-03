@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -49,5 +50,29 @@ void main() {
     );
 
     expect(recovered, '{"ok":true}');
+  });
+
+  test('writeString rejects a NUL segment in the path', () async {
+    final dir = await Directory.systemTemp.createTemp('lingbi_atomic_nul_');
+    addTearDown(() => dir.delete(recursive: true));
+
+    await expectLater(
+      AtomicFileStore().writeString('${dir.path}/bad\u0000name.txt', 'x'),
+      throwsArgumentError,
+    );
+    expect(File('${dir.path}/bad.tmp').existsSync(), isFalse);
+  });
+
+  test('written payload is byte-identical after replacement', () async {
+    final dir = await Directory.systemTemp.createTemp('lingbi_atomic_bytes_');
+    addTearDown(() => dir.delete(recursive: true));
+    final path = '${dir.path}/chapter.md';
+    await File(path).writeAsString('old');
+    const payload = '# 第一章\n\n第一段。\r\n第二段。';
+
+    await AtomicFileStore().writeString(path, payload);
+
+    final onDisk = await File(path).readAsBytes();
+    expect(utf8.decode(onDisk), payload);
   });
 }

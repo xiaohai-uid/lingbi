@@ -187,7 +187,6 @@ final class LocalMutationProtocol implements MutationProtocol {
         CommitTarget(
           relativePath: candidate.target.projectRelativePath,
           newContent: content,
-          expectedHash: null,
         ),
       ],
     );
