@@ -95,6 +95,11 @@ class ProjectSessionManager extends ChangeNotifier {
     String directoryPath,
   ) async {
     final opened = await _projectService.openPortableProject(directoryPath);
+    if (opened.identity.kind == ProjectIdentityKind.duplicateCopy) {
+      throw StateError(
+        '重复副本未注册为独立项目，请先采用独立身份，禁止直接编辑',
+      );
+    }
     final restoredDocument = await _readSelectedDocument(opened.project);
     final documents = [...opened.documents];
     if (restoredDocument != null) {

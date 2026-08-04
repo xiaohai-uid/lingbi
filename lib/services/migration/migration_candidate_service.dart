@@ -41,8 +41,8 @@ final class MigrationCandidate {
           orElse: () => MigrationCandidateStatus.pending,
         ),
         reason: json['reason'] as String?,
-        updatedAt: DateTime.tryParse(json['updatedAt'] as String) ??
-            DateTime.now(),
+        updatedAt:
+            DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now(),
       );
 
   final String id;
@@ -83,8 +83,7 @@ final class MigrationBaseline {
         duplicateIdDirectories: (json['duplicateIdDirectories'] as List)
             .map((e) => e as String)
             .toList(),
-        builtAt: DateTime.tryParse(json['builtAt'] as String) ??
-            DateTime.now(),
+        builtAt: DateTime.tryParse(json['builtAt'] as String) ?? DateTime.now(),
       );
 
   final String rootPath;
@@ -156,7 +155,8 @@ final class MigrationCandidateService {
       }
       if (kind != ProjectMetadataKind.legacy) {
         // Canonical projects still contribute their id to duplicate detection.
-        final canonical = await LegacyCanonicalReader.readCanonical(entity.path);
+        final canonical =
+            await LegacyCanonicalReader.readCanonical(entity.path);
         if (canonical != null) {
           final existing = idToDirectory[canonical.id];
           if (existing != null) {
@@ -169,9 +169,7 @@ final class MigrationCandidateService {
       }
 
       final descriptor = await LegacyCanonicalReader.readLegacy(entity.path);
-      final id = descriptor.hasBrief
-          ? await _legacyId(entity.path)
-          : 'unknown';
+      final id = descriptor.hasBrief ? await _legacyId(entity.path) : 'unknown';
       if (id != 'unknown') {
         final existing = idToDirectory[id];
         if (existing != null) {
@@ -243,8 +241,7 @@ final class MigrationCandidateService {
         code: 'NO_BASELINE',
       ));
     }
-    final index = baseline.candidates
-        .indexWhere((c) => c.id == candidateId);
+    final index = baseline.candidates.indexWhere((c) => c.id == candidateId);
     if (index < 0) {
       return Result.failure(FileError(
         'Migration candidate not found: $candidateId',
@@ -272,7 +269,8 @@ final class MigrationCandidateService {
     if (upgraded.errorOrNull() != null) {
       return Result.failure(upgraded.errorOrNull()!);
     }
-    final completed = _mark(candidate, MigrationCandidateStatus.completed, null);
+    final completed =
+        _mark(candidate, MigrationCandidateStatus.completed, null);
     await _updateCandidate(baseline, completed);
     return Result.success(completed);
   }
@@ -341,6 +339,7 @@ final class MigrationCandidateService {
           'name': descriptor.name ?? '未命名项目',
           'directoryPath': candidate.directoryPath,
         },
+        projectId: raw['id'] as String,
       );
       if (project.revision < 1) {
         return Result.failure(FileError(
@@ -414,8 +413,7 @@ final class MigrationCandidateService {
   Future<MigrationBaseline?> _readPersistedBaseline() async {
     if (!await _baselineFile.exists()) return null;
     try {
-      final decoded =
-          jsonDecode(await _baselineFile.readAsString());
+      final decoded = jsonDecode(await _baselineFile.readAsString());
       if (decoded is! Map<String, dynamic>) return null;
       final parsed = MigrationBaseline.fromJson(decoded);
       if (parsed.rootPath != projectRoot) return null;

@@ -262,6 +262,7 @@ class _EditorPageState extends State<EditorPage> {
       documentService: locator.documentService,
       canonService: locator.canonService,
       aiService: locator.aiService,
+      mutationProtocol: locator.mutationProtocol,
     );
     return FirstChapterWorkflowController(
       pipeline: NovelFirstChapterPipeline(application),
@@ -289,8 +290,7 @@ class _EditorPageState extends State<EditorPage> {
       case FirstChapterStage.idle:
         // 向导刚完成，启动生成
         _startFirstChapterGeneration(state);
-      case FirstChapterStage.readingAssets ||
-            FirstChapterStage.generating:
+      case FirstChapterStage.readingAssets || FirstChapterStage.generating:
         // 生成中断恢复：状态过期（>60s）则提示重新生成
         final elapsed = DateTime.now().toUtc().difference(state.updatedAt);
         if (elapsed.inSeconds > 60) {
@@ -422,8 +422,7 @@ class _EditorPageState extends State<EditorPage> {
     final request = FirstChapterRequest(
       projectId: projectId,
       chapterId: _document!.id,
-      targetFilePath:
-          '$projectDir${Platform.pathSeparator}chapter-1.md',
+      targetFilePath: '$projectDir${Platform.pathSeparator}chapter-1.md',
       instruction: _lastFirstChapterInstruction,
     );
     _firstChapterSubscription?.cancel();
@@ -740,7 +739,8 @@ class _EditorPageState extends State<EditorPage> {
           createdAt: DateTime.now(),
         );
         _showCandidatePanel = true;
-        _aiError = candidate.warnings.isEmpty ? null : candidate.warnings.join('\n');
+        _aiError =
+            candidate.warnings.isEmpty ? null : candidate.warnings.join('\n');
       });
     } catch (e) {
       if (!mounted) return;
@@ -1027,7 +1027,11 @@ class _EditorPageState extends State<EditorPage> {
     return MarkdownBody(
       data: mdContent,
       styleSheet: MarkdownStyleSheet(
-        h1: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: c.fg, fontFamily: LingBiTokens.fontDisplay),
+        h1: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: c.fg,
+            fontFamily: LingBiTokens.fontDisplay),
         p: TextStyle(fontSize: 15, color: c.fg, height: 2),
         h2: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: c.fg),
         h3: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: c.fg),

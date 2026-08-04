@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/features/project/data/project_root_resolver.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
-import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/mutation/project_mutation_journal_factory.dart';
 import 'package:lingbi/services/storage_service.dart';
@@ -39,11 +39,33 @@ void main() {
         ),
       );
 
-  ProjectService _service() => ProjectService(mutationProtocol: _projectBound());
+  ProjectService _service() =>
+      ProjectService(mutationProtocol: _projectBound());
+
+  ({ProjectService service, LocalMutationProtocol protocol}) boundService(
+    ZVecService zvec,
+  ) {
+    final service = ProjectService(zvecService: zvec);
+    final resolver = ProjectRootResolverAdapter(
+      projectService: service,
+      allowMissingMetadata: true,
+    );
+    final protocol = LocalMutationProtocol.projectBound(
+      resolver: resolver,
+      journalFactory: ProjectMutationJournalFactory(resolver: resolver),
+      storeForRoot: (root) => FileCanonicalStore.projectOwned(
+        root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+    service.mutationProtocol = protocol;
+    return (service: service, protocol: protocol);
+  }
 
   group('duplicate identity classification', () {
     test('a unique id on disk is classified unique', () async {
-      final project = Project(name: '唯一小说', directoryPath: '${tempDir.path}/novel');
+      final project =
+          Project(name: '唯一小说', directoryPath: '${tempDir.path}/novel');
       final identity = _service().classifyIdentity(
         project,
         knownProjects: [
@@ -92,7 +114,8 @@ void main() {
         ],
       );
       expect(identity.kind, ProjectIdentityKind.duplicateCopy);
-      expect(identity.existingDirectory, '${tempDir.path}/original_location/novel');
+      expect(identity.existingDirectory,
+          '${tempDir.path}/original_location/novel');
     });
   });
 
@@ -107,10 +130,7 @@ void main() {
       await storage.initialize(dbPath: '${tempDir.path}/db');
       final zvec = ZVecService(storageService: storage);
       await zvec.initialize(dbPath: '${tempDir.path}/db');
-      final svc = ProjectService(
-        zvecService: zvec,
-        mutationProtocol: _projectBound(),
-      );
+      final svc = boundService(zvec).service;
       final original = await svc.createPortableProject(
         name: '原创小说',
         directoryPath: originalDir,
@@ -126,19 +146,18 @@ void main() {
       Directory('$copyDir/.lingbi').createSync(recursive: true);
       File('$originalDir/.lingbi/project.json')
           .copySync('$copyDir/.lingbi/project.json');
-      final copyJson = jsonDecode(
-          File('$copyDir/.lingbi/project.json').readAsStringSync())
-          as Map<String, dynamic>;
+      final copyJson =
+          jsonDecode(File('$copyDir/.lingbi/project.json').readAsStringSync())
+              as Map<String, dynamic>;
       expect(copyJson['id'], original.id);
 
       // 打开副本：身份必须被标记为 duplicateCopy，且不自动改写副本元数据。
       final opened = await svc.openPortableProject(copyDir);
       expect(opened.identity.kind, ProjectIdentityKind.duplicateCopy);
-      final reopenedJson = jsonDecode(
-          File('$copyDir/.lingbi/project.json').readAsStringSync())
-          as Map<String, dynamic>;
-      expect(reopenedJson['id'], original.id,
-          reason: 'block：不得静默采用新身份');
+      final reopenedJson =
+          jsonDecode(File('$copyDir/.lingbi/project.json').readAsStringSync())
+              as Map<String, dynamic>;
+      expect(reopenedJson['id'], original.id, reason: 'block：不得静默采用新身份');
     });
 
     test('adoptIndependentCopy assigns a new id and provenance via protocol',
@@ -146,7 +165,11 @@ void main() {
       final originalDir = '${tempDir.path}/original_novel';
       final copyDir = '${tempDir.path}/copy_novel';
 
-      final svc = _service();
+      final storage = StorageService();
+      await storage.initialize(dbPath: '${tempDir.path}/db');
+      final zvec = ZVecService(storageService: storage);
+      await zvec.initialize(dbPath: '${tempDir.path}/db');
+      final svc = boundService(zvec).service;
       final original = await svc.createPortableProject(
         name: '原创小说',
         directoryPath: originalDir,
@@ -170,9 +193,9 @@ void main() {
       expect(copy.name, '原创小说');
 
       // 新身份已经协议持久化到副本的 project.json。
-      final onDisk = jsonDecode(
-          File('$copyDir/.lingbi/project.json').readAsStringSync())
-          as Map<String, dynamic>;
+      final onDisk =
+          jsonDecode(File('$copyDir/.lingbi/project.json').readAsStringSync())
+              as Map<String, dynamic>;
       expect(onDisk['id'], copy.id);
       expect(onDisk['provenance'], 'copy-of:${original.id}');
     });
@@ -188,10 +211,7 @@ void main() {
       await storage.initialize(dbPath: '${tempDir.path}/db');
       final zvec = ZVecService(storageService: storage);
       await zvec.initialize(dbPath: '${tempDir.path}/db');
-      final svc = ProjectService(
-        zvecService: zvec,
-        mutationProtocol: _projectBound(),
-      );
+      final svc = boundService(zvec).service;
       final project = await svc.createPortableProject(
         name: '移动小说',
         directoryPath: oldDir,

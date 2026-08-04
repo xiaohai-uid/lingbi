@@ -50,7 +50,15 @@ class ProjectService implements IProjectService {
   final TemplateSeeder _templateSeeder;
 
   /// 变更协议：brief 写入经由此接口（fail-closed，缺失时拒绝写入）。
-  final MutationProtocol? _mutationProtocol;
+  ///
+  /// 生产环境存在 resolver→protocol→projectService 的构造环，因此先创建
+  /// 裸 ProjectService 供 resolver，protocol 建好后通过 [mutationProtocol]
+  /// setter 回填。
+  MutationProtocol? _mutationProtocol;
+
+  set mutationProtocol(MutationProtocol? protocol) {
+    _mutationProtocol = protocol;
+  }
 
   /// 创建便携项目 — 先在磁盘建立目录和 .lingbi/project.json，
   /// 再写入 ZVec（若可用）。
@@ -98,15 +106,29 @@ class ProjectService implements IProjectService {
     }
     final lingbiDir = Directory('$directoryPath/.lingbi');
     await lingbiDir.create();
-    final committedBrief = await ProjectBriefRepository(
-      directoryPath,
-      mutationProtocol: _mutationProtocol,
-    ).write(
-      requestedBrief,
-      expectedRevision: 0,
-      baseMetadata: project.toJson(),
-    );
-    project.briefRevision = committedBrief.revision;
+    final zvec = _zvec;
+    if (zvec != null) {
+      await zvec.upsert('projects', project.id, project.toJson());
+    }
+    try {
+      final committedBrief = await ProjectBriefRepository(
+        directoryPath,
+        mutationProtocol: _mutationProtocol,
+      ).write(
+        requestedBrief,
+        expectedRevision: 0,
+        baseMetadata: project.toJson(),
+        projectId: project.id,
+      );
+      project.briefRevision = committedBrief.revision;
+    } catch (error) {
+      if (zvec != null) {
+        try {
+          await zvec.delete('projects', project.id);
+        } catch (_) {}
+      }
+      rethrow;
+    }
     // R1 修复：消费模板 — 按 genreId 预填创作资料骨架，
     // 使新项目"打开即有用"，并为引导流程 / AI 续写提供上下文。
     if (requestedBrief.genreId.isNotEmpty) {
@@ -115,7 +137,7 @@ class ProjectService implements IProjectService {
         genreId: requestedBrief.genreId,
       );
     }
-    await _zvec?.upsert('projects', project.id, project.toJson());
+    await zvec?.upsert('projects', project.id, project.toJson());
     return project;
   }
 
@@ -124,11 +146,12 @@ class ProjectService implements IProjectService {
   ///
   /// MP-09: legacy 元数据（无 schemaVersion）只读打开，绝不改写；
   /// 返回身份分类（unique / moved / duplicateCopy）。
-  Future<({
-    Project project,
-    List<Document> documents,
-    ProjectIdentity identity,
-  })> openPortableProject(
+  Future<
+      ({
+        Project project,
+        List<Document> documents,
+        ProjectIdentity identity,
+      })> openPortableProject(
     String directoryPath,
   ) async {
     final dir = Directory(directoryPath);
@@ -204,11 +227,13 @@ class ProjectService implements IProjectService {
       }
     }
     if (sameId == null) {
-      return ProjectIdentity(kind: ProjectIdentityKind.unique, project: project);
+      return ProjectIdentity(
+          kind: ProjectIdentityKind.unique, project: project);
     }
     if (p.equals(p.normalize(sameId.directoryPath),
         p.normalize(project.directoryPath))) {
-      return ProjectIdentity(kind: ProjectIdentityKind.unique, project: project);
+      return ProjectIdentity(
+          kind: ProjectIdentityKind.unique, project: project);
     }
     if (Directory(sameId.directoryPath).existsSync()) {
       return ProjectIdentity(
@@ -255,6 +280,10 @@ class ProjectService implements IProjectService {
       premise: current.premise,
       provenance: 'copy-of:${current.id}',
     );
+    final zvec = _zvec;
+    if (zvec != null) {
+      await zvec.upsert('projects', copy.id, copy.toJson());
+    }
     final nested = raw['projectBrief'];
     final brief = nested is Map<String, dynamic>
         ? ProjectBrief.fromJson(nested)
@@ -280,8 +309,14 @@ class ProjectService implements IProjectService {
           'directoryPath': directoryPath,
           if (copy.provenance != null) 'provenance': copy.provenance,
         },
+        projectId: copy.id,
       );
     } catch (error) {
+      if (zvec != null) {
+        try {
+          await zvec.delete('projects', copy.id);
+        } catch (_) {}
+      }
       return Result.failure(FileError(
         '身份采纳失败: $error',
         code: 'ADOPT_FAILED',
@@ -294,13 +329,16 @@ class ProjectService implements IProjectService {
     final zvec = _zvec;
     if (zvec == null) return const [];
     final results = await zvec.query('projects');
-    return results.map((json) {
-      try {
-        return Project.fromJson(json);
-      } catch (_) {
-        return null;
-      }
-    }).whereType<Project>().toList();
+    return results
+        .map((json) {
+          try {
+            return Project.fromJson(json);
+          } catch (_) {
+            return null;
+          }
+        })
+        .whereType<Project>()
+        .toList();
   }
 
   /// 扫描目录中所有 .md 文件（跳过 .lingbi/），返回 Document 列表。

@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'atomic_file_store.dart';
 import 'mutation/file_canonical_store.dart';
 import 'mutation/local_mutation_journal.dart';
+import 'mutation/project_mutation_journal_factory.dart';
 import '../../domain/mutation/canonical_revision.dart';
 import '../../shared/interfaces/project_root_resolver.dart';
 
@@ -76,6 +77,9 @@ class RecoveryCenterService {
     this.journal,
     this.canonicalStore,
     this.rootResolver,
+    this.journalFactory,
+    this.storeForRoot,
+    this.projectIdProvider,
   }) : _atomicStore = atomicStore ?? AtomicFileStore();
 
   final AtomicFileStore _atomicStore;
@@ -93,20 +97,56 @@ class RecoveryCenterService {
   /// 未注入时把 projectId 视为目录路径（测试/直连场景）。
   final ProjectRootResolver? rootResolver;
 
+  /// 生产扫描：遍历已注册项目，为每个项目创建 project-owned journal/store。
+  final ProjectMutationJournalFactory? journalFactory;
+  final FileCanonicalStore Function(ResolvedProjectRoot)? storeForRoot;
+  final Future<List<String>> Function()? projectIdProvider;
+
   /// 扫描未决 commit intent 中目标字节不确定（frozen）的恢复事故。
   /// 每个事故携带当前字节作为恢复候选。
   ///
   /// 同时覆盖已显式 targetFrozen 的 intent（reconciler/重试路径已写
   /// outcome 的冻结事故），保证冻结字节始终可见、可恢复。
   Future<Result<List<RecoveryIncident>>> scanIncidents() async {
-    final journal = this.journal;
-    final store = canonicalStore;
-    if (journal == null || store == null) {
-      return Result.failure(FileError(
-        'Recovery incidents require a journal and canonical store',
-        code: 'NOT_CONFIGURED',
-      ));
+    final singleJournal = journal;
+    final singleStore = canonicalStore;
+    if (singleJournal != null && singleStore != null) {
+      return Result.success(await _scanProject(singleJournal, singleStore));
     }
+
+    final factory = journalFactory;
+    final storeBuilder = storeForRoot;
+    final provider = projectIdProvider;
+    final resolver = rootResolver;
+    if (factory != null &&
+        storeBuilder != null &&
+        provider != null &&
+        resolver != null) {
+      final incidents = <RecoveryIncident>[];
+      for (final projectId in await provider()) {
+        final rootResult = await resolver.resolve(projectId);
+        final root = rootResult.getOrNull();
+        if (root == null) continue;
+        final journalResult = await factory.forProject(projectId);
+        final projectJournal = journalResult.getOrNull();
+        if (projectJournal == null) continue;
+        incidents.addAll(
+          await _scanProject(projectJournal, storeBuilder(root)),
+        );
+      }
+      return Result.success(incidents);
+    }
+
+    return Result.failure(FileError(
+      'Recovery incidents require a journal and canonical store',
+      code: 'NOT_CONFIGURED',
+    ));
+  }
+
+  Future<List<RecoveryIncident>> _scanProject(
+    LocalMutationJournal journal,
+    FileCanonicalStore store,
+  ) async {
     final incidents = <RecoveryIncident>[];
     final seen = <String>{};
 
@@ -156,7 +196,7 @@ class RecoveryCenterService {
         }
       }
     }
-    return Result.success(incidents);
+    return incidents;
   }
 
   Future<String> _resolveRoot(String projectId) async {
@@ -241,11 +281,9 @@ class RecoveryCenterService {
     final currentContent = incident.currentContent;
     // 项目根 = 解析后的 rootPath（生产 projectId 为 uuid，不是目录）。
     final projectDir = incident.rootPath;
-    final targetAbsolute =
-        p.join(incident.rootPath, incident.targetPath);
+    final targetAbsolute = p.join(incident.rootPath, incident.targetPath);
     if (currentContent != null) {
-      final trashDir =
-          Directory(p.join(projectDir, '.lingbi', 'trash'));
+      final trashDir = Directory(p.join(projectDir, '.lingbi', 'trash'));
       await trashDir.create(recursive: true);
       final stamp = DateTime.now().microsecondsSinceEpoch;
       final candidateFile = File(

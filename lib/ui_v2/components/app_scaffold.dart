@@ -18,6 +18,7 @@ import 'package:lingbi/features/writing/ui/editor_page.dart';
 import 'package:lingbi/features/strand/ui/storyboard_page.dart';
 import 'package:lingbi/features/import_export/ui/import_export_page.dart';
 import 'package:lingbi/features/project/ui/project_overview_page.dart';
+import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:lingbi/features/skill/ui/skill_market_page.dart';
 import 'package:lingbi/features/settings/ui/settings_page.dart';
 import '../services/command_palette_service.dart';
@@ -274,10 +275,44 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
     if (dir != null && mounted) {
       try {
-        final result =
+        var result =
             await ServiceLocator.instance.projectService.openPortableProject(
           dir,
         );
+
+        if (result.identity.kind == ProjectIdentityKind.duplicateCopy) {
+          if (!mounted) return;
+          final adopt = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('检测到重复副本'),
+              content: const Text('该目录与已打开项目使用同一身份。是否将其作为独立项目打开？'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('作为独立项目打开'),
+                ),
+              ],
+            ),
+          );
+          if (adopt != true) return;
+          final adopted = await ServiceLocator.instance.projectService
+              .adoptIndependentCopy(dir);
+          if (adopted.errorOrNull() != null) {
+            throw StateError(
+              '重复副本独立化失败: ${adopted.errorOrNull()}',
+            );
+          }
+          result = (
+            project: adopted.getOrNull()!,
+            documents: result.documents,
+            identity: result.identity,
+          );
+        }
 
         // 将扫描到的文档同步到 ZVec
         for (final doc in result.documents) {
@@ -388,7 +423,8 @@ class _AppScaffoldState extends State<AppScaffold> {
         onAcceptWithDetails: (details) => _handleFileDrop(details.data),
         builder: (context, candidateData, rejectedData) => Stack(
           children: [
-            Semantics(label: '灵笔 Windows 主工作区', container: true, child: content),
+            Semantics(
+                label: '灵笔 Windows 主工作区', container: true, child: content),
             if (candidateData.isNotEmpty)
               Positioned.fill(
                 child: Container(
@@ -403,7 +439,10 @@ class _AppScaffoldState extends State<AppScaffold> {
                       ),
                       child: Text(
                         '松开导入文件',
-                        style: TextStyle(fontSize: 18, color: c.accent, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: c.accent,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
