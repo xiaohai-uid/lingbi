@@ -164,6 +164,25 @@ void main() {
     );
   });
 
+  test('allows a registered root without metadata during project bootstrap',
+      () async {
+    final project = Project(
+      id: 'metadata-missing-bootstrap',
+      name: '引导项目',
+      directoryPath: '${sandbox.path}/bootstrap',
+    );
+    await Directory(project.directoryPath).create(recursive: true);
+
+    final result = await ProjectRootResolverAdapter(
+      projectService: _InMemoryProjectService([project]),
+      allowMissingMetadata: true,
+    ).resolve(project.id);
+
+    expect(result, isA<Success<ResolvedProjectRoot>>());
+    expect((result as Success<ResolvedProjectRoot>).value.rootPath,
+        project.directoryPath);
+  });
+
   test('uses the registry location and never falls back to an app-global root',
       () async {
     final appGlobalRoot = Directory('${sandbox.path}/app-global');

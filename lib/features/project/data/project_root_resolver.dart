@@ -15,10 +15,17 @@ import 'package:lingbi/shared/models/project.dart';
 /// supplied by a caller, the process working directory, or an application
 /// support directory is never used as a fallback.
 final class ProjectRootResolverAdapter implements ProjectRootResolver {
-  ProjectRootResolverAdapter({required IProjectService projectService})
-      : _projectService = projectService;
+  ProjectRootResolverAdapter({
+    required IProjectService projectService,
+    this.allowMissingMetadata = false,
+  }) : _projectService = projectService;
 
   final IProjectService _projectService;
+
+  /// When true, a registered project root is accepted without validating
+  /// `.lingbi/project.json`. This is required while the first project.json
+  /// mutation is still being bootstrapped by the project-bound protocol.
+  final bool allowMissingMetadata;
 
   @override
   Future<Result<ResolvedProjectRoot>> resolve(String projectId) async {
@@ -88,8 +95,17 @@ final class ProjectRootResolverAdapter implements ProjectRootResolver {
 
     final root = Directory(rootPath);
     final metadata = File(p.join(rootPath, '.lingbi', 'project.json'));
-    if (!await root.exists() || !await metadata.exists()) {
+    if (!await root.exists()) {
       return _notFound(projectId, 'registered project root is unavailable');
+    }
+    if (allowMissingMetadata) {
+      return Result.success(
+        ResolvedProjectRoot(projectId: projectId, rootPath: rootPath),
+      );
+    }
+
+    if (!await metadata.exists()) {
+      return _notFound(projectId, 'registered project root has no metadata');
     }
 
     try {

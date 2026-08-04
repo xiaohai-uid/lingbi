@@ -1,8 +1,4 @@
 import 'package:path_provider/path_provider.dart';
-import '../../domain/mutation/mutation_models.dart';
-import '../errors/app_error.dart';
-import '../errors/result.dart';
-
 import 'package:lingbi/features/review/data/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
 import 'package:lingbi/features/writing/data/foreshadowing_service.dart';
@@ -52,7 +48,9 @@ import '../../services/storage_service.dart';
 import '../database/story_beats_repository.dart';
 import '../../features/review/data/version_history_service.dart';
 import '../../services/atomic_file_store.dart';
+import '../../services/mutation/file_canonical_store.dart';
 import '../../services/mutation/local_mutation_journal.dart';
+import '../../services/mutation/local_mutation_protocol.dart';
 import '../../services/mutation/project_mutation_journal_factory.dart';
 import '../../services/recovery_center_service.dart';
 import '../../features/import_export/data/portable_project_package_service.dart';
@@ -203,16 +201,33 @@ class ServiceLocator {
       locator.projectService = ProjectService(zvecService: locator.zvecService);
       locator.projectRootResolver = ProjectRootResolverAdapter(
         projectService: locator.projectService,
+        allowMissingMetadata: true,
       );
       locator.projectMutationJournalFactory = ProjectMutationJournalFactory(
         resolver: locator.projectRootResolver,
       );
-      locator.mutationProtocol = _UnavailableMutationProtocol(
-        projectRootResolver: locator.projectRootResolver,
+      locator.mutationProtocol = LocalMutationProtocol.projectBound(
+        resolver: locator.projectRootResolver,
+        journalFactory: locator.projectMutationJournalFactory,
+        storeForRoot: (root) => FileCanonicalStore.projectOwned(
+          root,
+          atomicStore: locator.atomicFileStore,
+        ),
       );
+      locator.projectService.mutationProtocol = locator.mutationProtocol;
       locator.recoveryCenterService = RecoveryCenterService(
         atomicStore: locator.atomicFileStore,
         mutationProtocol: locator.mutationProtocol,
+        rootResolver: locator.projectRootResolver,
+        journalFactory: locator.projectMutationJournalFactory,
+        storeForRoot: (root) => FileCanonicalStore.projectOwned(
+          root,
+          atomicStore: locator.atomicFileStore,
+        ),
+        projectIdProvider: () async {
+          final projects = await locator.projectService.getProjects();
+          return projects.map((project) => project.id).toList();
+        },
       );
       locator.aiService = AIService(quotaService: locator.quotaService);
 
@@ -438,43 +453,4 @@ class ServiceLocator {
     final appDir = await getApplicationDocumentsDirectory();
     return '${appDir.path}/lingbi_skills';
   }
-}
-
-/// Keeps canonical writes fail-closed until the project-owned mutation
-/// factory is introduced by the later journal/commit tickets.
-final class _UnavailableMutationProtocol implements MutationProtocol {
-  const _UnavailableMutationProtocol({required this.projectRootResolver});
-
-  final ProjectRootResolver projectRootResolver;
-
-  Result<T> _unavailable<T>(String operation) => Result.failure(
-        FileError(
-          '$operation requires a project-root-aware MutationProtocol',
-          typedCode: MutationErrorCode.protocolUnavailable,
-        ),
-      );
-
-  @override
-  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
-      _unavailable('propose');
-
-  @override
-  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
-      _unavailable('decide');
-
-  @override
-  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
-      _unavailable('commit');
-
-  @override
-  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
-      _unavailable('applyUserEdit');
-
-  @override
-  Future<Result<void>> reject(RejectCommand command) async =>
-      _unavailable('reject');
-
-  @override
-  Future<Result<List<RecoveryOutcome>>> reconcilePending(String projectId) async =>
-      _unavailable('reconcilePending');
 }

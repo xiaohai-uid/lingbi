@@ -21,7 +21,8 @@ final class ProjectBriefConflict implements Exception {
 /// A recoverable backup prevents an interrupted replacement from hiding the
 /// last committed project metadata.
 final class ProjectBriefRepository {
-  ProjectBriefRepository(this.projectDirectory, {MutationProtocol? mutationProtocol})
+  ProjectBriefRepository(this.projectDirectory,
+      {MutationProtocol? mutationProtocol})
       : _mutationProtocol = mutationProtocol;
 
   final String projectDirectory;
@@ -48,6 +49,7 @@ final class ProjectBriefRepository {
     ProjectBrief brief, {
     required int expectedRevision,
     Map<String, dynamic> baseMetadata = const {},
+    String? projectId,
   }) async {
     await _metadata.parent.create(recursive: true);
     await _recoverInterruptedReplace();
@@ -85,7 +87,7 @@ final class ProjectBriefRepository {
       );
     }
     final editResult = await protocol.applyUserEdit(ChangeRequest(
-      projectId: projectDirectory,
+      projectId: projectId ?? projectDirectory,
       origin: ChangeOrigin.userUi,
       action: ChangeAction.replaceText,
       target: const ChangeTarget(
@@ -121,7 +123,8 @@ final class ProjectBriefRepository {
     // The canonical store now owns atomic replacement (backup-based
     // recovery). This legacy tmp/bak recovery is kept as a no-op guard so
     // old interrupted writes from previous app versions still surface.
-    if (!await _metadata.exists() && await File('${_metadata.path}.bak').exists()) {
+    if (!await _metadata.exists() &&
+        await File('${_metadata.path}.bak').exists()) {
       await File('${_metadata.path}.bak').rename(_metadata.path);
     }
     final temporary = File('${_metadata.path}.tmp');

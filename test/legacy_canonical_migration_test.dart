@@ -4,15 +4,17 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/features/project/data/project_root_resolver.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/migration/migration_candidate_service.dart';
 import 'package:lingbi/services/migrations/legacy_canonical_reader.dart';
 import 'package:lingbi/services/migrations/schema_versions.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
-import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/mutation/project_mutation_journal_factory.dart';
+import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/interfaces/project_root_resolver.dart';
 
 /// MP-09: explicit legacy migration flows.
@@ -32,23 +34,47 @@ void main() {
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
-  /// 项目级绑定协议：projectId == 项目目录，写经 project-owned journal/store。
-  LocalMutationProtocol _projectBound() => LocalMutationProtocol.projectBound(
-        resolver: _ResolveToId(),
-        journalFactory: ProjectMutationJournalFactory(resolver: _ResolveToId()),
-        storeForRoot: (root) => FileCanonicalStore.projectOwned(
-          root,
-          atomicStore: AtomicFileStore(),
-        ),
-      );
+  LocalMutationProtocol projectBoundFor(Map<String, String> roots) {
+    final resolver = _RootMapResolver(roots);
+    return LocalMutationProtocol.projectBound(
+      resolver: resolver,
+      journalFactory: ProjectMutationJournalFactory(resolver: resolver),
+      storeForRoot: (root) => FileCanonicalStore.projectOwned(
+        root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+  }
 
-  ProjectService _service() => ProjectService(mutationProtocol: _projectBound());
+  ({ProjectService service, LocalMutationProtocol protocol}) boundService(
+    ZVecService zvec,
+  ) {
+    final service = ProjectService(zvecService: zvec);
+    final resolver = ProjectRootResolverAdapter(
+      projectService: service,
+      allowMissingMetadata: true,
+    );
+    final protocol = LocalMutationProtocol.projectBound(
+      resolver: resolver,
+      journalFactory: ProjectMutationJournalFactory(resolver: resolver),
+      storeForRoot: (root) => FileCanonicalStore.projectOwned(
+        root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
+    service.mutationProtocol = protocol;
+    return (service: service, protocol: protocol);
+  }
 
   group('legacy read-only open', () {
     test('canonical project is classified canonical and opens normally',
         () async {
       final dir = '$rootPath/canonical_novel';
-      final svc = _service();
+      final storage = StorageService();
+      await storage.initialize(dbPath: '$rootPath/db');
+      final zvec = ZVecService(storageService: storage);
+      await zvec.initialize(dbPath: '$rootPath/db');
+      final svc = boundService(zvec).service;
       await svc.createPortableProject(
         name: '正典小说',
         directoryPath: dir,
@@ -92,7 +118,11 @@ void main() {
           .modified
           .millisecondsSinceEpoch;
 
-      final svc = _service();
+      final storage = StorageService();
+      await storage.initialize(dbPath: '$rootPath/db');
+      final zvec = ZVecService(storageService: storage);
+      await zvec.initialize(dbPath: '$rootPath/db');
+      final svc = boundService(zvec).service;
       final opened = await svc.openPortableProject(dir);
 
       // Read-only: the legacy metadata file is never rewritten on open.
@@ -124,11 +154,15 @@ void main() {
         'updatedAt': DateTime(2026, 6, 1).toIso8601String(),
       }));
       final canonicalDir = '$rootPath/canonical_novel';
-      final svc = _service();
+      final storage = StorageService();
+      await storage.initialize(dbPath: '$rootPath/db');
+      final zvec = ZVecService(storageService: storage);
+      await zvec.initialize(dbPath: '$rootPath/db');
+      final svc = boundService(zvec).service;
       await svc.createPortableProject(name: '新小说', directoryPath: canonicalDir);
 
-      final baseline = MigrationCandidateService(projectRoot: rootPath)
-          .buildBaseline();
+      final baseline =
+          MigrationCandidateService(projectRoot: rootPath).buildBaseline();
       final result = await baseline;
       expect(result.errorOrNull(), isNull);
       final candidates = result.getOrNull()!.candidates;
@@ -143,7 +177,8 @@ void main() {
       );
     });
 
-    test('accept migrates legacy metadata to canonical once, then refuses repeat',
+    test(
+        'accept migrates legacy metadata to canonical once, then refuses repeat',
         () async {
       final legacyDir = '$rootPath/legacy_novel';
       Directory('$legacyDir/.lingbi').createSync(recursive: true);
@@ -157,21 +192,22 @@ void main() {
 
       final service = MigrationCandidateService(
         projectRoot: rootPath,
-        mutationProtocol: _projectBound(),
+        mutationProtocol: projectBoundFor({'legacy-proj-1': legacyDir}),
       );
       final baseline = (await service.buildBaseline()).getOrNull()!;
       final candidateId = baseline.candidates.single.id;
 
       final accepted = await service.accept(candidateId);
-      expect(accepted.getOrNull(), isNotNull, reason: '${accepted.errorOrNull()}');
+      expect(accepted.getOrNull(), isNotNull,
+          reason: '${accepted.errorOrNull()}');
       expect(accepted.getOrNull()!.status, MigrationCandidateStatus.completed);
 
       // Now canonical: schemaVersion present and readable.
       expect(await LegacyCanonicalReader.inspect(legacyDir),
           ProjectMetadataKind.canonical);
-      final raw = jsonDecode(
-          File('$legacyDir/.lingbi/project.json').readAsStringSync())
-          as Map<String, dynamic>;
+      final raw =
+          jsonDecode(File('$legacyDir/.lingbi/project.json').readAsStringSync())
+              as Map<String, dynamic>;
       expect(raw['schemaVersion'], SchemaVersions.project);
 
       // One-time: a second accept on the same candidate refuses.
@@ -192,7 +228,7 @@ void main() {
 
       final service = MigrationCandidateService(
         projectRoot: rootPath,
-        mutationProtocol: _projectBound(),
+        mutationProtocol: projectBoundFor({}),
       );
       final baseline = (await service.buildBaseline()).getOrNull()!;
       expect(baseline.ambiguousDirectories.single, contains('broken_novel'));
@@ -210,9 +246,15 @@ void main() {
   });
 }
 
-/// 把 projectId 直接解析为同名目录（测试用）：projectId == 项目目录。
-class _ResolveToId implements ProjectRootResolver {
+class _RootMapResolver implements ProjectRootResolver {
+  _RootMapResolver(this.roots);
+
+  final Map<String, String> roots;
+
   @override
   Future<Result<ResolvedProjectRoot>> resolve(String projectId) async =>
-      Result.success(ResolvedProjectRoot(projectId: projectId, rootPath: projectId));
+      Result.success(ResolvedProjectRoot(
+        projectId: projectId,
+        rootPath: roots[projectId] ?? projectId,
+      ));
 }
