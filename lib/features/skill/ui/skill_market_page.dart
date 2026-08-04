@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:lingbi/features/routing/default_rules.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/features/skill/data/skill/distillation_service.dart';
 import 'package:lingbi/features/skill/data/skill_marketplace.dart';
@@ -94,7 +95,8 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
       }
       if (_allSkills.isEmpty) {
         setState(() {
-          _error = '\u65e0\u6cd5\u52a0\u8f7d\u6280\u80fd\u5217\u8868\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc\u8fde\u63a5';
+          _error =
+              '\u65e0\u6cd5\u52a0\u8f7d\u6280\u80fd\u5217\u8868\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc\u8fde\u63a5';
           _loading = false;
         });
         return;
@@ -161,10 +163,12 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
     if (!mounted) return;
     setState(() => _installingIds.remove(skill.id));
     if (ok) {
-      _showSnack('${skill.name} \u5b89\u88c5\u6210\u529f\uff01\u53ef\u5728\u300c\u5df2\u5b89\u88c5\u300d\u4e2d\u67e5\u770b\u4f7f\u7528\u6307\u5357');
+      _showSnack(
+          '${skill.name} \u5b89\u88c5\u6210\u529f\uff01\u53ef\u5728\u300c\u5df2\u5b89\u88c5\u300d\u4e2d\u67e5\u770b\u4f7f\u7528\u6307\u5357');
       _applyFilters();
     } else {
-      _showSnack('${skill.name} \u5b89\u88c5\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc');
+      _showSnack(
+          '${skill.name} \u5b89\u88c5\u5931\u8d25\uff0c\u8bf7\u68c0\u67e5\u7f51\u7edc');
     }
   }
 
@@ -390,8 +394,7 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
           ),
           const Spacer(),
           // 蒸馏入口：从我的作品生成 Skill
-          if (widget.projectId != null)
-            _buildDistillButton(c),
+          if (widget.projectId != null) _buildDistillButton(c),
           const SizedBox(width: LingBiTokens.space3),
           Text(
             '已安装 ${_countInstalled()} 个',
@@ -403,9 +406,7 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
   }
 
   int _countInstalled() {
-    return _allSkills
-        .where((s) => _skillMarketplace.isInstalled(s.id))
-        .length;
+    return _allSkills.where((s) => _skillMarketplace.isInstalled(s.id)).length;
   }
 
   Widget _buildSearchBar(LingBiColors c) {
@@ -448,9 +449,8 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
                     vertical: LingBiTokens.space1,
                   ),
                   decoration: BoxDecoration(
-                    color: isActive
-                        ? c.accent.withValues(alpha: 0.1)
-                        : c.surface,
+                    color:
+                        isActive ? c.accent.withValues(alpha: 0.1) : c.surface,
                     borderRadius:
                         BorderRadius.circular(LingBiTokens.radiusPill),
                     border: Border.all(
@@ -463,8 +463,7 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
                     cat,
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight:
-                          isActive ? FontWeight.w600 : FontWeight.w500,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                       color: isActive ? c.accent : c.fgSecondary,
                     ),
                   ),
@@ -500,8 +499,8 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
   Widget _buildSkillCard(SkillEntry skill, LingBiColors c) {
     final displayCategory =
         _categoryDisplayNames[skill.category] ?? skill.category;
-    final rating =
-        (4.0 + (skill.downloadCount % 10) / 10.0).toStringAsFixed(1);
+    final route = defaultRouteRuleFor(skill.id);
+    final rating = (4.0 + (skill.downloadCount % 10) / 10.0).toStringAsFixed(1);
     final installed = _skillMarketplace.isInstalled(skill.id);
     final installing = _installingIds.contains(skill.id);
 
@@ -535,8 +534,8 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
                 if (installed) ...[
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 1),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.1),
                       borderRadius:
@@ -588,6 +587,19 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (route != null) ...[
+              const SizedBox(height: LingBiTokens.space1),
+              Text(
+                '自动路由：${route.entry.displayName} · 阈值 ${route.minScore.toStringAsFixed(1)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: c.accent,
+                ),
+              ),
+            ],
             const SizedBox(height: LingBiTokens.space3),
             Row(
               children: [
@@ -609,8 +621,8 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 else if (installed)
-                  _buildActionButton(
-                      c, '\u67e5\u770b\u6307\u5357', () => _showSkillDetail(skill))
+                  _buildActionButton(c, '\u67e5\u770b\u6307\u5357',
+                      () => _showSkillDetail(skill))
                 else
                   _buildActionButton(
                       c, '\u5b89\u88c5', () => _installSkill(skill)),
@@ -640,8 +652,7 @@ class _SkillMarketPageState extends State<SkillMarketPage> {
     );
   }
 
-  Widget _buildActionButton(
-      LingBiColors c, String label, VoidCallback onTap) {
+  Widget _buildActionButton(LingBiColors c, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
@@ -862,8 +873,7 @@ class _SkillDetailDialog extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('\u2022  ',
-                  style: TextStyle(color: c.accent, fontSize: 13)),
+              Text('\u2022  ', style: TextStyle(color: c.accent, fontSize: 13)),
               Expanded(
                 child: Text(
                   line.substring(2),
@@ -885,8 +895,7 @@ class _SkillDetailDialog extends StatelessWidget {
       } else {
         widgets.add(Text(
           line,
-          style:
-              TextStyle(fontSize: 13, color: c.fgSecondary, height: 1.6),
+          style: TextStyle(fontSize: 13, color: c.fgSecondary, height: 1.6),
         ));
       }
     }
@@ -904,8 +913,7 @@ class _SkillDetailDialog extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
-        border:
-            Border.all(color: c.borderOpaque.withValues(alpha: 0.3)),
+        border: Border.all(color: c.borderOpaque.withValues(alpha: 0.3)),
       ),
       child: SelectableText(
         code.trimRight(),

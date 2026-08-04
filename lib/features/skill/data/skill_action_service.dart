@@ -1,11 +1,12 @@
 /// 技能动作服务 — 统一管理可执行技能
 ///
 /// 首轮只实现：智能续写、文本/对话润色、降低 AI 痕迹。
-/// 入口：斜杠命令 + AI 工具栏。右键菜单后续接入同一服务。
-/// AI 主动推荐不属于本轮。
+/// 入口：斜杠命令 + AI 工具栏 + 自动路由。右键菜单后续接入同一服务。
 library;
 
 import 'package:flutter/foundation.dart';
+import 'package:lingbi/features/routing/default_rules.dart';
+import 'package:lingbi/features/routing/route_engine.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 
 /// 参数类型
@@ -239,8 +240,10 @@ abstract class SkillAction {
 
 /// 技能动作服务
 class SkillActionService extends ChangeNotifier {
-  SkillActionService();
+  SkillActionService({RouteEngine? routeEngine})
+      : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules());
 
+  final RouteEngine _routeEngine;
   final Map<String, SkillAction> _registeredSkills = {};
 
   /// 获取所有已注册的技能
@@ -273,6 +276,50 @@ class SkillActionService extends ChangeNotifier {
       return const SkillResult(success: false, error: '技能不存在');
     }
     return skill.execute(context: context, params: params);
+  }
+
+  /// 先路由后执行用户任务。
+  ///
+  /// 未命中或命中技能未注册时返回 `null`，不硬塞技能。
+  RouteResult? routeTask({
+    required String userMessage,
+    String? selection,
+    String currentScene = '',
+  }) {
+    final result = _routeEngine.route(
+      userMessage: userMessage,
+      selection: selection,
+      currentScene: currentScene,
+    );
+    if (result == null || !_registeredSkills.containsKey(result.skillId)) {
+      return null;
+    }
+    return result;
+  }
+
+  /// 自动路由并执行命中的技能；手动入口仍走 [executeSkill]。
+  SkillResult executeRouted({
+    required String userMessage,
+    required SkillContext context,
+    String? selection,
+    String currentScene = '',
+    Map<String, String> params = const {},
+  }) {
+    final effectiveSelection = selection ??
+        (context.selectedText.isNotEmpty ? context.selectedText : null);
+    final route = routeTask(
+      userMessage: userMessage,
+      selection: effectiveSelection,
+      currentScene: currentScene,
+    );
+    if (route == null) {
+      return const SkillResult(success: false, error: '未命中可用技能');
+    }
+    return executeSkill(
+      skillId: route.skillId,
+      context: context,
+      params: params,
+    );
   }
 
   /// 模糊搜索技能（斜杠命令用）
