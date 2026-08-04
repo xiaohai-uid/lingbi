@@ -23,7 +23,6 @@ import 'package:lingbi/shared/interfaces/project_root_resolver.dart';
 
 /// real pipeline 测试含 AI 调用（无 key 时走 fallback，CI 并行下较慢），
 /// 放宽默认 30 秒超时避免环境性 flake。
-@Timeout(Duration(minutes: 3))
 void main() {
   test('file state store replaces state recoverably and ignores stale temp',
       () async {
@@ -48,8 +47,9 @@ void main() {
     expect(restored?.stage, FirstChapterStage.waitingForConfirmation);
   });
 
-  test('real pipeline preserves human text until adoption and creates snapshot',
-      () async {
+  test(
+    'real pipeline preserves human text until adoption and creates snapshot',
+    () async {
     final temp = Directory.systemTemp.createTempSync('lingbi_real_chapter_');
     addTearDown(() => temp.deleteSync(recursive: true));
     final storage = StorageService();
@@ -114,10 +114,13 @@ void main() {
         .toList();
     expect(snapshots, hasLength(1));
     expect(snapshots.single.readAsStringSync(), '人工正文，不可提前覆盖。');
-  });
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 
-  test('project-bound production DI writes project journal and first chapter',
-      () async {
+  test(
+    'project-bound production DI writes project journal and first chapter',
+    () async {
     final temp = Directory.systemTemp.createTempSync('lingbi_prod_di_');
     addTearDown(() => temp.deleteSync(recursive: true));
     final storage = StorageService();
@@ -203,7 +206,9 @@ void main() {
         contains(LocalMutationJournal.receiptEventType));
     final adoptedContent = await documents.readContent(document.filePath);
     expect(adoptedContent, isNot('人工正文，不可提前覆盖。'));
-  });
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
+  );
 }
 
 LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
