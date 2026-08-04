@@ -17,6 +17,10 @@ import 'package:lingbi/ui_v2/controllers/project_session_manager.dart';
 import 'package:lingbi/ui_v2/models/project_template.dart';
 import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 enum _GoldenStage { welcome, brief, editor }
 
@@ -98,6 +102,7 @@ void main() {
         ),
         canonService: CanonService(zvecService: zvec),
         aiService: AIService(quotaService: QuotaService()),
+        mutationProtocol: _proto('${temp.path}/万界守夜人'),
       );
 
       // Dynamic dispatch keeps the RED executable against the old manager API:
@@ -153,3 +158,11 @@ void main() {
     },
   );
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

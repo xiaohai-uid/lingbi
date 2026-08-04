@@ -66,7 +66,7 @@ class SandboxedSkillApi implements SkillApi {
     this.projectRoot,
     SkillExternalAccess? externalAccess,
     this.auditLog,
-    this.mutationProtocol,
+    required this.mutationProtocol,
   })  : capabilities = Set.unmodifiable(capabilities),
         _delegate = delegate,
         _externalAccess = externalAccess;
@@ -83,8 +83,8 @@ class SandboxedSkillApi implements SkillApi {
   final SkillAuditLog? auditLog;
 
   /// 变更协议：canonWrite 经由此接口创建三记录不变量。
-  /// 为 null 时 fail-closed（拒绝写入）。
-  final MutationProtocol? mutationProtocol;
+  /// 必需注入；缺失时 fail-closed（拒绝写入）。
+  final MutationProtocol mutationProtocol;
 
   /// 真实服务代理（生产环境注入 CanonService/DocumentService 适配器）
   final SkillApi _delegate;
@@ -126,11 +126,6 @@ class SandboxedSkillApi implements SkillApi {
 
     // T01: fail-closed — Skill writes REQUIRE MutationProtocol
     final protocol = mutationProtocol;
-    if (protocol == null) {
-      throw PermissionViolation(
-        'canonWrite requires MutationProtocol (fail-closed) [skill=$skillId]',
-      );
-    }
 
     // T01: Skill origin is propose-only (ADR-010: "read-only unless
     // it returns a proposal"). Physical write happens ONLY after explicit

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'package:lingbi/shared/interfaces/i_project_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/models/project_storage_migration.dart';
@@ -20,12 +21,17 @@ class ProjectService implements IProjectService {
     ZVecService? zvecService,
     FileService? fileService,
     TemplateSeeder? templateSeeder,
+    MutationProtocol? mutationProtocol,
   })  : _zvec = zvecService,
         _fileService = fileService ?? FileService(),
-        _templateSeeder = templateSeeder ?? const TemplateSeeder();
+        _templateSeeder = templateSeeder ?? const TemplateSeeder(),
+        _mutationProtocol = mutationProtocol;
   final ZVecService? _zvec;
   final FileService _fileService;
   final TemplateSeeder _templateSeeder;
+
+  /// 变更协议：brief 写入经由此接口（fail-closed，缺失时拒绝写入）。
+  final MutationProtocol? _mutationProtocol;
 
   /// 创建便携项目 — 先在磁盘建立目录和 .lingbi/project.json，
   /// 再写入 ZVec（若可用）。
@@ -73,7 +79,10 @@ class ProjectService implements IProjectService {
     }
     final lingbiDir = Directory('$directoryPath/.lingbi');
     await lingbiDir.create();
-    final committedBrief = await ProjectBriefRepository(directoryPath).write(
+    final committedBrief = await ProjectBriefRepository(
+      directoryPath,
+      mutationProtocol: _mutationProtocol,
+    ).write(
       requestedBrief,
       expectedRevision: 0,
       baseMetadata: project.toJson(),

@@ -1,6 +1,10 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 
 /// Phase 3 测试：system_command 工具 + 三层安全
@@ -24,6 +28,7 @@ void main() {
   group('system_command 三层安全', () {
     test('白名单命令自动执行', () async {
       final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
         projectDir: tempDir.path,
         confirmCommand: (cmd) async => false, // 即使拒绝也不应被调用
       );
@@ -40,6 +45,7 @@ void main() {
 
     test('黑名单命令直接拒绝', () async {
       final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
         projectDir: tempDir.path,
         confirmCommand: (cmd) async => true, // 即使批准也不应执行
       );
@@ -57,6 +63,7 @@ void main() {
     test('非白非黑命令需确认批准', () async {
       var confirmCalled = false;
       final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
         projectDir: tempDir.path,
         confirmCommand: (cmd) async {
           confirmCalled = true;
@@ -76,6 +83,7 @@ void main() {
 
     test('确认拒绝时返回错误', () async {
       final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
         projectDir: tempDir.path,
         confirmCommand: (cmd) async => false,
       );
@@ -92,6 +100,7 @@ void main() {
 
     test('无确认回调时非白名单命令被拒绝', () async {
       final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
         projectDir: tempDir.path,
         // confirmCommand 为 null
       );
@@ -106,9 +115,21 @@ void main() {
     });
 
     test('specs 包含 system_command', () {
-      final registry = AgentToolRegistry(projectDir: tempDir.path);
+      final registry = AgentToolRegistry(
+        mutationProtocol: _cmdProtocol(),
+        projectDir: tempDir.path,
+      );
       final names = registry.specs.map((s) => s.name).toList();
       expect(names, contains('system_command'));
     });
   });
 }
+
+
+LocalMutationProtocol _cmdProtocol() => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '/tmp/cmd-journal'),
+      store: FileCanonicalStore(
+        projectRoot: '/tmp',
+        atomicStore: AtomicFileStore(),
+      ),
+    );

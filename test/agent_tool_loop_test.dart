@@ -82,9 +82,10 @@ void main() {
       final loop = AgentToolLoop(
         provider: provider,
         registry: AgentToolRegistry(
-                  projectDir: dir.path,
-                  confirmWrite: (p, c) async => true,
-                ),
+          projectDir: dir.path,
+          confirmWrite: (p, c) async => true,
+          mutationProtocol: _loopProtocol(dir.path),
+        ),
         compactor: const SessionCompactor(),
       );
       final result = await loop.run(systemPrompt: 'sys', userGoal: '写一章');
@@ -150,9 +151,10 @@ void main() {
       final loop = AgentToolLoop(
         provider: provider,
         registry: AgentToolRegistry(
-                  projectDir: dir.path,
-                  confirmWrite: (p, c) async => true,
-                ),
+          projectDir: dir.path,
+          confirmWrite: (p, c) async => true,
+          mutationProtocol: _loopProtocol(dir.path),
+        ),
         compactor: const SessionCompactor(),
         maxIterations: 3,
       );
@@ -181,6 +183,7 @@ void main() {
         registry: AgentToolRegistry(
           projectDir: dir.path,
           confirmWrite: (p, c) async => true,
+          mutationProtocol: _loopProtocol(dir.path),
         ),
         compactor: const SessionCompactor(),
         runStore: runStore,
@@ -211,3 +214,12 @@ void main() {
     });
   });
 }
+
+
+LocalMutationProtocol _loopProtocol(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/loop-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

@@ -3,6 +3,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   late Directory sandbox;
@@ -15,7 +19,11 @@ void main() {
     oldRoot = Directory('${sandbox.path}${Platform.pathSeparator}old');
     newRoot = Directory('${sandbox.path}${Platform.pathSeparator}new');
     await oldRoot.create(recursive: true);
-    service = ProjectService();
+    service = ProjectService(
+      mutationProtocol: _proto(
+        '${oldRoot.path}${Platform.pathSeparator}novel',
+      ),
+    );
   });
 
   tearDown(() async {
@@ -113,3 +121,11 @@ void main() {
     expect(discovered.single.directoryPath, targetDir);
   });
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

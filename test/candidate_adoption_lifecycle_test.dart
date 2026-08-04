@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 /// #45 验证：候选采纳 → 原子写入
 ///
@@ -16,7 +20,16 @@ void main() {
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('lingbi_candidate_');
-    service = CandidateService(projectDir: tempDir.path);
+    service = CandidateService(
+      projectDir: tempDir.path,
+      mutationProtocol: LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: '${tempDir.path}/journal'),
+        store: FileCanonicalStore(
+          projectRoot: tempDir.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      ),
+    );
   });
 
   tearDown(() {
@@ -24,7 +37,7 @@ void main() {
   });
 
   group('候选生命周期', () {
-    test('adopt: 候选正文写入正式文件，状态变为 adopted', () {
+    test('adopt: 候选正文写入正式文件，状态变为 adopted', () async {
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '第一章正文内容',
@@ -33,7 +46,7 @@ void main() {
       expect(entry.status, CandidateStatus.pending);
 
       final targetPath = '${tempDir.path}/chapters/chapter-1.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
       // 正式文件存在且内容正确
       final targetFile = File(targetPath);
@@ -84,42 +97,42 @@ void main() {
       expect(updated?.status, CandidateStatus.approved);
     });
 
-    test('已采纳的候选不能再次采纳', () {
+    test('已采纳的候选不能再次采纳', () async {
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '内容',
       );
       final targetPath = '${tempDir.path}/chapters/ch.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
-      expect(
-        () => service.adopt(entry.id, targetPath),
+      await expectLater(
+        service.adopt(entry.id, targetPath),
         throwsStateError,
       );
     });
 
-    test('已拒绝的候选不能采纳', () {
+    test('已拒绝的候选不能采纳', () async {
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '内容',
       );
       service.reject(entry.id);
 
-      expect(
-        () => service.adopt(entry.id, '${tempDir.path}/ch.md'),
+      await expectLater(
+        service.adopt(entry.id, '${tempDir.path}/ch.md'),
         throwsStateError,
       );
     });
   });
 
   group('原子写入保证', () {
-    test('采纳后不存在残留临时文件', () {
+    test('采纳后不存在残留临时文件', () async {
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '原子写入测试',
       );
       final targetPath = '${tempDir.path}/chapters/atomic.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
       // 目标目录中不应有 .tmp 文件
       final chapterDir = Directory('${tempDir.path}/chapters');
@@ -130,7 +143,7 @@ void main() {
       expect(tmpFiles, isEmpty);
     });
 
-    test('目标文件内容与候选完全一致（无截断）', () {
+    test('目标文件内容与候选完全一致（无截断）', () async {
       // 使用较长内容验证完整性
       final longContent = '段落内容。' * 1000;
       final entry = service.createCandidate(
@@ -138,20 +151,20 @@ void main() {
         content: longContent,
       );
       final targetPath = '${tempDir.path}/chapters/long.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
       final written = File(targetPath).readAsStringSync();
       expect(written.length, longContent.length);
       expect(written, longContent);
     });
 
-    test('目标目录不存在时自动创建', () {
+    test('目标目录不存在时自动创建', () async {
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '深层目录',
       );
       final targetPath = '${tempDir.path}/deep/nested/dir/ch.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
       expect(File(targetPath).existsSync(), isTrue);
       expect(File(targetPath).readAsStringSync(), '深层目录');

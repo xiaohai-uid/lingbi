@@ -4,6 +4,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/writing/data/pipeline/pipeline.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   group('GenerationContext', () {
@@ -234,7 +238,10 @@ void main() {
 
     setUp(() {
       tempDir = Directory.systemTemp.createTempSync('lingbi_cand_');
-      service = CandidateService(projectDir: tempDir.path);
+      service = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
     });
 
     tearDown(() {
@@ -274,13 +281,13 @@ void main() {
       expect(list.length, 2);
     });
 
-    test('采纳候选', () {
+    test('采纳候选', () async {
       final entry = service.createCandidate(
         chapterId: 'ch_005',
         content: '正式正文内容',
       );
       final targetPath = '${tempDir.path}/output/ch005.md';
-      service.adopt(entry.id, targetPath);
+      await service.adopt(entry.id, targetPath);
 
       // 验证正文写入
       expect(File(targetPath).readAsStringSync(), '正式正文内容');
@@ -302,14 +309,14 @@ void main() {
       expect(updated.metadata['reject_reason'], '质量不达标');
     });
 
-    test('不能采纳已拒绝的候选', () {
+    test('不能采纳已拒绝的候选', () async {
       final entry = service.createCandidate(
         chapterId: 'ch_007',
         content: '内容',
       );
       service.reject(entry.id);
-      expect(
-        () => service.adopt(entry.id, '${tempDir.path}/out.md'),
+      await expectLater(
+        service.adopt(entry.id, '${tempDir.path}/out.md'),
         throwsStateError,
       );
     });
@@ -480,3 +487,11 @@ void main() {
     });
   });
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

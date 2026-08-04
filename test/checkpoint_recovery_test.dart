@@ -9,6 +9,10 @@ import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/features/writing/services/agent/session_compactor.dart';
 import 'package:lingbi/services/runtime/jsonl_run_store.dart';
 
@@ -145,6 +149,7 @@ void main() {
       final loop = AgentToolLoop(
         provider: provider,
         registry: AgentToolRegistry(
+          mutationProtocol: _checkpointProtocol(),
           projectDir: projectDir.path,
           confirmWrite: (p, c) async => true,
         ),
@@ -213,3 +218,12 @@ class _ScriptedProvider extends AIProvider {
   @override
   Future<void> dispose() async {}
 }
+
+
+LocalMutationProtocol _checkpointProtocol() => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '/tmp/cp-journal'),
+      store: FileCanonicalStore(
+        projectRoot: '/tmp',
+        atomicStore: AtomicFileStore(),
+      ),
+    );

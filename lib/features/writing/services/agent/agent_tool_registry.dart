@@ -67,7 +67,7 @@ class AgentToolRegistry {
     this.onToolEvent,
     this.readCapChars = 8000,
     this.versionHistoryService,
-    this.mutationProtocol,
+    required this.mutationProtocol,
     this.processRunner,
   }) : store = store ?? AtomicFileStore();
 
@@ -92,8 +92,8 @@ class AgentToolRegistry {
   final VersionHistoryService? versionHistoryService;
 
   /// 变更协议：file_write 经由此接口创建 candidate → approval → commit。
-  /// 为 null 时 fail-closed 拒绝写入（Task D1）。
-  final MutationProtocol? mutationProtocol;
+  /// 必需注入；缺失时 fail-closed 拒绝写入（Task D1）。
+  final MutationProtocol mutationProtocol;
 
   /// 进程容器：system_command 经由此接口执行（Task D2）。
   /// 为 null 时走旧路径（cmd /c，向后兼容）。
@@ -294,15 +294,7 @@ class AgentToolRegistry {
     }
 
     // 经 MutationProtocol 路由（Task A1 + D1 fail-closed）
-    final protocol = mutationProtocol;
-    if (protocol == null) {
-      return ToolResult(
-        content: 'APPROVAL_REQUIRED: 写入 $rawPath 被拒绝——MutationProtocol 未注入，禁止直接写入。',
-        isError: true,
-        display: '写入被拒绝（无变更协议）',
-      );
-    }
-    return _fileWriteViaProtocol(protocol, rawPath, resolved, content);
+    return _fileWriteViaProtocol(mutationProtocol, rawPath, resolved, content);
   }
 
   /// 经 MutationProtocol 的 propose → confirm → decide → commit 流程。
@@ -344,6 +336,7 @@ class AgentToolRegistry {
       await protocol.reject(RejectCommand(
         candidateId: candidate.id,
         actorId: 'user',
+        projectId: projectDir,
         reason: '用户拒绝写入',
       ));
       return ToolResult(
@@ -358,6 +351,7 @@ class AgentToolRegistry {
       actorId: 'user',
       approved: true,
       policy: 'agent_tool_confirm',
+      projectId: projectDir,
     ));
     final approval = decideResult.when(
       success: (a) => a,
@@ -383,6 +377,7 @@ class AgentToolRegistry {
       candidateId: candidate.id,
       approvalId: approval.id,
       idempotencyKey: 'fw-${candidate.id}',
+      projectId: projectDir,
     ));
     final committed = commitResult.when(
       success: (r) => r,

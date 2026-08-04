@@ -152,7 +152,7 @@ class SyncManager {
   final WebDavService? _webDav;
 
   /// 变更协议：applyIncoming 经由此接口创建三记录不变量（origin: batchImport）。
-  /// 为 null 时仅执行物理写入（向后兼容）。
+  /// 为 null 时写入 fail-closed（拒绝物理写入）。
   final MutationProtocol? mutationProtocol;
 
   SyncStatus _status = const SyncStatus(state: SyncState.idle);
@@ -322,7 +322,7 @@ class SyncManager {
 
     // T01: batchImport origin uses propose-only (explicit approval required).
     // The file is NOT written until user approves the candidate.
-    await protocol.propose(ChangeRequest(
+    final result = await protocol.propose(ChangeRequest(
       projectId: projectDir,
       origin: ChangeOrigin.batchImport,
       action: ChangeAction.replaceText,
@@ -333,6 +333,11 @@ class SyncManager {
       baseRevision: 0,
       payload: content,
     ));
+    if (result.errorOrNull() != null) {
+      throw StateError(
+        'applyIncoming propose failed: ${result.errorOrNull()}',
+      );
+    }
   }
 
   /// Task E2: 经 StagedRestore 做完整项目恢复（hash 验证 + 原子应用）。

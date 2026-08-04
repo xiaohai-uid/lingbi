@@ -7,6 +7,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
+
 /// 候选条目状态
 enum CandidateStatus {
   /// 刚生成，待审稿
@@ -93,8 +96,37 @@ class CandidateEntry {
 /// 管理 {projectDir}/.lingbi/candidates/ 目录下的所有 AI 候选输出。
 /// 每个候选以 JSON 文件存储（含元数据），正文内容以 .md 文件存储。
 class CandidateService {
-  CandidateService({required String projectDir})
-      : _candidatesDir = Directory('$projectDir/.lingbi/candidates');
+  CandidateService({
+    required String projectDir,
+    MutationProtocol? mutationProtocol,
+    String? projectId,
+  })  : _candidatesDir = Directory('$projectDir/.lingbi/candidates'),
+        _mutationProtocol = mutationProtocol,
+        _projectId = projectId;
+
+  final String? _projectId;
+
+  String get _projectDir => _candidatesDir.parent.parent.path;
+
+  /// 调用方传入的是绝对目标路径；协议需要项目相对路径。
+  String _relativeToProject(String targetFilePath) {
+    // 前缀比较对斜杠与大小写不敏感（Windows 反斜杠 vs 正斜杠、盘符大小写），
+    // 避免匹配失败时把绝对路径当作项目相对路径交给协议（PATH_ESCAPE）。
+    final projectRoot = _projectDir.replaceAll(r'\', '/').toLowerCase();
+    final target = targetFilePath.replaceAll(r'\', '/').toLowerCase();
+    if (target.startsWith(projectRoot)) {
+      var relative = target.substring(projectRoot.length);
+      while (relative.startsWith('/')) {
+        relative = relative.substring(1);
+      }
+      return relative;
+    }
+    return target;
+  }
+
+  /// 变更协议：adopt 经由此接口写入正式正文（userUi origin，隐式批准）。
+  /// 为 null 时 fail-closed（拒绝采纳写入）。
+  final MutationProtocol? _mutationProtocol;
 
   final Directory _candidatesDir;
 
@@ -192,7 +224,7 @@ class CandidateService {
   ///
   /// 使用 tmp+rename 模式保证原子性：写入中途失败不产生半截文件。
   /// 返回采纳后的正文文件路径。
-  String adopt(String candidateId, String targetFilePath) {
+  Future<String> adopt(String candidateId, String targetFilePath) async {
     final entry = getCandidate(candidateId);
     if (entry == null) {
       throw StateError('候选不存在: $candidateId');
@@ -204,12 +236,29 @@ class CandidateService {
       throw StateError('候选已被拒绝，不能采纳');
     }
 
-    // 原子写入正式正文：tmp → rename（rename 自身原子替换已存在目标）
-    final targetFile = File(targetFilePath);
-    final tmpFile = File('$targetFilePath.tmp');
-    targetFile.parent.createSync(recursive: true);
-    tmpFile.writeAsStringSync(entry.content, flush: true);
-    tmpFile.renameSync(targetFilePath);
+    // T01: fail-closed — 采纳写入 REQUIRE MutationProtocol（userUi 隐式批准）。
+    final protocol = _mutationProtocol;
+    if (protocol == null) {
+      throw StateError(
+        'CandidateService.adopt requires MutationProtocol (fail-closed)',
+      );
+    }
+    final result = await protocol.applyUserEdit(ChangeRequest(
+      projectId: _projectId ?? _projectDir,
+      origin: ChangeOrigin.userUi,
+      action: ChangeAction.replaceText,
+      target: ChangeTarget(
+        projectRelativePath: _relativeToProject(targetFilePath),
+        kind: 'chapter',
+      ),
+      baseRevision: 0,
+      payload: entry.content,
+    ));
+    if (result.errorOrNull() != null) {
+      throw StateError(
+        'adopt failed for $candidateId: ${result.errorOrNull()}',
+      );
+    }
 
     // 更新候选状态
     entry.status = CandidateStatus.adopted;

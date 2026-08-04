@@ -9,6 +9,9 @@ import 'package:lingbi/features/skill/data/skill/skill_executor.dart';
 import 'package:lingbi/features/skill/data/skill/skill_manifest_verifier.dart';
 import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
 import 'package:lingbi/features/skill/data/skill_marketplace.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 void main() {
   late Directory tempDir;
@@ -116,6 +119,7 @@ void main() {
         projectId: 'project-a',
         skillId: 'malicious-skill',
         externalAccess: external,
+        mutationProtocol: _NoopProtocol(),
         auditLog: audit,
       );
 
@@ -137,6 +141,7 @@ void main() {
         projectId: 'project-a',
         skillId: 'malicious-skill',
         externalAccess: external,
+        mutationProtocol: _NoopProtocol(),
       );
 
       await expectLater(
@@ -155,6 +160,7 @@ void main() {
         skillId: 'scoped-skill',
         capabilities: const {'secret.read:provider-token'},
         externalAccess: external,
+        mutationProtocol: _NoopProtocol(),
       );
 
       await expectLater(
@@ -173,6 +179,7 @@ void main() {
         skillId: 'path-skill',
         projectRoot: tempDir.path,
         capabilities: const {'project.file.read'},
+        mutationProtocol: _NoopProtocol(),
       );
 
       await expectLater(
@@ -342,4 +349,66 @@ class _FakeSkillApi implements SkillApi {
     String documentId,
     String content,
   ) async {}
+}
+
+class _NoopProtocol implements MutationProtocol {
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      Result.success(CandidateChange(
+        id: 'noop-cand',
+        projectId: request.projectId,
+        origin: request.origin,
+        action: request.action,
+        target: request.target,
+        baseRevision: request.baseRevision,
+        payloadHash: 'noop',
+        actionHash: 'noop',
+        createdAt: DateTime.now().toUtc(),
+        state: CandidateState.proposed,
+      ));
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      Result.success(ApprovalDecision(
+        id: 'noop-appr',
+        candidateId: command.candidateId,
+        candidateHash: 'noop',
+        actionHash: 'noop',
+        baseRevision: 0,
+        actorId: command.actorId,
+        approved: command.approved,
+        decidedAt: DateTime.now().toUtc(),
+        policy: command.policy,
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      Result.success(CommitReceipt(
+        id: 'noop-rcpt',
+        candidateId: command.candidateId,
+        approvalId: command.approvalId,
+        idempotencyKey: command.idempotencyKey,
+        beforeRevision: 0,
+        afterRevision: 1,
+        affectedPaths: const [],
+        committedAt: DateTime.now().toUtc(),
+        receiptHash: 'noop',
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      commit(CommitCommand(
+        candidateId: 'noop-cand',
+        approvalId: 'noop-appr',
+        idempotencyKey: request.idempotencyKey ?? 'noop-idem',
+      ));
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(
+          String projectId) async =>
+      Result.success(const []);
 }

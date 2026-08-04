@@ -21,6 +21,8 @@ import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
+import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 
 // ═══════════════════════════════════════════════════════════
@@ -145,23 +147,25 @@ void main() {
         reason: 'Skill 提案未被 commit（等待用户审批）');
   });
 
-  test('场景 3：Skill origin — protocol==null → fail-closed', () async {
+  test('场景 3：Skill origin — 协议不可用时 fail-closed，delegate 不调用', () async {
     final trackingApi = TrackingSkillApi();
     final sandboxNoProtocol = SandboxedSkillApi(
       permissions: PermissionSet.fromStrings(['canon.write']),
       delegate: trackingApi,
-      mutationProtocol: null,
+      mutationProtocol: _UnavailableProtocol(),
       skillId: 'no-protocol-skill',
     );
 
-    expect(
-      () => sandboxNoProtocol.canonWrite(
+    await expectLater(
+      sandboxNoProtocol.canonWrite(
         'proj-1',
         CanonEntry(projectId: 'proj-1', type: CanonEntryType.lore, name: 'x'),
       ),
-      throwsA(isA<PermissionViolation>()),
-      reason: 'protocol==null 时抛出 PermissionViolation（fail-closed）',
+      throwsStateError,
+      reason: '协议不可用时 propose 失败 → StateError（fail-closed）',
     );
+    expect(trackingApi.calls, isNot(contains('canonWrite')),
+        reason: 'delegate.canonWrite 未被调用');
   });
 
   test('场景 4：Agent origin — 显式批准后才能 commit', () async {
@@ -332,4 +336,34 @@ void main() {
       reason: '无 canon.write 权限时抛出 PermissionViolation',
     );
   });
+}
+
+/// 协议不可用时的 fail-closed 替身：所有操作返回 protocolUnavailable。
+class _UnavailableProtocol implements MutationProtocol {
+  Result<Never> get _unavailable =>
+      Result.failure(FileError('protocolUnavailable', code: 'PROTOCOL_UNAVAILABLE'));
+
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      _unavailable;
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      _unavailable;
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      _unavailable;
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      _unavailable;
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async => _unavailable;
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(
+          String projectId) async =>
+      _unavailable;
 }

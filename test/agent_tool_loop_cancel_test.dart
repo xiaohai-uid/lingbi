@@ -1,6 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_loop.dart';
 import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 
 /// Phase 1.3 测试：停止生成机制
@@ -14,7 +18,10 @@ void main() {
     test('cancel() 中断工具循环', () async {
       // 构造一个会无限调用工具的 mock provider
       final provider = _InfiniteToolProvider();
-      final registry = AgentToolRegistry(projectDir: '/tmp/test');
+      final registry = AgentToolRegistry(
+          projectDir: '/tmp/test',
+          mutationProtocol: _cancelProtocol(),
+        );
       final loop = AgentToolLoop(
         provider: provider,
         registry: registry,
@@ -43,7 +50,10 @@ void main() {
 
     test('cancel 后新 run 正常工作', () async {
       final provider = _InfiniteToolProvider();
-      final registry = AgentToolRegistry(projectDir: '/tmp/test');
+      final registry = AgentToolRegistry(
+          projectDir: '/tmp/test',
+          mutationProtocol: _cancelProtocol(),
+        );
       final loop = AgentToolLoop(
         provider: provider,
         registry: registry,
@@ -129,3 +139,12 @@ class _InfiniteToolProvider extends AIProvider {
   @override
   Future<void> dispose() async {}
 }
+
+
+LocalMutationProtocol _cancelProtocol() => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '/tmp/test/.lingbi/cj'),
+      store: FileCanonicalStore(
+        projectRoot: '/tmp/test',
+        atomicStore: AtomicFileStore(),
+      ),
+    );

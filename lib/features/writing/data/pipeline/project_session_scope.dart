@@ -6,6 +6,7 @@
 library;
 
 import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 
@@ -23,6 +24,7 @@ class ProjectSessionScope implements ProjectScopeApi {
     required DocumentService documentService,
     required CanonService canonService,
     required AIService aiService,
+    MutationProtocol? mutationProtocol,
   })  : _projectId = projectId,
         _projectDir = projectDir,
         novelService = NovelApplicationService(
@@ -31,6 +33,7 @@ class ProjectSessionScope implements ProjectScopeApi {
           documentService: documentService,
           canonService: canonService,
           aiService: aiService,
+          mutationProtocol: mutationProtocol,
         );
 
   final String _projectId;
