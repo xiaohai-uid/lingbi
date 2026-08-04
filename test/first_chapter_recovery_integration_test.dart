@@ -18,6 +18,9 @@ import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
+/// real pipeline 测试含 AI 调用（无 key 时走 fallback，CI 并行下较慢），
+/// 放宽默认 30 秒超时避免环境性 flake。
+@Timeout(Duration(minutes: 3))
 void main() {
   test('file state store replaces state recoverably and ignores stale temp',
       () async {

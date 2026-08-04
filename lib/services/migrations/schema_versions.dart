@@ -6,4 +6,7 @@ abstract final class SchemaVersions {
   static const int project = 2;
   static const int settings = 2;
   static const int portablePackage = 1;
+
+  /// Migration baseline 文件格式版本（MP-09，`<root>/.lingbi-migration/`）。
+  static const int migrationBaseline = 1;
 }

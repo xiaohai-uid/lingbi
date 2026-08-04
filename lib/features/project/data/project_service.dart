@@ -14,7 +14,26 @@ import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/project/data/project_brief_repository.dart';
+import 'package:lingbi/services/migrations/legacy_canonical_reader.dart';
+import 'package:lingbi/services/migrations/schema_versions.dart';
 import 'package:lingbi/services/template_seeder.dart';
+
+/// 项目身份分类（MP-09）：同一 id 出现在多个目录时的处理。
+enum ProjectIdentityKind { unique, moved, duplicateCopy }
+
+final class ProjectIdentity {
+  const ProjectIdentity({
+    required this.kind,
+    required this.project,
+    this.existingDirectory,
+  });
+
+  final ProjectIdentityKind kind;
+  final Project project;
+
+  /// duplicateCopy/moved 时原注册目录（若可知）。
+  final String? existingDirectory;
+}
 
 class ProjectService implements IProjectService {
   ProjectService({
@@ -102,7 +121,14 @@ class ProjectService implements IProjectService {
 
   /// 从目录打开便携项目 — 读取 .lingbi/project.json（若不存在则从目录名推断），
   /// 扫描磁盘 .md 文件重建文档列表。不要求 ZVec 可用。
-  Future<({Project project, List<Document> documents})> openPortableProject(
+  ///
+  /// MP-09: legacy 元数据（无 schemaVersion）只读打开，绝不改写；
+  /// 返回身份分类（unique / moved / duplicateCopy）。
+  Future<({
+    Project project,
+    List<Document> documents,
+    ProjectIdentity identity,
+  })> openPortableProject(
     String directoryPath,
   ) async {
     final dir = Directory(directoryPath);
@@ -110,9 +136,28 @@ class ProjectService implements IProjectService {
       throw FileSystemException('项目目录不存在', directoryPath);
     }
 
+    final kind = await LegacyCanonicalReader.inspect(directoryPath);
+    Project project;
+    if (kind == ProjectMetadataKind.legacy) {
+      // 只读打开：legacy 元数据不经修改、不索引（Task 9）。
+      final legacy = LegacyCanonicalReader.projectFromLegacy(directoryPath);
+      if (legacy == null) {
+        throw FileSystemException('项目元数据不可读', directoryPath);
+      }
+      project = legacy;
+      final docs = await scanDocumentsFromDisk(directoryPath, project.id);
+      return (
+        project: project,
+        documents: docs,
+        identity: classifyIdentity(
+          project,
+          knownProjects: await _knownProjects(),
+        ),
+      );
+    }
+
     final sep = Platform.pathSeparator;
     final metaFile = File('$directoryPath$sep.lingbi${sep}project.json');
-    Project project;
     if (metaFile.existsSync()) {
       final json =
           jsonDecode(await metaFile.readAsString()) as Map<String, dynamic>;
@@ -129,12 +174,133 @@ class ProjectService implements IProjectService {
     // an interrupted storage move recoverable when metadata still has the
     // previous absolute path.
     project.directoryPath = directoryPath;
-    // Keep the registry's location projection aligned with the directory the
-    // user actually opened. The stable project ID remains unchanged.
-    await _zvec?.upsert('projects', project.id, project.toJson());
 
+    // Classify BEFORE any index write: the pre-open registry still carries
+    // the original location, which distinguishes move from duplicate copy.
+    final known = await _knownProjects();
+    final identity = classifyIdentity(project, knownProjects: known);
+    // Block: a duplicate copy is never silently registered under the
+    // original id; the user must explicitly adopt a new identity.
+    if (identity.kind != ProjectIdentityKind.duplicateCopy) {
+      await _zvec?.upsert('projects', project.id, project.toJson());
+    }
     final docs = await scanDocumentsFromDisk(directoryPath, project.id);
-    return (project: project, documents: docs);
+    return (project: project, documents: docs, identity: identity);
+  }
+
+  /// 分类项目身份（MP-09）：
+  /// - 同一 id 未在已知项目中 → unique
+  /// - 同一 id 的原注册目录已不存在 → moved（目录重绑）
+  /// - 同一 id 的原注册目录仍在 → duplicateCopy（必须显式采纳新身份）
+  ProjectIdentity classifyIdentity(
+    Project project, {
+    required List<Project> knownProjects,
+  }) {
+    Project? sameId;
+    for (final known in knownProjects) {
+      if (known.id == project.id) {
+        sameId = known;
+        break;
+      }
+    }
+    if (sameId == null) {
+      return ProjectIdentity(kind: ProjectIdentityKind.unique, project: project);
+    }
+    if (p.equals(p.normalize(sameId.directoryPath),
+        p.normalize(project.directoryPath))) {
+      return ProjectIdentity(kind: ProjectIdentityKind.unique, project: project);
+    }
+    if (Directory(sameId.directoryPath).existsSync()) {
+      return ProjectIdentity(
+        kind: ProjectIdentityKind.duplicateCopy,
+        project: project,
+        existingDirectory: sameId.directoryPath,
+      );
+    }
+    return ProjectIdentity(
+      kind: ProjectIdentityKind.moved,
+      project: project,
+      existingDirectory: sameId.directoryPath,
+    );
+  }
+
+  /// 把重复副本采纳为独立项目：分配新 ID 与 provenance，
+  /// 并经 MutationProtocol 重写 .lingbi/project.json（fail-closed）。
+  Future<Result<Project>> adoptIndependentCopy(String directoryPath) async {
+    final raw = await LegacyCanonicalReader.readRawMetadata(directoryPath);
+    final current = LegacyCanonicalReader.projectFromLegacy(directoryPath);
+    if (current == null || raw == null) {
+      return Result.failure(FileError(
+        '项目元数据不可读: $directoryPath',
+        code: 'NOT_FOUND',
+      ));
+    }
+    final protocol = _mutationProtocol;
+    if (protocol == null) {
+      return Result.failure(FileError(
+        'MutationProtocol required for identity adoption (fail-closed)',
+        code: 'PROTOCOL_REQUIRED',
+      ));
+    }
+
+    final copy = Project(
+      name: current.name,
+      description: current.description,
+      directoryPath: directoryPath,
+      targetPlatform: current.targetPlatform,
+      genre: current.genre,
+      audience: current.audience,
+      templateId: current.templateId,
+      targetLength: current.targetLength,
+      premise: current.premise,
+      provenance: 'copy-of:${current.id}',
+    );
+    final nested = raw['projectBrief'];
+    final brief = nested is Map<String, dynamic>
+        ? ProjectBrief.fromJson(nested)
+        : ProjectBrief(
+            title: current.name,
+            genreId: current.genre,
+            templateId: current.templateId,
+            premise: current.premise,
+          );
+
+    try {
+      await ProjectBriefRepository(
+        directoryPath,
+        mutationProtocol: protocol,
+      ).write(
+        brief,
+        expectedRevision: current.briefRevision,
+        baseMetadata: {
+          ...raw,
+          'schemaVersion': SchemaVersions.project,
+          'id': copy.id,
+          'name': copy.name,
+          'directoryPath': directoryPath,
+          if (copy.provenance != null) 'provenance': copy.provenance,
+        },
+      );
+    } catch (error) {
+      return Result.failure(FileError(
+        '身份采纳失败: $error',
+        code: 'ADOPT_FAILED',
+      ));
+    }
+    return Result.success(copy);
+  }
+
+  Future<List<Project>> _knownProjects() async {
+    final zvec = _zvec;
+    if (zvec == null) return const [];
+    final results = await zvec.query('projects');
+    return results.map((json) {
+      try {
+        return Project.fromJson(json);
+      } catch (_) {
+        return null;
+      }
+    }).whereType<Project>().toList();
   }
 
   /// 扫描目录中所有 .md 文件（跳过 .lingbi/），返回 Document 列表。
