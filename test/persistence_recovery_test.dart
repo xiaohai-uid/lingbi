@@ -4,6 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/project/data/project_brief_repository.dart';
 import 'package:lingbi/features/writing/data/pipeline/candidate_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 /// #46 验证：重启恢复（数据持久化）
 ///
@@ -23,7 +27,7 @@ void main() {
   group('重启后数据完整性', () {
     test('ProjectBrief 重启后所有字段完整', () async {
       // 模拟向导完成 → 写入 ProjectBrief
-      final repo = ProjectBriefRepository(tempDir.path);
+      final repo = ProjectBriefRepository(tempDir.path, mutationProtocol: _proto(tempDir.path));
       const brief = ProjectBrief(
         title: '万界守夜人',
         genreId: '玄幻',
@@ -33,7 +37,7 @@ void main() {
       await repo.write(brief, expectedRevision: 0);
 
       // 模拟"重启"：重新实例化 repository
-      final restoredRepo = ProjectBriefRepository(tempDir.path);
+      final restoredRepo = ProjectBriefRepository(tempDir.path, mutationProtocol: _proto(tempDir.path));
       final restored = await restoredRepo.read();
 
       expect(restored.title, '万界守夜人');
@@ -45,16 +49,22 @@ void main() {
 
     test('已采纳章节重启后文件存在且内容正确', () async {
       // 模拟候选 → 采纳
-      final service = CandidateService(projectDir: tempDir.path);
+      final service = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '第一章：守夜人的觉醒\n\n林渊站在楼顶，看着灵气如潮水般涌来。',
       );
       final chapterPath = '${tempDir.path}/chapters/chapter-1.md';
-      service.adopt(entry.id, chapterPath);
+      await service.adopt(entry.id, chapterPath);
 
       // 模拟"重启"：重新实例化 service，验证文件和候选状态
-      final restoredService = CandidateService(projectDir: tempDir.path);
+      final restoredService = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
 
       // 章节文件存在
       final chapterFile = File(chapterPath);
@@ -70,14 +80,20 @@ void main() {
     });
 
     test('未采纳候选重启后仍可审阅', () async {
-      final service = CandidateService(projectDir: tempDir.path);
+      final service = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       service.createCandidate(
         chapterId: 'chapter-1',
         content: '待审阅的候选正文',
       );
 
       // 模拟"重启"
-      final restoredService = CandidateService(projectDir: tempDir.path);
+      final restoredService = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       final pending = restoredService.listPendingAdoption();
 
       expect(pending.length, 1);
@@ -86,13 +102,16 @@ void main() {
     });
 
     test('崩溃恢复：tmp 文件不干扰正常读取', () async {
-      final service = CandidateService(projectDir: tempDir.path);
+      final service = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       final entry = service.createCandidate(
         chapterId: 'chapter-1',
         content: '正常内容',
       );
       final chapterPath = '${tempDir.path}/chapters/chapter-1.md';
-      service.adopt(entry.id, chapterPath);
+      await service.adopt(entry.id, chapterPath);
 
       // 模拟崩溃残留：手动创建一个 .tmp 文件
       File('$chapterPath.tmp').writeAsStringSync('半截数据');
@@ -102,7 +121,10 @@ void main() {
       expect(chapterFile.readAsStringSync(), '正常内容');
 
       // 候选状态不受 tmp 影响
-      final restoredService = CandidateService(projectDir: tempDir.path);
+      final restoredService = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       expect(
         restoredService.getCandidate(entry.id)?.status.name,
         'adopted',
@@ -110,7 +132,7 @@ void main() {
     });
 
     test('ProjectBrief 不可丢弃：revision 递增保护', () async {
-      final repo = ProjectBriefRepository(tempDir.path);
+      final repo = ProjectBriefRepository(tempDir.path, mutationProtocol: _proto(tempDir.path));
       const brief = ProjectBrief(
         title: '长夜',
         genreId: '悬疑',
@@ -138,7 +160,7 @@ void main() {
   group('端到端持久化链路', () {
     test('向导→项目→候选→采纳→重启→验证全部数据', () async {
       // 1. 模拟向导完成 → 写入 ProjectBrief
-      final briefRepo = ProjectBriefRepository(tempDir.path);
+      final briefRepo = ProjectBriefRepository(tempDir.path, mutationProtocol: _proto(tempDir.path));
       const brief = ProjectBrief(
         title: '端到端测试',
         genreId: '都市',
@@ -148,18 +170,22 @@ void main() {
       await briefRepo.write(brief, expectedRevision: 0);
 
       // 2. 模拟候选生成 → 采纳
-      final candidateService = CandidateService(projectDir: tempDir.path);
+      final candidateService = CandidateService(
+        projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
+      );
       final candidate = candidateService.createCandidate(
         chapterId: 'chapter-1',
         content: '端到端测试正文',
       );
       final chapterPath = '${tempDir.path}/chapters/chapter-1.md';
-      candidateService.adopt(candidate.id, chapterPath);
+      await candidateService.adopt(candidate.id, chapterPath);
 
       // 3. 模拟"重启"：全部重新实例化
-      final restoredBriefRepo = ProjectBriefRepository(tempDir.path);
+      final restoredBriefRepo = ProjectBriefRepository(tempDir.path, mutationProtocol: _proto(tempDir.path));
       final restoredCandidateService = CandidateService(
         projectDir: tempDir.path,
+        mutationProtocol: _proto(tempDir.path),
       );
 
       // 4. 验证全部数据
@@ -178,3 +204,11 @@ void main() {
     });
   });
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

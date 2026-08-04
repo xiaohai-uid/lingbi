@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/recovery_center_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 /// 版本快照元数据
 class VersionInfo {
@@ -41,11 +42,27 @@ class VersionHistoryService implements IVersionHistoryService {
   VersionHistoryService({
     AtomicFileStore? atomicStore,
     RecoveryCenterService? recoveryCenter,
+    MutationProtocol? mutationProtocol,
   })  : _atomicStore = atomicStore ?? AtomicFileStore(),
-        _recoveryCenter = recoveryCenter ?? RecoveryCenterService();
+        _recoveryCenter = recoveryCenter,
+        _mutationProtocol = mutationProtocol;
 
   final AtomicFileStore _atomicStore;
-  final RecoveryCenterService _recoveryCenter;
+  final RecoveryCenterService? _recoveryCenter;
+  final MutationProtocol? _mutationProtocol;
+
+  /// 懒构建：restore 时才需要 RecoveryCenterService。
+  RecoveryCenterService get _center {
+    final center = _recoveryCenter;
+    if (center != null) return center;
+    final protocol = _mutationProtocol;
+    if (protocol == null) {
+      throw StateError(
+        'VersionHistoryService.restore requires MutationProtocol (fail-closed)',
+      );
+    }
+    return RecoveryCenterService(mutationProtocol: protocol);
+  }
 
   /// 保存一个新版本快照
   @override
@@ -92,7 +109,7 @@ class VersionHistoryService implements IVersionHistoryService {
       for (final old in toRemove) {
         final oldFile = File('${versionsDir.path}/${old.id}.md');
         if (await oldFile.exists()) {
-          await _recoveryCenter.softDelete(projectDir, oldFile.path);
+          await _center.softDelete(projectDir, oldFile.path);
         }
       }
       versions = versions.sublist(versions.length - 50);

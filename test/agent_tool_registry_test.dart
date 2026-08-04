@@ -7,7 +7,11 @@ import 'package:lingbi/features/writing/services/agent/agent_tool_registry.dart'
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 void main() {
   group('AgentToolRegistry 沙箱', () {
@@ -107,6 +111,13 @@ void main() {
         projectDir: dir.path,
         askUser: (q, o) async => 'ok',
         skillLookup: (n) async => 'body',
+        mutationProtocol: LocalMutationProtocol(
+          journal: LocalMutationJournal(basePath: '${dir.path}/j2'),
+          store: FileCanonicalStore(
+            projectRoot: dir.path,
+            atomicStore: AtomicFileStore(),
+          ),
+        ),
       );
       final names = reg2.specs.map((s) => s.name).toList();
       expect(names, containsAll(['file_read', 'file_write', 'list_dir', 'question', 'skill_lookup']));
@@ -183,17 +194,43 @@ void main() {
       expect(types, isNot(contains('candidate_committed')));
     });
 
-    test('file_write 无 MutationProtocol 时 fail-closed 拒绝写入', () async {
+    test('file_write 协议失败时 fail-closed 拒绝写入', () async {
       final reg = AgentToolRegistry(
         projectDir: dir.path,
         confirmWrite: (p, c) async => true,
-        // 不传 mutationProtocol
+        mutationProtocol: _FailingProtocol(),
       );
       final w = await reg
           .execute(call('file_write', {'path': 'y.md', 'content': 'hello'}));
       expect(w.isError, isTrue);
-      expect(w.content, contains('APPROVAL_REQUIRED'));
       expect(File('${dir.path}/y.md').existsSync(), isFalse);
     });
   });
+}
+
+
+class _FailingProtocol implements MutationProtocol {
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(String projectId) async =>
+      Result.failure(FileError('injected', code: 'FAIL_CLOSED'));
 }

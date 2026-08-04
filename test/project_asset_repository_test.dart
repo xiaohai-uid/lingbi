@@ -121,7 +121,10 @@ void main() {
     final storage = StorageService();
     final zvec = ZVecService(storageService: storage);
     await zvec.initialize(dbPath: '${tempDir.path}/db');
-    final projects = ProjectService(zvecService: zvec);
+    final projects = ProjectService(
+      zvecService: zvec,
+      mutationProtocol: protocol,
+    );
     final project = await projects.createPortableProject(
       name: '幂等项目',
       directoryPath: '${tempDir.path}/project',

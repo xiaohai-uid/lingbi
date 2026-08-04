@@ -22,7 +22,10 @@ void main() {
   });
 
   test('round trip preserves template genre and increments revision', () async {
-    final repository = ProjectBriefRepository(tempDir.path);
+    final repository = ProjectBriefRepository(
+      tempDir.path,
+      mutationProtocol: _briefProtocol(tempDir.path),
+    );
     const brief = ProjectBrief(
       title: '长夜',
       genreId: 'xuanhuan',
@@ -41,7 +44,10 @@ void main() {
   });
 
   test('stale expected revision cannot overwrite a newer brief', () async {
-    final repository = ProjectBriefRepository(tempDir.path);
+    final repository = ProjectBriefRepository(
+      tempDir.path,
+      mutationProtocol: _briefProtocol(tempDir.path),
+    );
     const brief = ProjectBrief(
       title: '长夜',
       genreId: 'xuanhuan',
@@ -124,7 +130,9 @@ void main() {
       premise: '失踪者每天寄回一封信。',
     );
 
-    final project = await ProjectService().createPortableProject(
+    final project = await ProjectService(
+      mutationProtocol: _briefProtocol(projectDir),
+    ).createPortableProject(
       directoryPath: projectDir,
       brief: brief,
     );
@@ -138,3 +146,12 @@ void main() {
     expect(json['projectBrief']['revision'], 1);
   });
 }
+
+
+LocalMutationProtocol _briefProtocol(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

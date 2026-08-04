@@ -11,6 +11,7 @@ import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 // ==================== Fake SkillApi ====================
 
@@ -250,6 +251,7 @@ requires:
       final sandboxedApi = SandboxedSkillApi(
         permissions: skill.permissions!,
         delegate: fakeApi,
+        mutationProtocol: _e2eNoopProtocol(),
       );
 
       expect(
@@ -412,6 +414,7 @@ requires:
       final roApi = SandboxedSkillApi(
         permissions: roSkill.permissions!,
         delegate: FakeSkillApi(),
+        mutationProtocol: _e2eNoopProtocol(),
       );
       expect(
         () => roApi.canonWrite(
@@ -427,3 +430,12 @@ requires:
     });
   });
 }
+
+
+MutationProtocol _e2eNoopProtocol() => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '/tmp/e2e-journal'),
+      store: FileCanonicalStore(
+        projectRoot: '/tmp',
+        atomicStore: AtomicFileStore(),
+      ),
+    );

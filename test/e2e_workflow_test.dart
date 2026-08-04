@@ -1,6 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/sensenova_provider.dart';
 import 'package:lingbi/shared/database/story_beats_repository.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
@@ -65,7 +69,10 @@ void main() {
     zvecService = ZVecService(storageService: storageService);
     await zvecService.initialize();
 
-    projectService = ProjectService(zvecService: zvecService);
+    projectService = ProjectService(
+      zvecService: zvecService,
+      mutationProtocol: _proto('${tempDir.path}/我的小说'),
+    );
     documentService =
         DocumentService(zvecService: zvecService, fileService: fileService);
     canonService = CanonService(zvecService: zvecService);
@@ -384,3 +391,12 @@ void main() {
     expect(finalVersions.length, 2);
   }, timeout: const Timeout(Duration(seconds: 180)));
 }
+
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

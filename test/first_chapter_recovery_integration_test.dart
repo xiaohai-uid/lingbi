@@ -13,6 +13,10 @@ import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_workflow.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   test('file state store replaces state recoverably and ignores stale temp',
@@ -46,7 +50,11 @@ void main() {
     final zvec = ZVecService(storageService: storage);
     await zvec.initialize(dbPath: '${temp.path}/db');
     final files = FileService();
-    final projects = ProjectService(zvecService: zvec, fileService: files);
+    final projects = ProjectService(
+      zvecService: zvec,
+      fileService: files,
+      mutationProtocol: _proto('${temp.path}/project'),
+    );
     final project = await projects.createPortableProject(
       name: '首章事务测试',
       directoryPath: '${temp.path}/project',
@@ -66,6 +74,7 @@ void main() {
       documentService: documents,
       canonService: CanonService(zvecService: zvec),
       aiService: ai,
+      mutationProtocol: _proto(project.directoryPath),
     );
     final workflow = FirstChapterWorkflowController(
       pipeline: NovelFirstChapterPipeline(application),
@@ -87,7 +96,7 @@ void main() {
 
     final adopted = await workflow.adopt(state!.candidateId!);
 
-    expect(adopted.isSuccess, isTrue);
+    expect(adopted.isSuccess, isTrue, reason: 'adopt: ${adopted.code}: ${adopted.message}');
     // 采纳后内容应已被 AI 候选替换（不再是原始人工正文）。
     // 不断言具体 Provider 输出文本，避免测试依赖真实网络调用。
     final adoptedContent = await documents.readContent(document.filePath);
@@ -100,3 +109,11 @@ void main() {
     expect(snapshots.single.readAsStringSync(), '人工正文，不可提前覆盖。');
   });
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

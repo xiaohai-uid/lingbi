@@ -9,7 +9,10 @@ import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
 import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/features/skill/data/skill_action_service.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
@@ -74,6 +77,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       final result = await sandbox.canonRead('proj-1');
@@ -86,6 +90,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       expect(
@@ -125,6 +130,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       expect(
@@ -141,6 +147,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       await sandbox.documentRead('proj-1', 'doc-1');
@@ -152,6 +159,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       expect(
@@ -165,6 +173,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       await sandbox.documentWrite('proj-1', 'doc-1', '新内容');
@@ -177,6 +186,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       expect(
@@ -190,6 +200,7 @@ void main() {
       final sandbox = SandboxedSkillApi(
         permissions: permissions,
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
 
       try {
@@ -236,6 +247,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(
         selectedText: '测试文本',
@@ -259,6 +271,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(selectedText: '短');
 
@@ -277,6 +290,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(selectedText: '测试文本');
 
@@ -297,6 +311,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.defaultLightweight(),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(selectedText: '测试文本');
 
@@ -320,6 +335,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.fromStrings(['canon.read', 'document.read']),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(
         selectedText: '测试文本',
@@ -369,6 +385,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.fromStrings(['canon.read', 'canon.write', 'document.read']),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(
         selectedText: '重量级测试',
@@ -405,6 +422,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.fromStrings(['canon.read']),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(projectId: 'proj-1', chapterId: 'doc-1');
 
@@ -422,6 +440,7 @@ void main() {
       final api = SandboxedSkillApi(
         permissions: PermissionSet.fromStrings(['document.read']),
         delegate: fakeApi,
+        mutationProtocol: _NoopProtocol(),
       );
       const context = SkillContext(projectId: 'proj-1', chapterId: 'doc-1');
 
@@ -515,4 +534,66 @@ class _SkillWithRequiredParams extends DynamicPromptSkill {
           required: true,
         ),
       ];
+}
+
+
+class _NoopProtocol implements MutationProtocol {
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      Result.success(CandidateChange(
+        id: 'noop-cand',
+        projectId: request.projectId,
+        origin: request.origin,
+        action: request.action,
+        target: request.target,
+        baseRevision: request.baseRevision,
+        payloadHash: 'noop',
+        actionHash: 'noop',
+        createdAt: DateTime.now().toUtc(),
+        state: CandidateState.proposed,
+      ));
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      Result.success(ApprovalDecision(
+        id: 'noop-appr',
+        candidateId: command.candidateId,
+        candidateHash: 'noop',
+        actionHash: 'noop',
+        baseRevision: 0,
+        actorId: command.actorId,
+        approved: command.approved,
+        decidedAt: DateTime.now().toUtc(),
+        policy: command.policy,
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      Result.success(CommitReceipt(
+        id: 'noop-rcpt',
+        candidateId: command.candidateId,
+        approvalId: command.approvalId,
+        idempotencyKey: command.idempotencyKey,
+        beforeRevision: 0,
+        afterRevision: 1,
+        affectedPaths: const [],
+        committedAt: DateTime.now().toUtc(),
+        receiptHash: 'noop',
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      commit(CommitCommand(
+        candidateId: 'noop-cand',
+        approvalId: 'noop-appr',
+        idempotencyKey: request.idempotencyKey ?? 'noop-idem',
+      ));
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(String projectId) async =>
+      Result.success(const []);
 }

@@ -51,7 +51,16 @@ void main() {
       await file.writeAsString(path);
     }
 
-    final types = (await RecoveryCenterService().scan(root.path))
+    final scanService = RecoveryCenterService(
+      mutationProtocol: LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: '${root.path}/.lingbi/journal'),
+        store: FileCanonicalStore(
+          projectRoot: root.path,
+          atomicStore: AtomicFileStore(),
+        ),
+      ),
+    );
+    final types = (await scanService.scan(root.path))
         .map((item) => item.type)
         .toSet();
     expect(

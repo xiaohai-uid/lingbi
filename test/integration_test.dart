@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/sensenova_provider.dart';
 import 'package:lingbi/shared/database/story_beats_repository.dart';
@@ -58,8 +62,11 @@ void main() {
   // ═══════════════════════════════════════════════════════
   group('Project & Document CRUD', () {
     test('createPortableProject 创建 .lingbi/project.json', () async {
-      final svc = ProjectService(zvecService: zvecService);
       final dir = '${tempDir.path}/my_novel';
+      final svc = ProjectService(
+        zvecService: zvecService,
+        mutationProtocol: _proto(dir),
+      );
       final project = await svc.createPortableProject(
         name: '测试小说',
         directoryPath: dir,
@@ -75,8 +82,11 @@ void main() {
     });
 
     test('openPortableProject 扫描磁盘 .md 文件', () async {
-      final svc = ProjectService(zvecService: zvecService);
       final dir = '${tempDir.path}/open_test';
+      final svc = ProjectService(
+        zvecService: zvecService,
+        mutationProtocol: _proto(dir),
+      );
       await svc.createPortableProject(name: '打开测试', directoryPath: dir);
 
       // 手动写入 .md 文件
@@ -390,3 +400,12 @@ void main() {
     });
   });
 }
+
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

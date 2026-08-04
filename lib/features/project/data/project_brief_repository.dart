@@ -21,20 +21,19 @@ final class ProjectBriefConflict implements Exception {
 /// A recoverable backup prevents an interrupted replacement from hiding the
 /// last committed project metadata.
 final class ProjectBriefRepository {
-  ProjectBriefRepository(this.projectDirectory, {this.mutationProtocol});
+  ProjectBriefRepository(this.projectDirectory, {MutationProtocol? mutationProtocol})
+      : _mutationProtocol = mutationProtocol;
 
   final String projectDirectory;
 
   /// 变更协议：write 经由此接口创建三记录不变量（candidate + approval + receipt）。
-  /// 为 null 时仅执行物理写入（userUi origin 允许隐式批准，ADR-010）。
-  final MutationProtocol? mutationProtocol;
+  /// 为 null 时写入 fail-closed（拒绝物理写入，ADR-010）。
+  final MutationProtocol? _mutationProtocol;
 
   File get _metadata => File(
         '$projectDirectory${Platform.pathSeparator}.lingbi'
         '${Platform.pathSeparator}project.json',
       );
-  File get _temporary => File('${_metadata.path}.tmp');
-  File get _backup => File('${_metadata.path}.bak');
 
   Future<ProjectBrief> read() async {
     await _recoverInterruptedReplace();
@@ -64,23 +63,6 @@ final class ProjectBriefRepository {
 
     final committed = brief.copyWith(revision: actualRevision + 1);
 
-    // 经 MutationProtocol 路由（userUi origin — 隐式批准，ADR-010）
-    // protocol 为 null 时仅执行物理写入（向后兼容，用户直接编辑不阻断）
-    final protocol = mutationProtocol;
-    if (protocol != null) {
-      await protocol.applyUserEdit(ChangeRequest(
-        projectId: projectDirectory,
-        origin: ChangeOrigin.userUi,
-        action: ChangeAction.replaceText,
-        target: const ChangeTarget(
-          projectRelativePath: '.lingbi/project.json',
-          kind: 'project_brief',
-        ),
-        baseRevision: actualRevision,
-        payload: jsonEncode(committed.toJson()),
-      ));
-    }
-
     final merged = <String, dynamic>{
       ...existing,
       ...baseMetadata,
@@ -92,17 +74,31 @@ final class ProjectBriefRepository {
       'audience': committed.audience ?? '',
       'projectBrief': committed.toJson(),
     };
+    final encoded = jsonEncode(merged);
 
-    await _temporary.writeAsString(jsonEncode(merged), flush: true);
-    if (await _backup.exists()) await _backup.delete();
-    if (await _metadata.exists()) await _metadata.rename(_backup.path);
-    try {
-      await _temporary.rename(_metadata.path);
-      if (await _backup.exists()) await _backup.delete();
-    } catch (_) {
-      if (await _metadata.exists()) await _metadata.delete();
-      if (await _backup.exists()) await _backup.rename(_metadata.path);
-      rethrow;
+    // 经 MutationProtocol 路由（userUi origin — 隐式批准，ADR-010）。
+    // 协议为 null 时 fail-closed：拒绝物理写入。
+    final protocol = _mutationProtocol;
+    if (protocol == null) {
+      throw StateError(
+        'ProjectBriefRepository.write requires MutationProtocol (fail-closed)',
+      );
+    }
+    final editResult = await protocol.applyUserEdit(ChangeRequest(
+      projectId: projectDirectory,
+      origin: ChangeOrigin.userUi,
+      action: ChangeAction.replaceText,
+      target: const ChangeTarget(
+        projectRelativePath: '.lingbi/project.json',
+        kind: 'project_brief',
+      ),
+      baseRevision: actualRevision,
+      payload: encoded,
+    ));
+    if (editResult.errorOrNull() != null) {
+      throw StateError(
+        'ProjectBriefRepository.write failed: ${editResult.errorOrNull()}',
+      );
     }
     return committed;
   }
@@ -122,9 +118,13 @@ final class ProjectBriefRepository {
   }
 
   Future<void> _recoverInterruptedReplace() async {
-    if (!await _metadata.exists() && await _backup.exists()) {
-      await _backup.rename(_metadata.path);
+    // The canonical store now owns atomic replacement (backup-based
+    // recovery). This legacy tmp/bak recovery is kept as a no-op guard so
+    // old interrupted writes from previous app versions still surface.
+    if (!await _metadata.exists() && await File('${_metadata.path}.bak').exists()) {
+      await File('${_metadata.path}.bak').rename(_metadata.path);
     }
-    if (await _temporary.exists()) await _temporary.delete();
+    final temporary = File('${_metadata.path}.tmp');
+    if (await temporary.exists()) await temporary.delete();
   }
 }

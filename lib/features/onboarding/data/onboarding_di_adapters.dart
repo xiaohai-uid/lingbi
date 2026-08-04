@@ -11,6 +11,7 @@ import 'package:lingbi/features/onboarding/data/first_chapter_trigger.dart';
 import 'package:lingbi/features/onboarding/data/wizard_completion_workflow.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
 import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/services/ai_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
@@ -54,6 +55,7 @@ class ProjectFirstChapterTarget implements FirstChapterTriggerTarget {
     required DocumentService documentService,
     required CanonService canonService,
     required AIService aiService,
+    MutationProtocol? mutationProtocol,
   }) : _controller = FirstChapterWorkflowController(
           pipeline: NovelFirstChapterPipeline(
             NovelApplicationService(
@@ -62,6 +64,7 @@ class ProjectFirstChapterTarget implements FirstChapterTriggerTarget {
               documentService: documentService,
               canonService: canonService,
               aiService: aiService,
+              mutationProtocol: mutationProtocol,
             ),
           ),
           stateStore: FileFirstChapterStateStore(projectDirectory: projectDir),

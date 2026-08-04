@@ -226,6 +226,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     final registry = AgentToolRegistry(
       projectDir: dir,
       store: ServiceLocator.instance.atomicFileStore,
+      mutationProtocol: ServiceLocator.instance.mutationProtocol,
       confirmWrite: _confirmToolWrite,
       askUser: (question, options) async {
         // 提问前结束旧流式气泡，避免永久“思考中”
@@ -526,6 +527,7 @@ class _AiAssistantPanelState extends State<AiAssistantPanel> {
     final registry = AgentToolRegistry(
       projectDir: dir,
       store: ServiceLocator.instance.atomicFileStore,
+      mutationProtocol: ServiceLocator.instance.mutationProtocol,
       confirmWrite: _confirmToolWrite,
       askUser: (question, options) async {
         if (mounted) {

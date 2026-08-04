@@ -31,14 +31,15 @@ class RecoveryItem {
 }
 
 class RecoveryCenterService {
-  RecoveryCenterService({AtomicFileStore? atomicStore, this.mutationProtocol})
+  RecoveryCenterService({AtomicFileStore? atomicStore, required this.mutationProtocol})
       : _atomicStore = atomicStore ?? AtomicFileStore();
 
   final AtomicFileStore _atomicStore;
 
   /// 变更协议：restore 经由此接口创建三记录不变量（origin: restore）。
   /// 为 null 时仅执行物理恢复（向后兼容）。
-  final MutationProtocol? mutationProtocol;
+  /// 必需注入；缺失时 fail-closed（拒绝恢复写入）。
+  final MutationProtocol mutationProtocol;
 
   /// T04: Result 化——不抛异常，返回 Result<File>。
   Future<Result<File>> softDelete(String projectDir, String sourcePath) async {
@@ -135,9 +136,6 @@ class RecoveryCenterService {
 
     // T01: fail-closed — restore REQUIRE MutationProtocol
     final protocol = mutationProtocol;
-    if (protocol == null) {
-      return Result.failClosed('RecoveryCenterService.restore');
-    }
     final content = await source.readAsString();
     // Derive project dir from item.path: <projectDir>/.lingbi/<type>/<file>
     final projectDir = p.dirname(p.dirname(p.dirname(item.path)));

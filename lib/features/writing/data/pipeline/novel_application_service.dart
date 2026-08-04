@@ -10,6 +10,8 @@ import 'dart:io';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/services/ai_service.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/features/skill/data/market_intel_service.dart';
@@ -152,12 +154,18 @@ class NovelApplicationService {
     required DocumentService documentService,
     required CanonService canonService,
     required AIService aiService,
-  })  : _projectDir = projectDir,
+    MutationProtocol? mutationProtocol,
+  })  : _mutationProtocol = mutationProtocol,
+        _projectDir = projectDir,
         _projectId = projectId,
         _documentService = documentService,
         _canonService = canonService,
         _aiService = aiService,
-        _candidateService = CandidateService(projectDir: projectDir),
+        _candidateService = CandidateService(
+          projectDir: projectDir,
+          mutationProtocol: mutationProtocol,
+          projectId: projectId,
+        ),
         _writeLock = WriteLockService(projectDir: projectDir),
         _bookStateStore = BookStateStore(projectDir: projectDir),
         _stateMachine = WritingPipelineStateMachine(projectDir: projectDir),
@@ -166,6 +174,7 @@ class NovelApplicationService {
 
   final String _projectDir;
   final String _projectId;
+  final MutationProtocol? _mutationProtocol;
   final DocumentService _documentService;
   final CanonService _canonService;
   final AIService _aiService;
@@ -510,18 +519,31 @@ class NovelApplicationService {
         // 3. 创建快照
         await _createSnapshot(targetFilePath, chapterId);
 
-        // 4. 写临时文件
-        final tempPath =
-            '$targetFilePath.tmp_${DateTime.now().millisecondsSinceEpoch}';
-        final tempFile = File(tempPath);
-        tempFile.writeAsStringSync(candidate.content, flush: true);
-
-        // 5. 原子替换
-        final targetFile = File(targetFilePath);
-        if (targetFile.existsSync()) {
-          targetFile.deleteSync();
+        // 4-5. 经 MutationProtocol 写入正式正文（userUi 隐式批准，ADR-010）。
+        final protocol = _mutationProtocol;
+        if (protocol == null) {
+          return const PipelineResult.failure(PipelineError(
+            PipelineError.writeError,
+            '采纳失败: MutationProtocol 未注入（fail-closed）',
+          ));
         }
-        tempFile.renameSync(targetFilePath);
+        final edit = await protocol.applyUserEdit(ChangeRequest(
+          projectId: _projectId,
+          origin: ChangeOrigin.userUi,
+          action: ChangeAction.replaceText,
+          target: ChangeTarget(
+            projectRelativePath: _relativePath(targetFilePath),
+            kind: 'chapter',
+          ),
+          baseRevision: 0,
+          payload: candidate.content,
+        ));
+        if (edit.errorOrNull() != null) {
+          return PipelineResult.failure(PipelineError(
+            PipelineError.writeError,
+            '采纳失败: ${edit.errorOrNull()}',
+          ));
+        }
 
         // 6. 更新候选状态
         candidate.status = CandidateStatus.adopted;
@@ -555,6 +577,21 @@ class NovelApplicationService {
         '采纳失败: $e',
       ));
     }
+  }
+
+  String _relativePath(String targetFilePath) {
+    // 前缀比较对斜杠与大小写不敏感（Windows 反斜杠 vs 正斜杠、盘符大小写），
+    // 避免匹配失败时把绝对路径当作项目相对路径交给协议（PATH_ESCAPE）。
+    final projectDir = _projectDir.replaceAll(r'\', '/').toLowerCase();
+    final target = targetFilePath.replaceAll(r'\', '/').toLowerCase();
+    if (target.startsWith(projectDir)) {
+      var relative = target.substring(projectDir.length);
+      while (relative.startsWith('/')) {
+        relative = relative.substring(1);
+      }
+      return relative;
+    }
+    return target;
   }
 
   // ─── 6. 状态结算建议 ───────────────────────────────────────────

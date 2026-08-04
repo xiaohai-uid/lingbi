@@ -3,6 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
 import 'package:lingbi/main.dart';
@@ -494,14 +498,14 @@ void main() {
   // ──────────────────────────────────────────────
   group('T2: 便携项目与章节文件契约', () {
     test('创建→重开→删除.lingbi/→内容完整可读写', () async {
+      final projectDir = '${tempDir.path}/test_novel';
       final projectService = ProjectService(
         fileService: FileService(),
+        mutationProtocol: _proto(projectDir),
       );
       final docService = DocumentService(
         fileService: FileService(),
       );
-
-      final projectDir = '${tempDir.path}/test_novel';
       const chapter1Content = '# 第1章\n\n这是开头。';
       const chapter2Content = '# 第2章\n\n这是发展。';
 
@@ -707,3 +711,12 @@ void _localModeWidgetTests() {
     }
   });
 }
+
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );

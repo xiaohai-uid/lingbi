@@ -12,6 +12,7 @@ import '../../services/ai_service.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import '../../services/document_service.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 /// The durable, UI-facing state for one opened project.
 class ProjectSessionSnapshot {
@@ -47,16 +48,20 @@ class ProjectSessionManager extends ChangeNotifier {
     required AIService aiService,
     ProjectService? projectService,
     this.recentStateFilePath,
-  })  : _documentService = documentService,
+    MutationProtocol? mutationProtocol,
+  })  : _mutationProtocol = mutationProtocol,
+        _documentService = documentService,
         _canonService = canonService,
         _aiService = aiService,
-        _projectService = projectService ?? ProjectService();
+        _projectService = projectService ??
+            ProjectService(mutationProtocol: mutationProtocol);
 
   static const _projectStateRelativePath = '.lingbi/session.json';
 
   final DocumentService _documentService;
   final CanonService _canonService;
   final AIService _aiService;
+  final MutationProtocol? _mutationProtocol;
   final ProjectService _projectService;
 
   /// Optional app-level recent-project index. Tests inject a disposable path;
@@ -195,6 +200,7 @@ class ProjectSessionManager extends ChangeNotifier {
       documentService: _documentService,
       canonService: _canonService,
       aiService: _aiService,
+      mutationProtocol: _mutationProtocol,
     );
     _openScopes[projectId] = scope;
     _activeScope = scope;

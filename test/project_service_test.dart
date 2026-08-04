@@ -2,6 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/storage_service.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
 
@@ -16,7 +20,16 @@ void main() {
     final storage = StorageService();
     final zvec = ZVecService(storageService: storage);
     await zvec.initialize(dbPath: '${sandbox.path}/registry');
-    final service = ProjectService(zvecService: zvec);
+    final service = ProjectService(
+      zvecService: zvec,
+      mutationProtocol: LocalMutationProtocol(
+        journal: LocalMutationJournal(basePath: '${sandbox.path}/journal'),
+        store: FileCanonicalStore(
+          projectRoot: '${sandbox.path}/old-project',
+          atomicStore: AtomicFileStore(),
+        ),
+      ),
+    );
     final oldRoot = Directory('${sandbox.path}/old-project');
     final newRoot = Directory('${sandbox.path}/new-project');
     final project = await service.createPortableProject(

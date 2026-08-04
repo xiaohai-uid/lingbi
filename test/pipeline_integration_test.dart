@@ -17,6 +17,10 @@ import 'package:lingbi/features/writing/data/pipeline/context_assembler.dart';
 import 'package:lingbi/features/writing/data/pipeline/creative_compass.dart';
 import 'package:lingbi/features/writing/data/pipeline/project_data_source.dart';
 import 'package:lingbi/features/writing/data/pipeline/write_lock_service.dart';
+import 'package:lingbi/services/atomic_file_store.dart';
+import 'package:lingbi/services/mutation/file_canonical_store.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
+import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 
 void main() {
   late Directory tempDir;
@@ -192,9 +196,12 @@ void main() {
 
   // ─── 测试 5: 采纳安全写入 ───────────────────────────────────────
 
-  test('采纳安全写入 — 锁+快照+原子替换+状态更新', () {
+  test('采纳安全写入 — 锁+快照+原子替换+状态更新', () async {
     final chapterPath = createChapterFile('第五章', '# 第五章\n\n旧内容。');
-    final candidateService = CandidateService(projectDir: projectDir);
+    final candidateService = CandidateService(
+      projectDir: projectDir,
+      mutationProtocol: _proto(projectDir),
+    );
     final writeLock = WriteLockService(projectDir: projectDir);
     final bookStateStore = BookStateStore(projectDir: projectDir);
 
@@ -222,7 +229,7 @@ void main() {
 
     // 4. 更新候选状态
     candidate.status = CandidateStatus.adopted;
-    candidateService.adopt(candidate.id, chapterPath);
+    await candidateService.adopt(candidate.id, chapterPath);
 
     // 5. 更新 BookState
     bookStateStore.updateProgress(
@@ -469,3 +476,11 @@ void main() {
         contains('旧项目的章节'));
   });
 }
+
+LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
+      journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
+      store: FileCanonicalStore(
+        projectRoot: root,
+        atomicStore: AtomicFileStore(),
+      ),
+    );
