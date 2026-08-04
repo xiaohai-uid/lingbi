@@ -53,6 +53,8 @@ litellm_config.yaml
 /docs/*
 !/docs/qa/
 !/docs/qa/**
+!/docs/design/
+!/docs/design/**
 
 # Docker (not a runtime prerequisite)
 Dockerfile
