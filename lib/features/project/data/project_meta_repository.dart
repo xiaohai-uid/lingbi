@@ -96,6 +96,28 @@ class ProjectMetaRepository implements IProjectMetaRepository {
     }
   }
 
+  /// 读取元数据文件并区分 canonical envelope 与 legacy 格式。
+  ///
+  /// Returns the business payload plus the envelope file revision (0 for
+  /// legacy `{...}` files). The file revision is the mutation conflict
+  /// authority for canonical files.
+  Future<({Map<String, dynamic>? payload, int fileRevision})> readCanonical(
+    String projectId,
+    String fileName,
+  ) async {
+    final raw = await read(projectId, fileName);
+    if (raw == null) return (payload: null, fileRevision: 0);
+    final payload = raw['payload'];
+    if (payload is Map<String, dynamic>) {
+      return (
+        payload: payload,
+        fileRevision: raw['revision'] is int ? raw['revision'] as int : 0,
+      );
+    }
+    // Legacy {_schemaVersion, ...} shape: business payload is the whole map.
+    return (payload: raw, fileRevision: 0);
+  }
+
   @override
   Future<void> write(
     String projectId,

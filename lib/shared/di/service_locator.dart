@@ -231,6 +231,7 @@ class ServiceLocator {
       );
       locator.projectAssetRepository = ProjectAssetRepository(
         metaRepository: locator.projectMetaRepository,
+        mutationProtocol: locator.mutationProtocol,
       );
       locator.wizardCompletionWorkflow = WizardCompletionWorkflow(
         projectCreator: ProjectServiceAdapter(locator.projectService),

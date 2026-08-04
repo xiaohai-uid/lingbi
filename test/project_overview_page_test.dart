@@ -8,6 +8,10 @@ import 'package:lingbi/features/project/ui/project_asset_card.dart';
 import 'package:lingbi/ui_v2/components/project_tabs.dart';
 import 'package:lingbi/features/project/ui/project_overview_page.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
+import 'package:lingbi/domain/mutation/canonical_revision.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 class _MemoryMetaRepository implements IProjectMetaRepository {
   final Map<String, Map<String, dynamic>> values = {};
@@ -94,6 +98,7 @@ void main() {
       (tester) async {
     final repository = ProjectAssetRepository(
       metaRepository: _MemoryMetaRepository(),
+      mutationProtocol: _FakeMutationProtocol(),
     );
     final project = Project(
       id: 'p1',
@@ -115,4 +120,68 @@ void main() {
     expect(find.text('完善主角'), findsWidgets);
     expect(find.byType(ProjectAssetCard), findsNWidgets(5));
   });
+}
+
+
+class _FakeMutationProtocol implements MutationProtocol {
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      Result.success(CandidateChange(
+        id: 'cand-1',
+        projectId: request.projectId,
+        origin: request.origin,
+        action: request.action,
+        target: request.target,
+        baseRevision: request.baseRevision,
+        payloadHash: canonicalTextHash(request.payload),
+        actionHash: 'fake-action-hash',
+        createdAt: DateTime.now().toUtc(),
+        state: CandidateState.proposed,
+      ));
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      Result.success(ApprovalDecision(
+        id: 'appr-1',
+        candidateId: command.candidateId,
+        candidateHash: 'fake',
+        actionHash: 'fake',
+        baseRevision: 0,
+        actorId: command.actorId,
+        approved: command.approved,
+        decidedAt: DateTime.now().toUtc(),
+        policy: command.policy,
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      Result.success(CommitReceipt(
+        id: 'rcpt-1',
+        candidateId: command.candidateId,
+        approvalId: command.approvalId,
+        idempotencyKey: command.idempotencyKey,
+        beforeRevision: 0,
+        afterRevision: 1,
+        affectedPaths: const ['project_meta/assets.json'],
+        committedAt: DateTime.now().toUtc(),
+        receiptHash: 'fake',
+      ));
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async =>
+      commit(CommitCommand(
+        candidateId: 'cand-1',
+        approvalId: 'appr-1',
+        idempotencyKey: request.idempotencyKey ?? 'idem-1',
+        projectId: request.projectId,
+      ));
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      Result.success(null);
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(
+          String projectId) async =>
+      Result.success(const []);
 }
