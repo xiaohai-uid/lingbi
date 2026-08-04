@@ -15,6 +15,7 @@ class Project {
     this.targetLength,
     this.premise = '',
     this.briefRevision = 0,
+    this.provenance,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : id = id ?? _uuid.v4(),
@@ -39,6 +40,7 @@ class Project {
       premise:
           brief['premise'] as String? ?? json['description'] as String? ?? '',
       briefRevision: brief['revision'] as int? ?? 0,
+      provenance: json['provenance'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -47,6 +49,9 @@ class Project {
   String name;
   String description;
   String directoryPath;
+
+  /// 独立副本来源标记，如 `copy-of:<原项目id>`。null = 原创项目。
+  String? provenance;
 
   /// 目标发布平台（起点中文网/番茄小说/七猫等）
   String targetPlatform;
@@ -77,6 +82,7 @@ class Project {
         if (targetLength != null) 'targetLength': targetLength,
         'premise': premise,
         'briefRevision': briefRevision,
+        if (provenance != null) 'provenance': provenance,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };
