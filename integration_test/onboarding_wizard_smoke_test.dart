@@ -57,7 +57,11 @@ void main() {
 
     await tester.tap(find.text('玄幻'));
     await tester.tap(find.text('长篇'));
+    await tester.ensureVisible(find.text('起点'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('起点'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('下一步'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
