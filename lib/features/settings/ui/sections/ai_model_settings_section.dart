@@ -106,6 +106,7 @@ class _AiModelSettingsSectionState extends State<AiModelSettingsSection>
     final currentProvider = settings.selectedProvider;
     final models = ModelRegistry.instance.getModelsForProvider(currentProvider);
     final selectedModelId = settings.getSelectedModelId(currentProvider);
+    final hasSelectedModel = models.any((m) => m.id == selectedModelId);
 
     return SettingsSectionScaffold(
       c: c,
@@ -117,7 +118,9 @@ class _AiModelSettingsSectionState extends State<AiModelSettingsSection>
           trailing: SizedBox(
             width: 200,
             child: DropdownButtonFormField<String>(
-              initialValue: currentProvider,
+              initialValue: _providerLabels.containsKey(currentProvider)
+                  ? currentProvider
+                  : null,
               items: _providerLabels.entries
                   .map((e) => DropdownMenuItem(
                         value: e.key,
@@ -154,9 +157,9 @@ class _AiModelSettingsSectionState extends State<AiModelSettingsSection>
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue: selectedModelId.isEmpty && models.isNotEmpty
-                        ? models.first.id
-                        : selectedModelId,
+                    initialValue: hasSelectedModel
+                        ? selectedModelId
+                        : (models.isNotEmpty ? models.first.id : null),
                     items: models
                         .map((m) => DropdownMenuItem(
                               value: m.id,
