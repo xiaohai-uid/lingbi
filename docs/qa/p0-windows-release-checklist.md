@@ -1,8 +1,20 @@
 # P0 Windows 发布门禁
 
-日期：2026-07-28
+日期：2026-08-05
 
-分支：`agent/lingbi-openwrite-commercial-delta`
+分支：`main`
+
+版本：`1.2.0`
+
+## 2026-08-05 正式版本快照
+
+- Windows Path 2 实机 smoke：10/10 REAL，证据见 `docs/qa/path2-windows-smoke-2026-08-05.md`
+- 非网络全量测试：1478 passed，0 failed
+- `flutter analyze lib/`：No issues found
+- `flutter build windows --release`：PASS
+- `tool/windows/package_release.ps1 -SkipBuild`：PASS
+- 安装包与便携包均以 `1.2.0` 命名
+- 外部商业门禁保持 `BLOCKED_EXTERNAL`
 
 ## 自动化硬门禁
 

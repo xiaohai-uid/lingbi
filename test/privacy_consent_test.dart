@@ -46,7 +46,7 @@ void main() {
       const event = DiagnosticEvent(
         type: 'session_start',
         fields: {
-          'app_version': '1.0.1',
+          'app_version': '1.2.0',
           'os': 'windows',
           'manuscript_content': 'secret text',
           'api_key': 'sk-12345',
@@ -111,7 +111,7 @@ void main() {
 
       await collector.record(const DiagnosticEvent(
         type: 'session_start',
-        fields: {'app_version': '1.0.1'},
+        fields: {'app_version': '1.2.0'},
       ));
 
       final exported = await collector.exportJson();
