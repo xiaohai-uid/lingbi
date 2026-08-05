@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:lingbi/features/import_export/data/import_service.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 import 'package:lingbi/ui_v2/theme/lingbi_icons.dart';
@@ -154,6 +153,22 @@ class _ImportExportPageState extends State<ImportExportPage> {
 
   Future<void> _pickAndImportFile() async {
     if (_busy) return;
+    final result = await FilePicker.platform.pickFiles(
+      dialogTitle: '选择导入文件',
+      type: FileType.custom,
+      allowedExtensions: const ['md', 'txt'],
+    );
+    if (result == null || result.files.isEmpty) return;
+    final path = result.files.first.path;
+    if (path == null) {
+      _showSnack('无法读取文件路径');
+      return;
+    }
+    await _importFileFromPath(path);
+  }
+
+  Future<void> _importFileFromPath(String path) async {
+    if (_busy) return;
     final pid = widget.projectId;
     if (pid == null) {
       _showSnack('请先打开一个项目');
@@ -161,37 +176,18 @@ class _ImportExportPageState extends State<ImportExportPage> {
     }
     setState(() => _busy = true);
     try {
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: '选择导入文件',
-        type: FileType.custom,
-        allowedExtensions: const ['md', 'txt'],
-      );
-      if (result == null || result.files.isEmpty) return;
-      final file = result.files.first;
-      final path = file.path;
-      if (path == null) {
-        _showSnack('无法读取文件路径');
-        return;
-      }
-      final content = await File(path).readAsString();
-      final fileName = file.name;
-      final title = fileName.contains('.')
-          ? fileName.substring(0, fileName.lastIndexOf('.'))
-          : fileName;
-
       final project =
           await ServiceLocator.instance.projectService.getProject(pid);
       if (project == null) {
         _showSnack('项目不存在');
         return;
       }
-      await ServiceLocator.instance.documentService.createDocument(
-        projectId: pid,
-        title: title,
-        directoryPath: project.directoryPath,
-        content: content,
+      final document = await importTextFileIntoProject(
+        project: project,
+        documentService: ServiceLocator.instance.documentService,
+        filePath: path,
       );
-      _showSnack('导入成功: $title');
+      _showSnack('导入成功: ${document.title}');
     } catch (e) {
       _showSnack('导入失败: $e');
     } finally {
@@ -470,59 +466,69 @@ class _ImportExportPageState extends State<ImportExportPage> {
           ),
         ),
         const SizedBox(height: LingBiTokens.space4),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(LingBiTokens.space8),
-          decoration: BoxDecoration(
-            color: c.surface,
-            borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
-            border: Border.all(
-              color: c.borderOpaque.withValues(alpha: 0.4),
+        DragTarget<String>(
+          onWillAcceptWithDetails: (details) {
+            final ext = details.data.toLowerCase();
+            return ext.endsWith('.md') || ext.endsWith('.txt');
+          },
+          onAcceptWithDetails: (details) => _importFileFromPath(details.data),
+          builder: (context, candidateData, rejectedData) => Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(LingBiTokens.space8),
+            decoration: BoxDecoration(
+              color: c.surface,
+              borderRadius: BorderRadius.circular(LingBiTokens.radiusLg),
+              border: Border.all(
+                color: candidateData.isNotEmpty
+                    ? c.accent
+                    : c.borderOpaque.withValues(alpha: 0.4),
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                LingBiIcons.upload,
-                size: 40,
-                color: c.muted,
-              ),
-              const SizedBox(height: LingBiTokens.space4),
-              Text(
-                '拖放文件到此处',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: c.fgSecondary,
-                ),
-              ),
-              const SizedBox(height: LingBiTokens.space2),
-              Text(
-                '支持 Markdown (.md)、纯文本 (.txt) 格式',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
+            child: Column(
+              children: [
+                Icon(
+                  LingBiIcons.upload,
+                  size: 40,
                   color: c.muted,
                 ),
-              ),
-              const SizedBox(height: LingBiTokens.space4),
-              OutlinedButton.icon(
-                onPressed: _pickAndImportFile,
-                icon: const Icon(LingBiIcons.upload, size: 16),
-                label: const Text('选择文件'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: c.accent,
-                  side: BorderSide(color: c.accent.withValues(alpha: 0.3)),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: LingBiTokens.space5,
-                    vertical: LingBiTokens.space2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(LingBiTokens.radiusSm),
+                const SizedBox(height: LingBiTokens.space4),
+                Text(
+                  '拖放文件到此处',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: c.fgSecondary,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: LingBiTokens.space2),
+                Text(
+                  '支持 Markdown (.md)、纯文本 (.txt) 格式',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: c.muted,
+                  ),
+                ),
+                const SizedBox(height: LingBiTokens.space4),
+                OutlinedButton.icon(
+                  onPressed: _pickAndImportFile,
+                  icon: const Icon(LingBiIcons.upload, size: 16),
+                  label: const Text('选择文件'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: c.accent,
+                    side: BorderSide(color: c.accent.withValues(alpha: 0.3)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: LingBiTokens.space5,
+                      vertical: LingBiTokens.space2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(LingBiTokens.radiusSm),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

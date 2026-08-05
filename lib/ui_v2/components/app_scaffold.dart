@@ -16,6 +16,7 @@ import 'project_tabs.dart';
 import 'package:lingbi/features/onboarding/ui/welcome_page.dart';
 import 'package:lingbi/features/writing/ui/editor_page.dart';
 import 'package:lingbi/features/strand/ui/storyboard_page.dart';
+import 'package:lingbi/features/import_export/data/import_service.dart';
 import 'package:lingbi/features/import_export/ui/import_export_page.dart';
 import 'package:lingbi/features/project/ui/project_overview_page.dart';
 import 'package:lingbi/features/project/data/project_service.dart';
@@ -455,11 +456,34 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   /// Phase 5.3: 处理拖入文件
-  void _handleFileDrop(String path) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('已接收文件: $path，正在导入…')),
-    );
-    // TODO: 实际导入逻辑（拆解章节等）
+  Future<void> _handleFileDrop(String path) async {
+    final project = _currentProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请先打开一个项目再导入文件')),
+      );
+      return;
+    }
+    try {
+      final document = await importTextFileIntoProject(
+        project: project,
+        documentService: ServiceLocator.instance.documentService,
+        filePath: path,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentDocument = document;
+        _currentTab = ProjectTab.writing;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入成功: ${document.title}')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败: $error')),
+      );
+    }
   }
 
   Widget _buildTopBar() {
