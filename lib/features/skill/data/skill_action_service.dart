@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:lingbi/features/routing/default_rules.dart';
+import 'package:lingbi/features/routing/experience/experience_journal.dart';
 import 'package:lingbi/features/routing/route_engine.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 
@@ -240,10 +241,13 @@ abstract class SkillAction {
 
 /// 技能动作服务
 class SkillActionService extends ChangeNotifier {
-  SkillActionService({RouteEngine? routeEngine})
-      : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules());
+  SkillActionService(
+      {RouteEngine? routeEngine, ExperienceJournal? experienceJournal})
+      : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
+        _experienceJournal = experienceJournal;
 
   final RouteEngine _routeEngine;
+  final ExperienceJournal? _experienceJournal;
   final Map<String, SkillAction> _registeredSkills = {};
 
   /// 获取所有已注册的技能
@@ -292,6 +296,10 @@ class SkillActionService extends ChangeNotifier {
       currentScene: currentScene,
     );
     if (result == null || !_registeredSkills.containsKey(result.skillId)) {
+      _experienceJournal?.recordMiss(
+        scene: currentScene.isEmpty ? userMessage : currentScene,
+        userMessage: userMessage,
+      );
       return null;
     }
     return result;
@@ -315,11 +323,29 @@ class SkillActionService extends ChangeNotifier {
     if (route == null) {
       return const SkillResult(success: false, error: '未命中可用技能');
     }
-    return executeSkill(
+    final result = executeSkill(
       skillId: route.skillId,
       context: context,
       params: params,
     );
+    if (result.success) {
+      _experienceJournal?.recordCompleted(
+        scene: currentScene.isEmpty ? userMessage : currentScene,
+        userMessage: userMessage,
+        summary: result.promptForAI.isNotEmpty
+            ? '命中 ${route.entry.displayName}'
+            : '命中 ${route.entry.displayName}',
+        nodeChain: route.entry.nodes.map((n) => n.nodeId).toList(),
+      );
+    } else {
+      _experienceJournal?.recordFailed(
+        scene: currentScene.isEmpty ? userMessage : currentScene,
+        userMessage: userMessage,
+        summary: result.error ?? '执行失败',
+        nodeChain: route.entry.nodes.map((n) => n.nodeId).toList(),
+      );
+    }
+    return result;
   }
 
   /// 模糊搜索技能（斜杠命令用）

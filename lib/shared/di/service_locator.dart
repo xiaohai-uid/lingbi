@@ -1,4 +1,5 @@
 import 'package:path_provider/path_provider.dart';
+import '../../features/routing/experience/experience_journal.dart';
 import 'package:lingbi/features/review/data/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
 import 'package:lingbi/features/writing/data/foreshadowing_service.dart';
@@ -180,6 +181,10 @@ class ServiceLocator {
       locator.quotaService = QuotaService();
       locator.atomicFileStore = AtomicFileStore();
       final appDir = await getApplicationSupportDirectory();
+      final docsDir = await getApplicationDocumentsDirectory();
+      final experienceJournal = ExperienceJournal(
+        basePath: '${docsDir.path}/lingbi_data/experience',
+      );
       locator.mutationJournal = LocalMutationJournal(
         basePath: '${appDir.path}/mutations',
       );
@@ -229,7 +234,10 @@ class ServiceLocator {
           return projects.map((project) => project.id).toList();
         },
       );
-      locator.aiService = AIService(quotaService: locator.quotaService);
+      locator.aiService = AIService(
+        quotaService: locator.quotaService,
+        experienceJournal: experienceJournal,
+      );
 
       // 层级 4: 依赖特性服务
       locator.canonLinkingService =
@@ -315,8 +323,9 @@ class ServiceLocator {
       );
 
       // 层级 5: 技能服务（无依赖）
-      locator.skillActionService = SkillActionService()
-        ..initializeBuiltinSkills();
+      locator.skillActionService = SkillActionService(
+        experienceJournal: experienceJournal,
+      )..initializeBuiltinSkills();
       locator.intentConfirmationService = IntentConfirmationService();
 
       // 层级 5.5: Skill 生态（Marketplace + Loader + Distillation）
