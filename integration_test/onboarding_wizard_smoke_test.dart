@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:lingbi/features/onboarding/ui/onboarding_gate.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
 import 'package:lingbi/ui_v2/theme/tokens.dart';
 
@@ -14,6 +15,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final locator = await ServiceLocator.init();
+    locator.settingsService.updateOnboardingState(
+      const OnboardingState.initial(),
+    );
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(extensions: const [LingBiColors.light]),
@@ -36,6 +40,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final locator = await ServiceLocator.init();
+    locator.settingsService.updateOnboardingState(
+      const OnboardingState.initial(),
+    );
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(extensions: const [LingBiColors.light]),
