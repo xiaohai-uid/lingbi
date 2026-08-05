@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:lingbi/features/routing/default_rules.dart';
+import 'package:lingbi/features/routing/experience/experience_journal.dart';
 import 'package:lingbi/features/routing/route_engine.dart';
 import 'package:lingbi/shared/interfaces/i_ai_service.dart';
 import '../shared/ai/ai_provider.dart';
@@ -13,12 +14,17 @@ import '../shared/errors/ai_error.dart';
 import '../features/settings/data/quota_service.dart';
 
 class AIService implements IAIService {
-  AIService({required QuotaService quotaService, RouteEngine? routeEngine})
-      : _quota = quotaService,
-        _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules());
+  AIService({
+    required QuotaService quotaService,
+    RouteEngine? routeEngine,
+    ExperienceJournal? experienceJournal,
+  })  : _quota = quotaService,
+        _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
+        _experienceJournal = experienceJournal;
   final FreeProvider _freeProvider = FreeProvider();
   final QuotaService _quota;
   final RouteEngine _routeEngine;
+  final ExperienceJournal? _experienceJournal;
   String _currentProvider = 'free';
   String _projectContext = '';
   StreamSubscription<String>? _activeSubscription;
@@ -144,13 +150,18 @@ class AIService implements IAIService {
     String currentScene = '',
   }) {
     final base = _baseSystemPrompt();
+    final scene = currentScene.isEmpty ? userMessage : currentScene;
+    final experience = _experienceJournal?.search(scene) ?? const [];
+    final experienceBlock = experience.isEmpty
+        ? ''
+        : '\n\n## Reusable Experience\n${experience.take(3).map((e) => '- ${e.summary}').join('\n')}';
     final route = _routeEngine.route(
       userMessage: userMessage,
       selection: selection,
       currentScene: currentScene,
     );
-    if (route == null) return base;
-    return '$base\n\n${_routePrompt(route)}';
+    if (route == null) return '$base$experienceBlock';
+    return '$base$experienceBlock\n\n${_routePrompt(route)}';
   }
 
   String _baseSystemPrompt() {
