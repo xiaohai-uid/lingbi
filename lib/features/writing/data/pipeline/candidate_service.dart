@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:lingbi/domain/mutation/mutation_models.dart';
+import 'package:lingbi/features/routing/gate/output_gate.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 /// 候选条目状态
@@ -48,8 +49,7 @@ class CandidateEntry {
     this.metadata = const {},
   });
 
-  factory CandidateEntry.fromJson(Map<String, dynamic> json) =>
-      CandidateEntry(
+  factory CandidateEntry.fromJson(Map<String, dynamic> json) => CandidateEntry(
         id: json['id'] as String? ?? '',
         chapterId: json['chapter_id'] as String? ?? '',
         content: json['content'] as String? ?? '',
@@ -185,8 +185,8 @@ class CandidateService {
     for (final file in _candidatesDir.listSync()) {
       if (file is File && file.path.endsWith('.json')) {
         try {
-          final json = jsonDecode(file.readAsStringSync())
-              as Map<String, dynamic>;
+          final json =
+              jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
           if (json['chapter_id'] == chapterId) {
             results.add(CandidateEntry.fromJson(json));
           }
@@ -207,8 +207,8 @@ class CandidateService {
     for (final file in _candidatesDir.listSync()) {
       if (file is File && file.path.endsWith('.json')) {
         try {
-          final json = jsonDecode(file.readAsStringSync())
-              as Map<String, dynamic>;
+          final json =
+              jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
           final status = json['status'] as String? ?? '';
           if (status == CandidateStatus.pending.name ||
               status == CandidateStatus.approved.name) {
@@ -269,7 +269,8 @@ class CandidateService {
   }
 
   /// 拒绝候选
-  void reject(String candidateId, {String? reason}) {
+  void reject(String candidateId,
+      {String? reason, RejectReason? rejectReason}) {
     final entry = getCandidate(candidateId);
     if (entry == null) {
       throw StateError('候选不存在: $candidateId');
@@ -278,6 +279,9 @@ class CandidateService {
     entry.updatedAt = DateTime.now();
     if (reason != null) {
       entry.metadata['reject_reason'] = reason;
+    }
+    if (rejectReason != null) {
+      entry.metadata['reject_reason'] = rejectReason.toJson();
     }
     _save(entry);
   }
@@ -304,8 +308,8 @@ class CandidateService {
     for (final file in _candidatesDir.listSync()) {
       if (file is File && file.path.endsWith('.json')) {
         try {
-          final json = jsonDecode(file.readAsStringSync())
-              as Map<String, dynamic>;
+          final json =
+              jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
           final status = json['status'] as String? ?? '';
           final updatedStr = json['updated_at'] as String?;
           if (updatedStr == null) continue;
@@ -315,8 +319,7 @@ class CandidateService {
               updated.isBefore(cutoff)) {
             // 删除 JSON 和 MD 文件
             file.deleteSync();
-            final mdFile =
-                File(file.path.replaceAll('.json', '.md'));
+            final mdFile = File(file.path.replaceAll('.json', '.md'));
             if (mdFile.existsSync()) mdFile.deleteSync();
             count++;
           }
