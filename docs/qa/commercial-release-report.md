@@ -72,6 +72,46 @@ P1 long-form evaluation in this repository is synthetic and is not accepted as p
 | Professional author/studio pilots | BLOCKED_EXTERNAL | Real recruited users and recorded outcomes |
 | Live provider acceptance | BLOCKED_EXTERNAL | Real provider credentials and redacted bounded-run evidence |
 
+## #52 release quality delta (2026-08-05)
+
+Local closure evidence: `docs/qa/52-closure-2026-08-05.md`.
+
+Branch: `agent/architecture-foundation`; HEAD `1dcc701`; working tree includes the uncommitted #52 market/ranking slice.
+
+Files changed in this slice:
+
+- `lib/features/skill/data/skill_marketplace.dart`
+- `lib/features/skill/data/ranking_api_client.dart`
+- `test/market_ranking_offline_contract_test.dart`
+
+| Check | Status | Evidence |
+|-------|--------|----------|
+| `flutter analyze lib/` | PASS | `No issues found` |
+| Full non-network test suite | PASS | `flutter test --exclude-tags network --concurrency=1`: 1477 tests, 0 failures |
+| Free model endpoint | REAL | `https://opencode.ai/zen/v1/chat/completions` returned HTTP 200 with `deepseek-v4-flash-free`; no key or secret involved |
+| OpenWrite marketplace mirror | REAL | `action=marketplace_list` returned `data.skills`; parser now accepts both `data.skills` and the legacy `data` array |
+| Live novel-ranking mirror | BLOCKED_EXTERNAL | Current mirror rejects `action=novel_ranking` with HTTP 400; the reverse-engineering notes mark that API as removed in newer OpenWrite versions |
+| Ranking bundled fallback | REAL | `RankingApiClient` returns clearly labeled `source: bundled` samples with a `BLOCKED_EXTERNAL` notice when the live mirror is unavailable |
+| Skill Level 3 resources | REAL | `SkillResourceLoader` + `DynamicPromptSkill.readResource()` load `references/` on demand; `test/skill_resource_loader_test.dart` passes |
+| GitNexus impact | Recorded | `SkillMarketplace` HIGH, `RankingApiClient` LOW; no unrelated production files touched |
+| Full non-network suite | PASS | 1478 tests, 0 failures |
+| Windows release build | PASS | `flutter build windows --release` produced `lingbi.exe` |
+| Portable release package | PASS | `tool/windows/package_release.ps1 -SkipBuild` produced `C:\Users\a1691\AppData\Local\Temp\lingbi-release-package` |
+| Code signing | BLOCKED_EXTERNAL | No EV/OV certificate configured |
+
+Remaining commercial gates are unchanged: Windows signing, payment, legal text, licensed market data, professional pilots, and live provider acceptance remain `BLOCKED_EXTERNAL`.
+
+## Path 2 Windows real-machine smoke (2026-08-05)
+
+See `docs/qa/path2-windows-smoke-2026-08-05.md`.
+
+Current status:
+
+- REAL: release launch/welcome entry, model configuration/free mode panel
+- REAL: all 10 Path 2 smoke items now have Windows evidence (release launch, model config, project creation, canon init, first chapter, adoption, persistence, recovery restore, export/portable/DOCX, settings/skill market/experimental labels)
+
+The smoke run is not a commercial-readiness certificate.
+
 ## Rollback limits
 
 - Git history can reproduce a previous binary only when the referenced commit, tracked lockfile, toolchain and build evidence are retained.

@@ -6,17 +6,33 @@ library;
 
 import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
 import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill/skill_resource_loader.dart';
 import 'package:lingbi/features/skill/data/skill_action_service.dart';
 
 /// 动态 Prompt 技能 — 桥接 SkillManifest → SkillAction
 class DynamicPromptSkill extends SkillAction {
-  DynamicPromptSkill({required this.manifest, this.permissions});
+  DynamicPromptSkill({
+    required this.manifest,
+    this.permissions,
+    this.skillDir,
+    List<String> referenceFiles = const [],
+    SkillResourceLoader? resourceLoader,
+  })  : referenceFiles = List.unmodifiable(referenceFiles),
+        _resourceLoader = resourceLoader ?? const SkillResourceLoader();
 
   /// 技能清单数据
   final SkillManifest manifest;
 
   /// 权限集（可选）
   final PermissionSet? permissions;
+
+  /// Skill 安装目录（包含可选 `references/`）。
+  final String? skillDir;
+
+  /// 按需可读的附属文件列表。
+  final List<String> referenceFiles;
+
+  final SkillResourceLoader _resourceLoader;
 
   // ==================== SkillAction getter 映射 ====================
 
@@ -86,5 +102,12 @@ class DynamicPromptSkill extends SkillAction {
     }
 
     return result;
+  }
+
+  /// Level 3: 按需读取一个 `references/` 附属文件。
+  Future<String?> readResource(String relativePath) async {
+    final dir = skillDir;
+    if (dir == null) return null;
+    return _resourceLoader.read(dir, relativePath);
   }
 }
