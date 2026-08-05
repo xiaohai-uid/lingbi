@@ -12,6 +12,7 @@ import 'atomic_file_store.dart';
 import 'mutation/file_canonical_store.dart';
 import 'mutation/local_mutation_journal.dart';
 import 'mutation/project_mutation_journal_factory.dart';
+import 'mutation/project_path_guard.dart';
 import '../../domain/mutation/canonical_revision.dart';
 import '../../shared/interfaces/project_root_resolver.dart';
 
@@ -60,6 +61,8 @@ class RecoveryItem {
     required this.title,
     required this.updatedAt,
     this.originalPath,
+    required this.projectId,
+    required this.projectRootPath,
   });
 
   final String id;
@@ -68,6 +71,13 @@ class RecoveryItem {
   final String title;
   final DateTime updatedAt;
   final String? originalPath;
+
+  /// Stable project identity used to route restore through the mutation
+  /// protocol.
+  final String projectId;
+
+  /// Resolved project root containing [path].
+  final String projectRootPath;
 }
 
 class RecoveryCenterService {
@@ -102,6 +112,37 @@ class RecoveryCenterService {
   final FileCanonicalStore Function(ResolvedProjectRoot)? storeForRoot;
   final Future<List<String>> Function()? projectIdProvider;
 
+  Future<Result<(LocalMutationJournal, FileCanonicalStore)>>
+      _boundIncidentResources(String projectId) async {
+    final singleJournal = journal;
+    final singleStore = canonicalStore;
+    if (singleJournal != null && singleStore != null) {
+      return Result.success((singleJournal, singleStore));
+    }
+
+    final factory = journalFactory;
+    final storeBuilder = storeForRoot;
+    final resolver = rootResolver;
+    if (factory != null && storeBuilder != null && resolver != null) {
+      final rootResult = await resolver.resolve(projectId);
+      final root = rootResult.getOrNull();
+      if (root == null) {
+        return Result.failure(rootResult.errorOrNull()!);
+      }
+      final journalResult = await factory.forProject(projectId);
+      final projectJournal = journalResult.getOrNull();
+      if (projectJournal == null) {
+        return Result.failure(journalResult.errorOrNull()!);
+      }
+      return Result.success((projectJournal, storeBuilder(root)));
+    }
+
+    return Result.failure(FileError(
+      'Recovery incidents require a journal and canonical store',
+      code: 'NOT_CONFIGURED',
+    ));
+  }
+
   /// 扫描未决 commit intent 中目标字节不确定（frozen）的恢复事故。
   /// 每个事故携带当前字节作为恢复候选。
   ///
@@ -114,33 +155,22 @@ class RecoveryCenterService {
       return Result.success(await _scanProject(singleJournal, singleStore));
     }
 
-    final factory = journalFactory;
-    final storeBuilder = storeForRoot;
     final provider = projectIdProvider;
-    final resolver = rootResolver;
-    if (factory != null &&
-        storeBuilder != null &&
-        provider != null &&
-        resolver != null) {
-      final incidents = <RecoveryIncident>[];
-      for (final projectId in await provider()) {
-        final rootResult = await resolver.resolve(projectId);
-        final root = rootResult.getOrNull();
-        if (root == null) continue;
-        final journalResult = await factory.forProject(projectId);
-        final projectJournal = journalResult.getOrNull();
-        if (projectJournal == null) continue;
-        incidents.addAll(
-          await _scanProject(projectJournal, storeBuilder(root)),
-        );
-      }
-      return Result.success(incidents);
+    if (provider == null) {
+      return Result.failure(FileError(
+        'Recovery incidents require a journal and canonical store',
+        code: 'NOT_CONFIGURED',
+      ));
     }
 
-    return Result.failure(FileError(
-      'Recovery incidents require a journal and canonical store',
-      code: 'NOT_CONFIGURED',
-    ));
+    final incidents = <RecoveryIncident>[];
+    for (final projectId in await provider()) {
+      final bound = await _boundIncidentResources(projectId);
+      final pair = bound.getOrNull();
+      if (pair == null) continue;
+      incidents.addAll(await _scanProject(pair.$1, pair.$2));
+    }
+    return Result.success(incidents);
   }
 
   Future<List<RecoveryIncident>> _scanProject(
@@ -188,15 +218,24 @@ class RecoveryCenterService {
     // 尚未决定；从 outcome 反查 intent 继续呈现事故。
     final frozenIntentIds = await _frozenIntentIds(journal);
     for (final intentId in frozenIntentIds) {
-      final events = await journal.readByAggregate(intentId);
-      for (final event in events) {
-        if (event.eventType == LocalMutationJournal.commitIntentEventType) {
-          await consider(CommitIntent.fromJson(event.payload));
-          break;
-        }
-      }
+      final intent = await _readFrozenIntent(journal, intentId);
+      if (intent != null) await consider(intent);
     }
     return incidents;
+  }
+
+  Future<CommitIntent?> _readFrozenIntent(
+    LocalMutationJournal journal,
+    String intentId,
+  ) async {
+    for (final event in await journal.readAll()) {
+      if (event.eventType != LocalMutationJournal.commitIntentEventType) {
+        continue;
+      }
+      final intent = CommitIntent.fromJson(event.payload);
+      if (intent.id == intentId) return intent;
+    }
+    return null;
   }
 
   Future<String> _resolveRoot(String projectId) async {
@@ -228,16 +267,22 @@ class RecoveryCenterService {
     required RecoveryIncident incident,
     required bool approveCurrentBytes,
   }) async {
-    final journal = this.journal;
-    final store = canonicalStore;
-    if (journal == null || store == null) {
-      return Result.failure(FileError(
-        'Recovery incidents require a journal and canonical store',
-        code: 'NOT_CONFIGURED',
-      ));
+    final bound = await _boundIncidentResources(incident.projectId);
+    final pair = bound.getOrNull();
+    if (pair == null) {
+      return Result.failure(bound.errorOrNull()!);
     }
+    final journal = pair.$1;
 
     if (approveCurrentBytes) {
+      final currentContent = incident.currentContent;
+      final currentHash = incident.currentHash;
+      if (currentContent == null || currentHash == null) {
+        return Result.failure(FileError(
+          'Cannot approve a frozen incident without current bytes',
+          code: 'NO_TARGET',
+        ));
+      }
       await journal.append(JournalEvent(
         eventId: 'evt-commit-recovered-${incident.id}',
         eventType: LocalMutationJournal.receiptEventType,
@@ -249,10 +294,11 @@ class RecoveryCenterService {
           idempotencyKey: 'recovered-${incident.id}',
           beforeRevision: 0,
           afterRevision: 1,
+          afterContentHash: currentHash,
           affectedPaths: [incident.targetPath],
           committedAt: DateTime.now().toUtc(),
           receiptHash: canonicalTextHash(
-            'recovered:${incident.id}:${incident.currentHash ?? ''}',
+            'recovered:${incident.id}:$currentHash',
           ),
         ).toJson(),
       ));
@@ -340,7 +386,8 @@ class RecoveryCenterService {
     return Result.success(target);
   }
 
-  Future<List<RecoveryItem>> scan(String projectDir) async {
+  Future<List<RecoveryItem>> scan(String projectDir,
+      {String? projectId}) async {
     final roots = <RecoveryItemType, String>{
       RecoveryItemType.candidate: p.join(projectDir, '.lingbi', 'candidates'),
       RecoveryItemType.version: p.join(projectDir, '.lingbi', 'versions'),
@@ -379,6 +426,8 @@ class RecoveryCenterService {
           title: p.basename(entity.path),
           updatedAt: stat.modified,
           originalPath: originalPath,
+          projectId: projectId ?? projectDir,
+          projectRootPath: projectDir,
         ));
       }
     }
@@ -394,14 +443,38 @@ class RecoveryCenterService {
           'Recovery item does not exist: ${item.path}',
           code: 'NOT_FOUND'));
     }
+    final projectDir = item.projectRootPath;
+    if (projectDir.isEmpty) {
+      return Result.failure(FileError(
+          'Recovery item has no project root: ${item.path}',
+          code: 'NO_TARGET'));
+    }
     final destinationPath = targetPath ?? item.originalPath;
     if (destinationPath == null) {
       return Result.failure(FileError(
           'A target path is required for this recovery item',
           code: 'NO_TARGET'));
     }
-    final destination = File(destinationPath);
-    await destination.parent.create(recursive: true);
+    final relativeInput = p.isAbsolute(destinationPath)
+        ? p.relative(p.normalize(destinationPath),
+            from: p.normalize(projectDir))
+        : destinationPath;
+    final relativePath = ProjectPathGuard.normalizeRelativePath(relativeInput);
+    if (relativePath == null ||
+        await ProjectPathGuard.escapesRoot(
+          rootPath: projectDir,
+          normalizedRelativePath: relativePath,
+        )) {
+      return Result.failure(FileError(
+        'RESTORE_PATH_ESCAPE: $destinationPath',
+        code: 'PATH_ESCAPE',
+        typedCode: MutationErrorCode.pathEscape,
+      ));
+    }
+    final normalizedDestination = p.isAbsolute(destinationPath)
+        ? p.normalize(destinationPath)
+        : p.join(projectDir, destinationPath);
+    final destination = File(normalizedDestination);
     if (await destination.exists()) {
       return Result.failure(FileError(
           'Restore target already exists: ${destination.path}',
@@ -411,11 +484,8 @@ class RecoveryCenterService {
     // T01: fail-closed — restore REQUIRE MutationProtocol
     final protocol = mutationProtocol;
     final content = await source.readAsString();
-    // Derive project dir from item.path: <projectDir>/.lingbi/<type>/<file>
-    final projectDir = p.dirname(p.dirname(p.dirname(item.path)));
-    final relativePath = p.relative(destinationPath, from: projectDir);
     final editResult = await protocol.applyUserEdit(ChangeRequest(
-      projectId: projectDir,
+      projectId: item.projectId,
       origin: ChangeOrigin.restore,
       action: ChangeAction.restoreSnapshot,
       target: ChangeTarget(
@@ -428,12 +498,22 @@ class RecoveryCenterService {
     if (editResult.errorOrNull() != null) {
       return Result.failure(editResult.errorOrNull()!);
     }
+    if (!await destination.exists()) {
+      return Result.failure(FileError(
+        'Restore protocol did not produce target: ${destination.path}',
+        typedCode: MutationErrorCode.storageFailure,
+      ));
+    }
 
-    await source.rename(destination.path);
-    final meta = File('${item.path}.meta.json');
-    if (await meta.exists()) await meta.delete();
-    final metaBackup = File('${item.path}.meta.json.bak');
-    if (await metaBackup.exists()) await metaBackup.delete();
+    // The protocol has already written the destination through the canonical
+    // store. Clean up the trash copy best-effort after the committed restore.
+    try {
+      if (await source.exists()) await source.delete();
+      final meta = File('${item.path}.meta.json');
+      if (await meta.exists()) await meta.delete();
+      final metaBackup = File('${item.path}.meta.json.bak');
+      if (await metaBackup.exists()) await metaBackup.delete();
+    } catch (_) {}
     return Result.success(destination);
   }
 }

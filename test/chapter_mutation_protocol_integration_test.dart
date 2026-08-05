@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/domain/mutation/canonical_revision.dart';
 import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
@@ -65,8 +66,8 @@ void main() {
     });
 
     test('agent origin candidate stays proposed without decide', () async {
-      final proposeResult = await protocol.propose(
-          makeRequest(origin: ChangeOrigin.agent));
+      final proposeResult =
+          await protocol.propose(makeRequest(origin: ChangeOrigin.agent));
       final candidate = (proposeResult as Success<CandidateChange>).value;
       expect(candidate.state, CandidateState.proposed);
       expect(candidate.origin, ChangeOrigin.agent);
@@ -138,6 +139,10 @@ void main() {
       expect(receipt.affectedPaths,
           contains(candidate.target.projectRelativePath));
       expect(receipt.receiptHash, hasLength(64));
+      expect(
+        receipt.afterContentHash,
+        canonicalTextHash('Generated chapter content'),
+      );
     });
   });
 
@@ -173,8 +178,8 @@ void main() {
         projectId: 'proj-001',
         origin: ChangeOrigin.userUi,
         action: ChangeAction.createText,
-        target: const ChangeTarget(
-            projectRelativePath: 'ch.md', kind: 'chapter'),
+        target:
+            const ChangeTarget(projectRelativePath: 'ch.md', kind: 'chapter'),
         baseRevision: 0,
         payload: 'content',
         idempotencyKey: 'unique-key-1',

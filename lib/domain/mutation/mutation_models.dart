@@ -485,6 +485,7 @@ final class CommitReceipt {
     required this.affectedPaths,
     required this.committedAt,
     required this.receiptHash,
+    this.afterContentHash = '',
   });
 
   factory CommitReceipt.fromJson(Map<String, dynamic> json) {
@@ -506,6 +507,7 @@ final class CommitReceipt {
       committedAt: DateTime.parse(json['committed_at'] as String? ??
           DateTime.utc(1970).toIso8601String()),
       receiptHash: json['receipt_hash'] as String? ?? '',
+      afterContentHash: json['after_content_hash'] as String? ?? '',
     );
   }
 
@@ -520,6 +522,7 @@ final class CommitReceipt {
   final List<String> affectedPaths;
   final DateTime committedAt;
   final String receiptHash;
+  final String afterContentHash;
 
   Map<String, dynamic> toJson() => {
         'schema_version': currentSchemaVersion,
@@ -532,5 +535,6 @@ final class CommitReceipt {
         'affected_paths': affectedPaths,
         'committed_at': committedAt.toUtc().toIso8601String(),
         'receipt_hash': receiptHash,
+        'after_content_hash': afterContentHash,
       };
 }

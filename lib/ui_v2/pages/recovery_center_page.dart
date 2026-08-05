@@ -33,15 +33,15 @@ class _RecoveryCenterPageState extends State<RecoveryCenterPage> {
         .getProject(widget.projectId);
     if (project == null) return [];
     return ServiceLocator.instance.recoveryCenterService
-        .scan(project.directoryPath);
+        .scan(project.directoryPath, projectId: widget.projectId);
   }
 
   Future<List<RecoveryIncident>> _loadIncidents() async {
     final project = await ServiceLocator.instance.projectService
         .getProject(widget.projectId);
     if (project == null) return [];
-    final result = await ServiceLocator.instance.recoveryCenterService
-        .scanIncidents();
+    final result =
+        await ServiceLocator.instance.recoveryCenterService.scanIncidents();
     return result.getOrNull() ?? const [];
   }
 
@@ -50,7 +50,8 @@ class _RecoveryCenterPageState extends State<RecoveryCenterPage> {
     bool approveCurrentBytes,
   ) async {
     final result = await ServiceLocator.instance.recoveryCenterService
-        .decideIncident(incident: incident, approveCurrentBytes: approveCurrentBytes);
+        .decideIncident(
+            incident: incident, approveCurrentBytes: approveCurrentBytes);
     if (!mounted) return;
     final message = result.errorOrNull() != null
         ? '决定失败：${result.errorOrNull()}'
@@ -65,12 +66,19 @@ class _RecoveryCenterPageState extends State<RecoveryCenterPage> {
 
   Future<void> _restore(RecoveryItem item) async {
     try {
-      await ServiceLocator.instance.recoveryCenterService.restore(item);
+      final result =
+          await ServiceLocator.instance.recoveryCenterService.restore(item);
       if (!mounted) return;
-      setState(_reload);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('文件已恢复到原位置')),
-      );
+      if (result.errorOrNull() == null) {
+        setState(_reload);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('文件已恢复到原位置')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('恢复失败：${result.errorOrNull()}')),
+        );
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,9 +134,13 @@ class _RecoveryCenterPageState extends State<RecoveryCenterPage> {
         FutureBuilder<List<RecoveryIncident>>(
           future: _incidents,
           builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) return const SizedBox.shrink();
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox.shrink();
+            }
             final incidents = snapshot.data ?? const <RecoveryIncident>[];
-            if (incidents.isEmpty) return const SizedBox.shrink();
+            if (incidents.isEmpty) {
+              return const SizedBox.shrink();
+            }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

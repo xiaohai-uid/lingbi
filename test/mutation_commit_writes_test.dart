@@ -13,6 +13,7 @@ import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
 import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
@@ -123,8 +124,7 @@ void main() {
   });
 
   group('P0-1: commit failure produces no receipt', () {
-    test('path escape in target: commit fails, no committed event in journal',
-        () async {
+    test('path escape in target: propose fails, no journal event', () async {
       const evilPath = '../escape.md';
 
       final proposeResult = await protocol.propose(const ChangeRequest(
@@ -135,32 +135,16 @@ void main() {
         baseRevision: 0,
         payload: '恶意内容',
       ));
-      final candidate = (proposeResult as Success<CandidateChange>).value;
-
-      final approveResult = await protocol.decide(ApprovalCommand(
-        candidateId: candidate.id,
-        actorId: 'user-test',
-        approved: true,
-        policy: 'explicit_user',
-      ));
-      final approval = (approveResult as Success<ApprovalDecision>).value;
-
-      final commitResult = await protocol.commit(CommitCommand(
-        candidateId: candidate.id,
-        approvalId: approval.id,
-        idempotencyKey: 'p0-escape',
-      ));
-
       // Must fail
-      expect(commitResult, isA<Failure>(),
-          reason: 'path escape must be rejected by store.prepare()');
+      expect(proposeResult, isA<Failure>(),
+          reason: 'path escape must be rejected before candidate persistence');
+      expect(
+        (proposeResult as Failure).error.typedCode,
+        MutationErrorCode.pathEscape,
+      );
 
-      // No committed event in journal
-      final events = await journal.readByAggregate(candidate.id);
-      final hasCommitted =
-          events.any((e) => e.eventType == 'candidate_committed');
-      expect(hasCommitted, isFalse,
-          reason: 'failed commit must not produce a journal receipt');
+      // No proposal or receipt event in journal
+      expect(await journal.readAll(), isEmpty);
     });
 
     test('unapproved commit does not change target file', () async {

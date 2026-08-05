@@ -165,6 +165,7 @@ void main() {
       expect(json['after_revision'], 2);
       expect(json['affected_paths'], ['chapters/ch01.md']);
       expect(json['receipt_hash'], 'hash-r');
+      expect(json['after_content_hash'], '');
       expect(json.containsKey('beforeRevision'), isFalse);
     });
 
@@ -192,40 +193,35 @@ void main() {
   group('transitionCandidate legal transitions', () {
     test('proposed → approved', () {
       final candidate = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.approve);
+      final result = transitionCandidate(candidate, CandidateEvent.approve);
       expect(result.success, isTrue);
       expect(result.candidate!.state, CandidateState.approved);
     });
 
     test('proposed → rejected', () {
       final candidate = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.reject);
+      final result = transitionCandidate(candidate, CandidateEvent.reject);
       expect(result.success, isTrue);
       expect(result.candidate!.state, CandidateState.rejected);
     });
 
     test('approved → committed', () {
       final candidate = makeCandidate(state: CandidateState.approved);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.commit);
+      final result = transitionCandidate(candidate, CandidateEvent.commit);
       expect(result.success, isTrue);
       expect(result.candidate!.state, CandidateState.committed);
     });
 
     test('proposed → superseded', () {
       final candidate = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.supersede);
+      final result = transitionCandidate(candidate, CandidateEvent.supersede);
       expect(result.success, isTrue);
       expect(result.candidate!.state, CandidateState.superseded);
     });
 
     test('approved → superseded', () {
       final candidate = makeCandidate(state: CandidateState.approved);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.supersede);
+      final result = transitionCandidate(candidate, CandidateEvent.supersede);
       expect(result.success, isTrue);
       expect(result.candidate!.state, CandidateState.superseded);
     });
@@ -234,66 +230,57 @@ void main() {
   group('transitionCandidate rejected transitions', () {
     test('proposed → committed is illegal (must approve first)', () {
       final candidate = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.commit);
+      final result = transitionCandidate(candidate, CandidateEvent.commit);
       expect(result.success, isFalse);
       expect(result.error, contains('ILLEGAL_TRANSITION'));
     });
 
     test('rejected → approved is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.rejected);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.approve);
+      final result = transitionCandidate(candidate, CandidateEvent.approve);
       expect(result.success, isFalse);
       expect(result.error, contains('ILLEGAL_TRANSITION'));
     });
 
     test('rejected → committed is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.rejected);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.commit);
+      final result = transitionCandidate(candidate, CandidateEvent.commit);
       expect(result.success, isFalse);
     });
 
     test('committed → approved is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.committed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.approve);
+      final result = transitionCandidate(candidate, CandidateEvent.approve);
       expect(result.success, isFalse);
     });
 
     test('committed → superseded is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.committed);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.supersede);
+      final result = transitionCandidate(candidate, CandidateEvent.supersede);
       expect(result.success, isFalse);
     });
 
     test('superseded → approved is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.superseded);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.approve);
+      final result = transitionCandidate(candidate, CandidateEvent.approve);
       expect(result.success, isFalse);
     });
 
     test('superseded → committed is illegal (terminal)', () {
       final candidate = makeCandidate(state: CandidateState.superseded);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.commit);
+      final result = transitionCandidate(candidate, CandidateEvent.commit);
       expect(result.success, isFalse);
     });
 
     test('approved → approved is illegal (no self-transition)', () {
       final candidate = makeCandidate(state: CandidateState.approved);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.approve);
+      final result = transitionCandidate(candidate, CandidateEvent.approve);
       expect(result.success, isFalse);
     });
 
     test('approved → rejected is illegal', () {
       final candidate = makeCandidate(state: CandidateState.approved);
-      final result =
-          transitionCandidate(candidate, CandidateEvent.reject);
+      final result = transitionCandidate(candidate, CandidateEvent.reject);
       expect(result.success, isFalse);
     });
   });
@@ -301,23 +288,21 @@ void main() {
   group('transitionCandidate produces new immutable record', () {
     test('original candidate is unchanged after transition', () {
       final original = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(original, CandidateEvent.approve);
+      final result = transitionCandidate(original, CandidateEvent.approve);
       expect(result.candidate!.state, CandidateState.approved);
       expect(original.state, CandidateState.proposed);
     });
 
     test('transitioned record preserves identity fields', () {
       final original = makeCandidate(state: CandidateState.proposed);
-      final result =
-          transitionCandidate(original, CandidateEvent.approve);
+      final result = transitionCandidate(original, CandidateEvent.approve);
       final next = result.candidate!;
       expect(next.id, original.id);
       expect(next.projectId, original.projectId);
       expect(next.origin, original.origin);
       expect(next.action, original.action);
-      expect(next.target.projectRelativePath,
-          original.target.projectRelativePath);
+      expect(
+          next.target.projectRelativePath, original.target.projectRelativePath);
       expect(next.baseRevision, original.baseRevision);
       expect(next.payloadHash, original.payloadHash);
       expect(next.actionHash, original.actionHash);
