@@ -74,7 +74,8 @@ void main() {
   }
 
   group('recovery incident freeze', () {
-    test('indeterminate intent surfaces as a frozen incident with current bytes',
+    test(
+        'indeterminate intent surfaces as a frozen incident with current bytes',
         () async {
       await _seedIndeterminateIntent();
 
@@ -85,8 +86,7 @@ void main() {
       final incident = incidents.getOrNull()!.single;
       expect(incident.id, 'intent-frozen-1');
       expect(incident.targetPath, 'chapters/ch01.md');
-      expect(incident.currentContent, '半截或不一致的字节',
-          reason: '当前字节必须作为恢复候选保留');
+      expect(incident.currentContent, '半截或不一致的字节', reason: '当前字节必须作为恢复候选保留');
       expect(incident.currentHash, isNotNull);
     });
 
@@ -113,6 +113,32 @@ void main() {
       expect(incidents.getOrNull()!, isEmpty);
     });
 
+    test('approving without current bytes fails closed instead of empty hash',
+        () async {
+      final intent = CommitIntent(
+        id: 'intent-missing-current-1',
+        projectId: projectRoot,
+        candidateId: 'cand-missing-current',
+        targetPath: 'chapters/missing-current.md',
+        baseRevision: 0,
+        expectedRevision: 1,
+        expectedContentHash: 'expected-hash-missing-current',
+        idempotencyKey: 'idem-missing-current',
+        baseContentHash: 'base-hash',
+      );
+      await journal.appendCommitIntent(intent);
+
+      final incident = (await _service().scanIncidents()).getOrNull()!.single;
+      expect(incident.currentContent, isNull);
+      expect(incident.currentHash, isNull);
+
+      final decision = await _service().decideIncident(
+        incident: incident,
+        approveCurrentBytes: true,
+      );
+      expect(decision.errorOrNull(), isNotNull);
+    });
+
     test('approve keeps current bytes and records the decision', () async {
       await _seedIndeterminateIntent();
       final incident = (await _service().scanIncidents()).getOrNull()!.single;
@@ -122,7 +148,8 @@ void main() {
         approveCurrentBytes: true,
       );
       expect(outcome.errorOrNull(), isNull);
-      expect(outcome.getOrNull()!.outcome, RecoveryOutcomeType.receiptCompleted);
+      expect(
+          outcome.getOrNull()!.outcome, RecoveryOutcomeType.receiptCompleted);
 
       // 当前字节被保留为最终正文。
       expect(
@@ -151,8 +178,7 @@ void main() {
       final trashCandidates =
           items.where((i) => i.type == RecoveryItemType.trash).toList();
       expect(trashCandidates, hasLength(1));
-      expect(File(trashCandidates.single.path).readAsStringSync(),
-          '半截或不一致的字节');
+      expect(File(trashCandidates.single.path).readAsStringSync(), '半截或不一致的字节');
     });
 
     test('uuid projectId resolves to its root before writing trash', () async {
@@ -193,8 +219,8 @@ void main() {
         trashCandidates.single.path,
         startsWith('$projectRoot${Platform.pathSeparator}.lingbi'),
       );
-      expect(File(trashCandidates.single.path).readAsStringSync(),
-          'uuid 场景的半截字节');
+      expect(
+          File(trashCandidates.single.path).readAsStringSync(), 'uuid 场景的半截字节');
     });
 
     test('re-approval restores the trash recovery candidate to a target',
@@ -216,7 +242,8 @@ void main() {
         candidate,
         targetPath: recoveryTarget,
       );
-      expect(restored.errorOrNull(), isNull, reason: '${restored.errorOrNull()}');
+      expect(restored.errorOrNull(), isNull,
+          reason: '${restored.errorOrNull()}');
       expect(File(recoveryTarget).readAsStringSync(), '半截或不一致的字节');
     });
   });

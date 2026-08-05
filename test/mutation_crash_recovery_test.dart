@@ -11,20 +11,17 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/mutation/canonical_revision.dart';
 import 'package:lingbi/domain/mutation/mutation_models.dart';
-import 'package:lingbi/services/atomic_file_store.dart';
-import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
-import 'package:lingbi/services/mutation/project_mutation_journal_factory.dart';
 import 'package:lingbi/shared/errors/app_error.dart';
 import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
-import 'package:lingbi/shared/interfaces/project_root_resolver.dart';
+
+import 'support/mutation_test_harness.dart' as mutation_harness;
 
 void main() {
   late Directory tempDir;
   late String projectRoot;
-  late _SingleRootResolver resolver;
   late LocalMutationProtocol protocol;
   late LocalMutationJournal journal;
 
@@ -32,19 +29,8 @@ void main() {
     tempDir = Directory.systemTemp.createTempSync('crash_recovery_test_');
     projectRoot = '${tempDir.path}/project';
     Directory(projectRoot).createSync(recursive: true);
-    resolver = _SingleRootResolver('proj-1', projectRoot);
-    final journalFactory = ProjectMutationJournalFactory(resolver: resolver);
-    protocol = LocalMutationProtocol.projectBound(
-      resolver: resolver,
-      journalFactory: journalFactory,
-      storeForRoot: (root) => FileCanonicalStore.projectOwned(
-        root,
-        atomicStore: AtomicFileStore(),
-      ),
-    );
-    journal = LocalMutationJournal.projectOwned(
-      ResolvedProjectRoot(projectId: 'proj-1', rootPath: projectRoot),
-    );
+    protocol = mutation_harness.boundProtocol('proj-1', projectRoot);
+    journal = mutation_harness.journalForProject('proj-1', projectRoot);
   });
 
   tearDown(() {
@@ -57,26 +43,14 @@ void main() {
     ChangeAction action = ChangeAction.createText,
     int baseRevision = 0,
   }) async {
-    final proposeResult = await protocol.propose(ChangeRequest(
+    return mutation_harness.proposeAndApprove(
+      protocol,
       projectId: 'proj-1',
-      origin: ChangeOrigin.agent,
-      action: action,
-      target: ChangeTarget(projectRelativePath: targetPath, kind: 'chapter'),
-      baseRevision: baseRevision,
+      targetPath: targetPath,
       payload: payload,
-    ));
-    final candidate = proposeResult.getOrNull();
-    expect(candidate, isNotNull);
-    final approveResult = await protocol.decide(ApprovalCommand(
-      candidateId: candidate!.id,
-      actorId: 'user-test',
-      approved: true,
-      policy: 'explicit_user',
-      projectId: 'proj-1',
-    ));
-    final approval = approveResult.getOrNull();
-    expect(approval, isNotNull);
-    return (candidate, approval!);
+      action: action,
+      baseRevision: baseRevision,
+    );
   }
 
   CommitIntent makeIntent({
@@ -86,13 +60,10 @@ void main() {
     String baseContentHash = '',
     String idempotencyKey = 'idem-crash',
   }) =>
-      CommitIntent(
-        id: 'intent-$idempotencyKey',
-        projectId: 'proj-1',
+      mutation_harness.makeIntent(
         candidateId: candidateId,
+        projectId: 'proj-1',
         targetPath: targetPath,
-        baseRevision: 0,
-        expectedRevision: 1,
         expectedContentHash: expectedContentHash,
         idempotencyKey: idempotencyKey,
         baseContentHash: baseContentHash,
@@ -147,6 +118,11 @@ void main() {
       );
       expect(receipt.receiptHash, hasLength(64));
       expect(receipt.afterRevision, 1);
+      expect(receipt.afterContentHash, candidate.payloadHash);
+      expect(
+        receipt.afterContentHash,
+        canonicalTextHash(await file.readAsString()),
+      );
     });
   });
 
@@ -176,19 +152,19 @@ void main() {
       final secondReceipt = (second as Success<CommitReceipt>).value;
 
       expect(secondReceipt.id, firstReceipt.id);
-      expect(await File('$projectRoot/chapters/idem.md').readAsString(),
-          payload);
+      expect(
+          await File('$projectRoot/chapters/idem.md').readAsString(), payload);
 
       final committed = await journal.readAll();
-      final receipts = committed
-          .where((e) => e.eventType == 'candidate_committed')
-          .toList();
+      final receipts =
+          committed.where((e) => e.eventType == 'candidate_committed').toList();
       expect(receipts, hasLength(1));
     });
   });
 
   group('base revision conflict', () {
-    test('external edit between propose and commit fails with REVISION_CONFLICT',
+    test(
+        'external edit between propose and commit fails with REVISION_CONFLICT',
         () async {
       final targetPath = 'chapters/conflict.md';
       final file = File('$projectRoot/$targetPath')
@@ -298,12 +274,11 @@ void main() {
         ..writeAsStringSync(payload);
 
       final outcomes = await protocol.reconcilePending('proj-1');
-      final list =
-          (outcomes as Success<List<RecoveryOutcome>>).value;
+      final list = (outcomes as Success<List<RecoveryOutcome>>).value;
       expect(list.single.outcome, RecoveryOutcomeType.receiptCompleted);
 
-      expect(await File('$projectRoot/chapters/after.md').readAsString(),
-          payload);
+      expect(
+          await File('$projectRoot/chapters/after.md').readAsString(), payload);
       final events = await journal.readByAggregate(candidate.id);
       expect(
         events.where((e) => e.eventType == 'candidate_committed'),
@@ -337,8 +312,7 @@ void main() {
         ..writeAsStringSync('第三种内容');
 
       final outcomes = await protocol.reconcilePending('proj-1');
-      final list =
-          (outcomes as Success<List<RecoveryOutcome>>).value;
+      final list = (outcomes as Success<List<RecoveryOutcome>>).value;
       expect(list.single.outcome, RecoveryOutcomeType.targetFrozen);
 
       expect(await File('$projectRoot/chapters/frozen.md').readAsString(),
@@ -354,24 +328,4 @@ void main() {
       );
     });
   });
-}
-
-class _SingleRootResolver implements ProjectRootResolver {
-  _SingleRootResolver(this.projectId, this.rootPath);
-
-  final String projectId;
-  final String rootPath;
-
-  @override
-  Future<Result<ResolvedProjectRoot>> resolve(String id) async {
-    if (id != projectId) {
-      return Result.failure(FileError(
-        'no root for $id',
-        typedCode: MutationErrorCode.projectRootAmbiguity,
-      ));
-    }
-    return Result.success(
-      ResolvedProjectRoot(projectId: id, rootPath: rootPath),
-    );
-  }
 }

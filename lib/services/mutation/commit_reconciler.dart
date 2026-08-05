@@ -82,6 +82,7 @@ final class CommitReconciler {
       idempotencyKey: intent.idempotencyKey,
       beforeRevision: intent.baseRevision,
       afterRevision: intent.expectedRevision,
+      afterContentHash: intent.expectedContentHash,
       affectedPaths: [intent.targetPath],
       committedAt: DateTime.now().toUtc(),
       receiptHash: canonicalTextHash(

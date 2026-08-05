@@ -9,15 +9,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lingbi/domain/mutation/mutation_models.dart';
-import 'package:lingbi/services/atomic_file_store.dart';
-import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
-import 'package:lingbi/services/mutation/project_mutation_journal_factory.dart';
 import 'package:lingbi/shared/errors/app_error.dart';
 import 'package:lingbi/shared/errors/result.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/shared/interfaces/project_root_resolver.dart';
+
+import 'support/mutation_test_harness.dart';
 
 void main() {
   late Directory tempDir;
@@ -37,14 +36,7 @@ void main() {
   });
 
   LocalMutationProtocol buildProtocol(ProjectRootResolver resolver) =>
-      LocalMutationProtocol.projectBound(
-        resolver: resolver,
-        journalFactory: ProjectMutationJournalFactory(resolver: resolver),
-        storeForRoot: (root) => FileCanonicalStore.projectOwned(
-          root,
-          atomicStore: AtomicFileStore(),
-        ),
-      );
+      boundProtocolWithResolver(resolver);
 
   test('move between propose and commit writes to the current root', () async {
     final resolver = _ScriptedResolver([
@@ -81,7 +73,7 @@ void main() {
 
     // Simulate the filesystem move: the whole project folder — including its
     // .lingbi mutation journal — is relocated from A to B.
-    _copyTree(Directory(rootA), Directory(rootB));
+    copyTree(Directory(rootA), Directory(rootB));
 
     final commitResult = await protocol.commit(CommitCommand(
       candidateId: candidate.id,
@@ -102,21 +94,24 @@ void main() {
     );
     final events = await journalB.readByAggregate(candidate.id);
     final types = events.map((e) => e.eventType).toList();
-    expect(types, containsAll([
-      'candidate_proposed',
-      'candidate_approved',
-      'commit_intent',
-      'candidate_committed',
-    ]));
+    expect(
+        types,
+        containsAll([
+          'candidate_proposed',
+          'candidate_approved',
+          'commit_intent',
+          'candidate_committed',
+        ]));
   });
 
-  test('zero-root resolution at commit fails closed without writing',
-      () async {
+  test('zero-root resolution at commit fails closed without writing', () async {
     final resolver = _ScriptedResolver([
       _step(rootA), _step(rootA), // propose
       _step(rootA), _step(rootA), // decide
       _failure('no root', code: MutationErrorCode.projectRootAmbiguity),
-      _failure('no root', code: MutationErrorCode.projectRootAmbiguity), // commit — project gone
+      _failure('no root',
+          code:
+              MutationErrorCode.projectRootAmbiguity), // commit — project gone
     ]);
     final protocol = buildProtocol(resolver);
 
@@ -155,8 +150,10 @@ void main() {
 
   test('ambiguous root at commit fails closed without writing', () async {
     final resolver = _ScriptedResolver([
-      _step(rootA), _step(rootA),
-      _step(rootA), _step(rootA),
+      _step(rootA),
+      _step(rootA),
+      _step(rootA),
+      _step(rootA),
       _failure('two roots claim the same id',
           code: MutationErrorCode.projectRootAmbiguity),
       _failure('two roots claim the same id',
@@ -224,17 +221,3 @@ Result<ResolvedProjectRoot> _failure(
   MutationErrorCode? code,
 }) =>
     Result.failure(FileError(message, typedCode: code));
-
-void _copyTree(Directory source, Directory target) {
-  for (final entity in source.listSync(recursive: true)) {
-    final relative =
-        entity.path.substring(source.path.length + 1);
-    final destination = '${target.path}/$relative';
-    if (entity is Directory) {
-      Directory(destination).createSync(recursive: true);
-    } else if (entity is File) {
-      Directory(File(destination).parent.path).createSync(recursive: true);
-      entity.copySync(destination);
-    }
-  }
-}

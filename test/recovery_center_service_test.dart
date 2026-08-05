@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/domain/mutation/canonical_revision.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/services/mutation/file_canonical_store.dart';
 import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/services/recovery_center_service.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
 import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 
 void main() {
   test('soft delete is discoverable and can be restored', () async {
@@ -60,9 +64,8 @@ void main() {
         ),
       ),
     );
-    final types = (await scanService.scan(root.path))
-        .map((item) => item.type)
-        .toSet();
+    final types =
+        (await scanService.scan(root.path)).map((item) => item.type).toSet();
     expect(
         types,
         containsAll(<RecoveryItemType>{
@@ -106,7 +109,129 @@ void main() {
     final journal = LocalMutationJournal(basePath: journalDir.path);
     final events = await journal.readAll();
     final types = events.map((e) => e.eventType).toList();
-    expect(types, contains('candidate_proposed'));
-    expect(types, contains('candidate_approved'));
+    expect(
+      types,
+      containsAll(<String>[
+        'candidate_proposed',
+        'candidate_approved',
+        'commit_intent',
+        'candidate_committed',
+      ]),
+    );
+    final receipts =
+        events.where((e) => e.eventType == 'candidate_committed').toList();
+    expect(receipts, hasLength(1));
+    expect(
+      CommitReceipt.fromJson(receipts.single.payload).afterContentHash,
+      canonicalTextHash('restore content'),
+    );
   });
+
+  test('restore routes stable project id and relative path through protocol',
+      () async {
+    final root = await Directory.systemTemp.createTemp('lingbi_restore_id_');
+    addTearDown(() => root.delete(recursive: true));
+    final source = File('${root.path}/.lingbi/trash/1.md')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('restore content');
+    final item = RecoveryItem(
+      id: 'item-1',
+      type: RecoveryItemType.trash,
+      path: source.path,
+      title: '1.md',
+      updatedAt: DateTime.utc(2026, 8, 5),
+      originalPath: '${root.path}/chapters/ch01.md',
+      projectId: 'proj-restore',
+      projectRootPath: root.path,
+    );
+    final protocol = _CapturingMutationProtocol(root.path);
+    final service = RecoveryCenterService(mutationProtocol: protocol);
+
+    final restored = await service.restore(item);
+    expect(restored.errorOrNull(), isNull);
+    expect(protocol.lastRequest?.projectId, 'proj-restore');
+    expect(
+      protocol.lastRequest?.target.projectRelativePath,
+      'chapters/ch01.md',
+    );
+    expect(protocol.lastRequest?.origin, ChangeOrigin.restore);
+  });
+
+  test('restore accepts a project-relative target path', () async {
+    final root = await Directory.systemTemp.createTemp('lingbi_restore_rel_');
+    addTearDown(() => root.delete(recursive: true));
+    final source = File('${root.path}/.lingbi/trash/1.md')
+      ..createSync(recursive: true)
+      ..writeAsStringSync('relative target content');
+    final item = RecoveryItem(
+      id: 'item-relative',
+      type: RecoveryItemType.trash,
+      path: source.path,
+      title: '1.md',
+      updatedAt: DateTime.utc(2026, 8, 5),
+      projectId: 'proj-restore-relative',
+      projectRootPath: root.path,
+    );
+    final protocol = _CapturingMutationProtocol(root.path);
+    final service = RecoveryCenterService(mutationProtocol: protocol);
+
+    final restored =
+        await service.restore(item, targetPath: 'chapters/restored.md');
+    expect(restored.errorOrNull(), isNull);
+    expect(
+      await File('${root.path}/chapters/restored.md').readAsString(),
+      'relative target content',
+    );
+    expect(
+      protocol.lastRequest?.target.projectRelativePath,
+      'chapters/restored.md',
+    );
+  });
+}
+
+class _CapturingMutationProtocol implements MutationProtocol {
+  _CapturingMutationProtocol(this.root);
+
+  final String root;
+  ChangeRequest? lastRequest;
+
+  @override
+  Future<Result<CommitReceipt>> applyUserEdit(ChangeRequest request) async {
+    lastRequest = request;
+    final target = File('$root/${request.target.projectRelativePath}');
+    await target.parent.create(recursive: true);
+    await target.writeAsString(request.payload);
+    return Result.success(CommitReceipt(
+      id: 'rcpt-capture',
+      candidateId: 'cand-capture',
+      approvalId: 'appr-capture',
+      idempotencyKey: request.idempotencyKey ?? 'idem-capture',
+      beforeRevision: 0,
+      afterRevision: 1,
+      affectedPaths: [request.target.projectRelativePath],
+      committedAt: DateTime.now().toUtc(),
+      receiptHash: 'capture',
+    ));
+  }
+
+  @override
+  Future<Result<CommitReceipt>> commit(CommitCommand command) async =>
+      Result.failure(FileError('not used'));
+
+  @override
+  Future<Result<ApprovalDecision>> decide(ApprovalCommand command) async =>
+      Result.failure(FileError('not used'));
+
+  @override
+  Future<Result<CandidateChange>> propose(ChangeRequest request) async =>
+      Result.failure(FileError('not used'));
+
+  @override
+  Future<Result<void>> reject(RejectCommand command) async =>
+      Result.failure(FileError('not used'));
+
+  @override
+  Future<Result<List<RecoveryOutcome>>> reconcilePending(
+          String projectId) async =>
+      Result.success(const []);
 }

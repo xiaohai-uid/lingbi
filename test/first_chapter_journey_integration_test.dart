@@ -9,13 +9,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lingbi/domain/mutation/canonical_revision.dart';
+import 'package:lingbi/domain/mutation/mutation_models.dart';
 import 'package:lingbi/domain/project/project_brief.dart';
 import 'package:lingbi/features/onboarding/data/guided_wizard_state_machine.dart';
 import 'package:lingbi/features/onboarding/data/wizard_completion_workflow.dart';
+import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 import 'package:lingbi/shared/models/project.dart';
+import 'package:lingbi/shared/errors/result.dart';
+import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_event.dart';
 import 'package:lingbi/workflows/first_chapter/first_chapter_state_store.dart';
+
+import 'support/mutation_test_harness.dart';
 
 // ─── Fakes ───────────────────────────────────────────
 
@@ -161,6 +168,41 @@ void main() {
       expect(restored!.stage, FirstChapterStage.idle);
       expect(restored.chapterId, 'chapter-1');
       expect(restored.projectId, result.project.id);
+    });
+
+    test('第一章采纳写入 MutationProtocol 并可在重开后继续核验', () async {
+      final projectDir = await Directory.systemTemp
+          .createTemp('lingbi_first_chapter_mutation_');
+      addTearDown(() => projectDir.delete(recursive: true));
+      final protocol = boundProtocol('proj-first-chapter', projectDir.path);
+      const payload = '# 第一章\n\n候选正文已采纳。';
+      const targetPath = 'chapters/chapter-1.md';
+
+      final result = await protocol.applyUserEdit(ChangeRequest(
+        projectId: 'proj-first-chapter',
+        origin: ChangeOrigin.userUi,
+        action: ChangeAction.createText,
+        target: ChangeTarget(
+          projectRelativePath: targetPath,
+          kind: 'chapter',
+        ),
+        baseRevision: 0,
+        payload: payload,
+        idempotencyKey: 'first-chapter-adoption',
+      ));
+      expect(result, isA<Success<CommitReceipt>>());
+      final receipt = (result as Success<CommitReceipt>).value;
+      final file = File('${projectDir.path}/$targetPath');
+
+      expect(await file.readAsString(), payload);
+      expect(receipt.afterContentHash, canonicalTextHash(payload));
+
+      final journal = journalForProject('proj-first-chapter', projectDir.path);
+      expect(await journal.validateChain(), isTrue);
+      expect(
+        (await journal.readAll()).map((event) => event.eventType),
+        contains(LocalMutationJournal.receiptEventType),
+      );
     });
 
     test('中断恢复：序列化 → 反序列化 → 继续完成', () async {

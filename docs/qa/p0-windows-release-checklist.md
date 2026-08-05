@@ -37,7 +37,7 @@
 - [x] 导入的生产源码、`pubspec.lock` 和本清单均由 Git 跟踪；`test/release_metadata_contract_test.dart` 覆盖。
 - [ ] `dart format --output=none --set-exit-if-changed lib test tool`：基线仍有 173 个历史文件未格式化；Task 1 未做全库机械改写。
 - [x] `flutter analyze lib/`：`No issues found`。
-- [x] `flutter test`：1002 tests，零失败。
+- [x] `flutter test --exclude-tags network --concurrency=1`：1473 tests，零失败（2026-08-05 MP-11）。
 - [x] `flutter build windows --release`：成功生成 `lingbi.exe`。
 - [x] `tool/windows/package_release.ps1 -SkipBuild`：成功生成便携包。
 - [x] `SHA256SUMS.txt` 使用包内相对路径，`PROVENANCE.json` 记录版本和源码 commit/ref/dirty 状态。
@@ -45,3 +45,33 @@
 - [ ] 代码签名：`BLOCKED_EXTERNAL`，直到提供真实 Windows 证书。
 
 任何未勾选项都禁止把构建标记为“商业就绪”。
+
+## MP-11 MutationProtocol P0 证据（2026-08-05）
+
+对应报告：`docs/qa/mutation-protocol-p0-report.md`
+
+| 场景 | 状态 | 覆盖测试 |
+|------|------|----------|
+| 项目内 journal + 完整 payload 提交 | REAL | `mutation_p0_acceptance_test.dart`, `mutation_commit_writes_test.dart` |
+| 关闭重开、移动项目、重复副本身份 | REAL | `mutation_p0_acceptance_test.dart`, `duplicate_project_identity_test.dart` |
+| 路径逃逸、外部编辑、崩溃窗口 | REAL | `mutation_fault_injection_test.dart`, `mutation_crash_recovery_test.dart` |
+| 恢复中心可列出未决 frozen intent | REAL | `recovery_incident_test.dart`, `mutation_fault_injection_test.dart` |
+| `reconcilePending` 后恢复中心重新列出 frozen intent | REAL | `mutation_fault_injection_test.dart` |
+| 生产 factory 绑定恢复中心可 scan/decide | REAL | `mutation_fault_injection_test.dart` |
+| 路径逃逸在 propose 阶段拒绝 | REAL | `mutation_fault_injection_test.dart`, `mutation_commit_writes_test.dart` |
+| RecoveryCenterService restore 完整四记录 | REAL | `recovery_center_service_test.dart` |
+| 便携包 clean import | REAL | `portable_project_package_test.dart` |
+| Windows junction/symlink host 验收 | PARTIAL | 本机 `mklink /J` 不可用，测试跳过 |
+
+外部商业门禁：
+
+- Windows 代码签名/SmartScreen：`BLOCKED_EXTERNAL`
+- 支付/退款/税务：`BLOCKED_EXTERNAL`
+- 法律/隐私文本批准：`BLOCKED_EXTERNAL`
+- 授权市场数据连接器：`BLOCKED_EXTERNAL`
+- 真实 WebDAV 服务器验收：`BLOCKED_EXTERNAL`
+- 专业作者/工作室试点：`BLOCKED_EXTERNAL`
+- 当前 SenseNova key 之外的真实供应商验收：`BLOCKED_EXTERNAL`
+
+结论：MP-11 本地功能门禁已通过；恢复中心 frozen intent 查找与 restore
+完整回执已修复并有绿色测试。外部商业门禁仍为 `BLOCKED_EXTERNAL`。

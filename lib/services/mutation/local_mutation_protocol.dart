@@ -69,8 +69,7 @@ final class LocalMutationProtocol implements MutationProtocol {
       if (boundJournal == null) {
         return Result.failure(journal.errorOrNull()!);
       }
-      return Result.success(
-          (boundJournal, storeForRoot!(root)));
+      return Result.success((boundJournal, storeForRoot!(root)));
     }
     return Result.success((journal!, store!));
   }
@@ -110,6 +109,12 @@ final class LocalMutationProtocol implements MutationProtocol {
     // Snapshot the current target bytes so commit can detect drift between
     // propose and commit (the journal event payload is not schema-locked).
     final snapshot = await store.read(request.target.projectRelativePath);
+    final snapshotError = snapshot.errorOrNull();
+    if (snapshotError != null &&
+        (snapshotError.typedCode == MutationErrorCode.pathEscape ||
+            snapshotError.code == 'PATH_ESCAPE')) {
+      return Result.failure(snapshotError);
+    }
     final baseHash = snapshot.getOrNull()?.hash;
 
     await journal.append(JournalEvent(
@@ -197,7 +202,8 @@ final class LocalMutationProtocol implements MutationProtocol {
 
     // Idempotent replay: a receipt with the same idempotency key is the same
     // commit, returned without rewriting anything.
-    final existingReceipt = await _findReceiptByKey(journal, command.idempotencyKey);
+    final existingReceipt =
+        await _findReceiptByKey(journal, command.idempotencyKey);
     if (existingReceipt != null) {
       return Result.success(existingReceipt);
     }
@@ -219,8 +225,7 @@ final class LocalMutationProtocol implements MutationProtocol {
         code: 'NOT_FOUND',
       ));
     }
-    final candidate =
-        CandidateChange.fromJson(proposalEvents.last.payload);
+    final candidate = CandidateChange.fromJson(proposalEvents.last.payload);
 
     // Verify approval exists and matches
     final approvalEvents = events.where(
@@ -270,17 +275,16 @@ final class LocalMutationProtocol implements MutationProtocol {
 
     // A previously persisted intent for the same idempotency key means a
     // crash interrupted this commit: reconcile against current bytes.
-    final unresolved =
-        await journal.readUnresolvedIntents();
+    final unresolved = await journal.readUnresolvedIntents();
     final staleIntent = unresolved
         .where((i) => i.idempotencyKey == command.idempotencyKey)
         .firstOrNull;
     if (staleIntent != null) {
-      return _reconcileStaleIntent(journal, store, command, candidate, staleIntent);
+      return _reconcileStaleIntent(
+          journal, store, command, candidate, staleIntent);
     }
 
-    final baseHash =
-        proposalPayload['base_hash'] as String?;
+    final baseHash = proposalPayload['base_hash'] as String?;
 
     // Drift check: the target must still match the base observed at propose.
     final snapshot = await store.read(candidate.target.projectRelativePath);
@@ -320,7 +324,8 @@ final class LocalMutationProtocol implements MutationProtocol {
           // Revision is envelope authority only for verified canonical JSON;
           // legacy/non-envelope JSON is migrated by MP-08 and keeps raw-text
           // hash authority until then.
-          expectedRevision: currentRevision != null ? candidate.baseRevision : null,
+          expectedRevision:
+              currentRevision != null ? candidate.baseRevision : null,
         ),
       ],
     );
@@ -355,6 +360,8 @@ final class LocalMutationProtocol implements MutationProtocol {
       beforeRevision: candidate.baseRevision,
       afterRevision: commitResult.afterRevisions[intent.targetPath] ??
           candidate.baseRevision + 1,
+      afterContentHash:
+          commitResult.afterHashes[intent.targetPath] ?? candidate.payloadHash,
       affectedPaths: commitResult.affectedPaths,
       committedAt: commitResult.committedAt,
       receiptHash: canonicalTextHash(
@@ -391,6 +398,7 @@ final class LocalMutationProtocol implements MutationProtocol {
         idempotencyKey: command.idempotencyKey,
         beforeRevision: intent.baseRevision,
         afterRevision: intent.expectedRevision,
+        afterContentHash: intent.expectedContentHash,
         affectedPaths: [intent.targetPath],
         committedAt: DateTime.now().toUtc(),
         receiptHash: canonicalTextHash(
