@@ -22,6 +22,7 @@ import 'package:lingbi/features/knowledge/ui/vector_knowledge_panel.dart';
 import 'package:lingbi/features/knowledge/ui/web_search_panel.dart';
 import 'package:lingbi/features/collaboration/ui/workflow_approval_panel.dart';
 import 'package:lingbi/features/routing/ui/token_ledger_panel.dart';
+import 'package:lingbi/features/routing/ui/route_miss_suggestions_panel.dart';
 
 class ToolboxPage extends StatefulWidget {
   const ToolboxPage({super.key, this.projectId});
@@ -55,6 +56,7 @@ class _ToolboxPageState extends State<ToolboxPage> {
     _ToolItem('去AI味', Icons.auto_fix_high_rounded, isExperimental: true),
     _ToolItem('叙事线编织', Icons.linear_scale_rounded, isExperimental: true),
     _ToolItem('Token 账本', Icons.data_usage_rounded, isExperimental: true),
+    _ToolItem('新技能建议', Icons.lightbulb_outline, isExperimental: true),
   ];
 
   Widget _buildPanel() {
@@ -98,6 +100,8 @@ class _ToolboxPageState extends State<ToolboxPage> {
         return StrandWeavePanel(projectId: pid);
       case 18:
         return const TokenLedgerPanel();
+      case 19:
+        return const RouteMissSuggestionsPanel();
       default:
         return const Center(child: Text('选择工具'));
     }
