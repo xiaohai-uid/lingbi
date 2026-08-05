@@ -1,5 +1,6 @@
 import 'package:path_provider/path_provider.dart';
 import '../../features/routing/experience/experience_journal.dart';
+import '../../features/routing/ledger/token_ledger.dart';
 import 'package:lingbi/features/review/data/anti_hallucination_service.dart';
 import '../../services/ai_service.dart';
 import 'package:lingbi/features/writing/data/foreshadowing_service.dart';
@@ -104,6 +105,7 @@ class ServiceLocator {
   late final MutationProtocol mutationProtocol;
   late final RecoveryCenterService recoveryCenterService;
   late final PortableProjectPackageService portableProjectPackageService;
+  late final TokenLedger tokenLedger;
 
   /// ——— 仓储 ———
   late final StoryBeatsRepository storyBeatsRepository;
@@ -184,6 +186,9 @@ class ServiceLocator {
       final docsDir = await getApplicationDocumentsDirectory();
       final experienceJournal = ExperienceJournal(
         basePath: '${docsDir.path}/lingbi_data/experience',
+      );
+      locator.tokenLedger = TokenLedger(
+        basePath: '${docsDir.path}/lingbi_data/token_ledger',
       );
       locator.mutationJournal = LocalMutationJournal(
         basePath: '${appDir.path}/mutations',
