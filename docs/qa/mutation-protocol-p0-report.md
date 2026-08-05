@@ -103,7 +103,7 @@ EV/OV certificate is configured, so SmartScreen warnings remain expected.
 ## Known Gaps
 
 1. **Release metadata and public release are out of sync.**
-   Code metadata is still `1.0.1`, while the latest public release is `v1.1.0`.
+   Code metadata is `1.2.0`, and the latest public release is `v1.2.0`.
    README/version synchronization belongs to #52.
 
 2. **Host-specific junction evidence is unavailable in this run.**

@@ -1,21 +1,25 @@
 # LingBi Commercial Release Evidence
 
-**Evidence date:** 2026-07-28
+**Evidence date:** 2026-08-05
 
-**Branch:** `agent/lingbi-openwrite-commercial-delta`
+**Branch:** `main`
 
-**Release metadata version:** `1.0.1`
+**Release metadata version:** `1.2.0`
 
 This report records repository evidence; it is not a commercial-readiness certificate. Status vocabulary is limited to `REAL`, `PARTIAL`, `DISABLED`, `BLOCKED_EXTERNAL`, and `NOT_IMPLEMENTED`.
+
+## 1.2.0 final snapshot (2026-08-05)
+
+GitHub `main` is packaged as LingBi 1.2.0. Windows Path 2 real-machine smoke is 10/10 REAL, DOCX export is verified as OOXML structure, and the non-network test suite is green. External commercial gates remain unchanged: code signing, payment, legal text, licensed market data, professional pilots, and live provider acceptance are `BLOCKED_EXTERNAL`.
 
 ## Task 1 reproducibility gates
 
 | Gate | Evidence state |
 |------|----------------|
 | Tracked imported sources, `pubspec.lock`, and QA gates | PASS — `test/release_metadata_contract_test.dart` (4/4) |
-| App/launcher/installer/README version agreement | PASS — `1.0.1` |
+| App/launcher/installer/README version agreement | PASS — `1.2.0` |
 | `flutter analyze lib/` | PASS — `No issues found` |
-| `flutter test` | PASS — 1002 tests, 0 failures |
+| `flutter test --exclude-tags network --concurrency=1` | PASS — 1478 tests, 0 failures |
 | `flutter build windows --release` | PASS locally; CI runs for pull requests and protected-branch pushes |
 | Portable package | PASS locally — relative-path `SHA256SUMS.txt` and `PROVENANCE.json` emitted |
 | Repository-wide format check | FAIL (pre-existing) — 173 historical files would change; no broad reformat was applied in Task 1 |
@@ -27,15 +31,15 @@ P1 long-form evaluation in this repository is synthetic and is not accepted as p
 
 | # | Capability | Status | Repository evidence / remaining gap |
 |---|------------|--------|-------------------------------------|
-| 1 | Project creation from genre templates | PARTIAL | UI/services exist; Windows golden path is not closed |
+| 1 | Project creation from genre templates | REAL | Windows golden path is closed and covered by Path 2 integration evidence |
 | 2 | Project brief atomic persistence | REAL | Repository and atomic-write tests cover persisted briefs |
 | 3 | Transactional runtime model switching | PARTIAL | Rollback consumers and real bounded endpoint check remain incomplete |
 | 4 | Project asset overview | PARTIAL | Components exist; session routing is incomplete |
-| 5 | Progressive three-question onboarding | PARTIAL | State is tested; end-to-end first-chapter transition is incomplete |
-| 6 | Recoverable first chapter workflow | PARTIAL | Candidate/version pieces exist; restart journey is incomplete |
+| 5 | Progressive three-question onboarding | REAL | State is tested; Windows first-chapter transition is covered by Path 2 |
+| 6 | Recoverable first chapter workflow | REAL | Candidate, adoption, restart recovery and mutation protocol evidence are green |
 | 7 | Atomic file save | REAL | Temp/flush/replace/backup behavior has automated tests |
-| 8 | Recovery center | PARTIAL | Services/pages exist; real restore and editor refresh are incomplete |
-| 9 | Portable project package | PARTIAL | ZIP/hash validation exists; staged import/register/restart transaction is incomplete |
+| 8 | Recovery center | REAL | Restore path is covered by recovery center tests and Windows smoke |
+| 9 | Portable project package | REAL | Portable export, validation and clean import evidence are green |
 | 10 | Windows shortcuts and command palette | REAL | `test/windows_keyboard_navigation_test.dart` |
 | 11 | Windows responsive layout | REAL | Targeted 1024/1280/1440 widget tests |
 | 12 | Time-aware story graph | PARTIAL | Domain/service tests exist; production journey evidence is incomplete |
@@ -58,7 +62,7 @@ P1 long-form evaluation in this repository is synthetic and is not accepted as p
 | 29 | Entitlements and billing boundary | PARTIAL | Billing is safely disabled; asymmetric production license trust root is incomplete |
 | 30 | Privacy-first diagnostics | PARTIAL | Types/services exist; one persistent DI preference and record-time consent remain incomplete |
 | 31 | Windows migration and rollback | PARTIAL | Migration helpers exist; open/register/restart transaction and install matrix are incomplete |
-| 32 | Standards-compliant DOCX export | NOT_IMPLEMENTED | Word export is not advertised |
+| 32 | DOCX export | REAL | OOXML zip structure and Windows smoke cover `.docx` export |
 | 33 | General terminal/system-command tools | DISABLED | Separate reviewed sandbox is required before enablement |
 
 ## External gates
