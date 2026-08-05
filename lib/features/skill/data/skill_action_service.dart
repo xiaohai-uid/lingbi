@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:lingbi/features/routing/default_rules.dart';
 import 'package:lingbi/features/routing/experience/experience_journal.dart';
 import 'package:lingbi/features/routing/route_engine.dart';
+import 'package:lingbi/features/routing/tool_bootstrap.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
 
 /// 参数类型
@@ -241,13 +242,17 @@ abstract class SkillAction {
 
 /// 技能动作服务
 class SkillActionService extends ChangeNotifier {
-  SkillActionService(
-      {RouteEngine? routeEngine, ExperienceJournal? experienceJournal})
-      : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
-        _experienceJournal = experienceJournal;
+  SkillActionService({
+    RouteEngine? routeEngine,
+    ExperienceJournal? experienceJournal,
+    ToolBootstrap? toolBootstrap,
+  })  : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
+        _experienceJournal = experienceJournal,
+        _toolBootstrap = toolBootstrap ?? ToolBootstrap();
 
   final RouteEngine _routeEngine;
   final ExperienceJournal? _experienceJournal;
+  final ToolBootstrap _toolBootstrap;
   final Map<String, SkillAction> _registeredSkills = {};
 
   /// 获取所有已注册的技能
@@ -346,6 +351,47 @@ class SkillActionService extends ChangeNotifier {
       );
     }
     return result;
+  }
+
+  /// 自动路由并执行命中的技能；执行前检查 [WorkflowEntry.requiresTools]。
+  Future<SkillResult> executeRoutedAsync({
+    required String userMessage,
+    required SkillContext context,
+    String? selection,
+    String currentScene = '',
+    Map<String, String> params = const {},
+  }) async {
+    final effectiveSelection = selection ??
+        (context.selectedText.isNotEmpty ? context.selectedText : null);
+    final route = routeTask(
+      userMessage: userMessage,
+      selection: effectiveSelection,
+      currentScene: currentScene,
+    );
+    if (route == null) {
+      return const SkillResult(success: false, error: '未命中可用技能');
+    }
+
+    final missing = <String>[];
+    if (route.entry.requiresTools.isNotEmpty) {
+      final statuses = await _toolBootstrap.checkAll(route.entry.requiresTools);
+      for (final requirement in route.entry.requiresTools) {
+        final status = statuses[requirement.kind];
+        if (status == null || !status.available) {
+          final hint = status?.installHint ?? requirement.installHint;
+          missing.add('${requirement.label}（${hint.isEmpty ? '缺少工具' : hint}）');
+        }
+      }
+    }
+    if (missing.isNotEmpty) {
+      return SkillResult(success: false, error: '缺少工具：${missing.join('、')}');
+    }
+
+    return executeSkill(
+      skillId: route.skillId,
+      context: context,
+      params: params,
+    );
   }
 
   /// 模糊搜索技能（斜杠命令用）

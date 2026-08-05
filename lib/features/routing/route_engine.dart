@@ -4,6 +4,8 @@
 /// Token 账本和输出门可以在同一入口上继续扩展。
 library;
 
+import 'tool_bootstrap.dart';
+
 /// 路由维度类型。
 enum RouteDimensionId {
   scene,
@@ -62,12 +64,14 @@ class WorkflowEntry {
     required this.displayName,
     this.nodes = const [],
     this.contextKeys = const [],
+    this.requiresTools = const [],
   });
 
   final String entryId;
   final String displayName;
   final List<NodeSpec> nodes;
   final List<String> contextKeys;
+  final List<ToolRequirement> requiresTools;
 }
 
 /// 路由规则 — 一组维度条件和一个流程入口。

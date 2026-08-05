@@ -5,6 +5,7 @@ import '../../../ui_v2/theme/tokens.dart';
 import 'sections/ai_model_settings_section.dart';
 import 'sections/api_key_settings_section.dart';
 import 'sections/appearance_settings_section.dart';
+import 'sections/capability_settings_section.dart';
 import 'sections/cloud_sync_settings_section.dart';
 import 'sections/custom_endpoint_settings_section.dart';
 import 'sections/editor_settings_section.dart';
@@ -28,6 +29,7 @@ class _SettingsPageState extends State<SettingsPage> {
     '编辑器',
     'AI 模型',
     'API 密钥',
+    '能力',
     '自定义端点',
     '快捷键',
     '存储',
@@ -147,6 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
         EditorSettingsSection(),
         AiModelSettingsSection(),
         ApiKeySettingsSection(),
+        CapabilitySettingsSection(),
         CustomEndpointSettingsSection(),
         ShortcutsSettingsSection(),
         StorageSettingsSection(),

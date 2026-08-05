@@ -1,3 +1,5 @@
+import 'package:lingbi/features/routing/tool_bootstrap.dart';
+
 /// Skill 类型
 enum SkillType {
   /// 轻量级 Skill（纯 prompt 模板）
@@ -24,6 +26,7 @@ class SkillManifest {
     this.version,
     this.genre,
     this.flowDefinitionFile,
+    this.requiresTools = const [],
   });
 
   /// 唯一标识符
@@ -52,6 +55,9 @@ class SkillManifest {
 
   /// 引导流程定义文件路径（guided_flow 类型专用，相对于 Skill 目录）
   final String? flowDefinitionFile;
+
+  /// 执行前需要检测的工具
+  final List<ToolRequirement> requiresTools;
 }
 
 /// SKILL.md 内容解析器，支持 Anthropic frontmatter 和纯 Markdown 两种格式
@@ -96,6 +102,9 @@ class SkillManifestParser {
     final typeStr = _extractYamlField(yaml, 'type');
     final genre = _extractYamlField(yaml, 'genre');
     final flowDefFile = _extractYamlField(yaml, 'flow_definition');
+    final requiresTools = _parseRequiresTools(
+      _extractYamlField(yaml, 'requires_tools'),
+    );
 
     return SkillManifest(
       id: skillId,
@@ -105,7 +114,23 @@ class SkillManifestParser {
       type: _parseSkillType(typeStr),
       genre: genre,
       flowDefinitionFile: flowDefFile,
+      requiresTools: requiresTools,
     );
+  }
+
+  static List<ToolRequirement> _parseRequiresTools(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return const [];
+    final result = <ToolRequirement>[];
+    for (final part in raw.split(',')) {
+      final normalized = part.trim().toLowerCase().replaceAll('_', '');
+      for (final kind in ToolKind.values) {
+        if (kind.name.toLowerCase() == normalized) {
+          result.add(ToolRequirement(kind: kind, label: kind.name));
+          break;
+        }
+      }
+    }
+    return result;
   }
 
   /// 解析 type 字段为 [SkillType]
