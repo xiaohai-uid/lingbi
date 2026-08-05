@@ -7,6 +7,7 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:lingbi/features/routing/default_rules.dart';
 import 'package:lingbi/features/routing/experience/experience_journal.dart';
+import 'package:lingbi/features/routing/miss/route_miss_aggregator.dart';
 import 'package:lingbi/features/routing/route_engine.dart';
 import 'package:lingbi/features/routing/tool_bootstrap.dart';
 import 'package:lingbi/shared/models/canon_entry.dart';
@@ -246,14 +247,20 @@ class SkillActionService extends ChangeNotifier {
     RouteEngine? routeEngine,
     ExperienceJournal? experienceJournal,
     ToolBootstrap? toolBootstrap,
+    RouteMissAggregator? missAggregator,
   })  : _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
         _experienceJournal = experienceJournal,
-        _toolBootstrap = toolBootstrap ?? ToolBootstrap();
+        _toolBootstrap = toolBootstrap ?? ToolBootstrap(),
+        _missAggregator = missAggregator;
 
   final RouteEngine _routeEngine;
   final ExperienceJournal? _experienceJournal;
   final ToolBootstrap _toolBootstrap;
+  final RouteMissAggregator? _missAggregator;
   final Map<String, SkillAction> _registeredSkills = {};
+
+  List<SkillSuggestion> get suggestions =>
+      _missAggregator?.suggestions() ?? const [];
 
   /// 获取所有已注册的技能
   List<SkillAction> get registeredSkills => _registeredSkills.values.toList();
@@ -302,6 +309,10 @@ class SkillActionService extends ChangeNotifier {
     );
     if (result == null || !_registeredSkills.containsKey(result.skillId)) {
       _experienceJournal?.recordMiss(
+        scene: currentScene.isEmpty ? userMessage : currentScene,
+        userMessage: userMessage,
+      );
+      _missAggregator?.recordMiss(
         scene: currentScene.isEmpty ? userMessage : currentScene,
         userMessage: userMessage,
       );
