@@ -21,6 +21,7 @@ import 'package:lingbi/features/style/ui/style_profile_panel.dart';
 import 'package:lingbi/features/knowledge/ui/vector_knowledge_panel.dart';
 import 'package:lingbi/features/knowledge/ui/web_search_panel.dart';
 import 'package:lingbi/features/collaboration/ui/workflow_approval_panel.dart';
+import 'package:lingbi/features/routing/ui/token_ledger_panel.dart';
 
 class ToolboxPage extends StatefulWidget {
   const ToolboxPage({super.key, this.projectId});
@@ -53,6 +54,7 @@ class _ToolboxPageState extends State<ToolboxPage> {
     _ToolItem('变更传播', Icons.sync_alt_rounded),
     _ToolItem('去AI味', Icons.auto_fix_high_rounded, isExperimental: true),
     _ToolItem('叙事线编织', Icons.linear_scale_rounded, isExperimental: true),
+    _ToolItem('Token 账本', Icons.data_usage_rounded, isExperimental: true),
   ];
 
   Widget _buildPanel() {
@@ -94,6 +96,8 @@ class _ToolboxPageState extends State<ToolboxPage> {
         return DeAiFlavorPanel(projectId: pid);
       case 17:
         return StrandWeavePanel(projectId: pid);
+      case 18:
+        return const TokenLedgerPanel();
       default:
         return const Center(child: Text('选择工具'));
     }
@@ -179,7 +183,8 @@ class _ToolboxPageState extends State<ToolboxPage> {
                                     style: TextStyle(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.onTertiaryContainer,
+                                      color:
+                                          theme.colorScheme.onTertiaryContainer,
                                     ),
                                   ),
                                 ),
