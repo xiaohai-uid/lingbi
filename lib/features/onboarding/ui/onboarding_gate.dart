@@ -1,15 +1,18 @@
 /// 引导门禁组件
 ///
 /// 职责：
-/// - 首次启动时自动标记引导完成（旧向导已移除，由 AppScaffold 内 WelcomePage 接管新手引导）
+/// - 未完成引导时显示两屏引导向导
 /// - 已完成引导后显示 AppScaffold
+/// - resetOnboarding() 后重新显示向导
 library;
 
 import 'package:flutter/material.dart';
-import 'package:lingbi/shared/interfaces/i_settings_service.dart';
+import 'package:lingbi/features/settings/data/settings_service.dart';
+import 'package:lingbi/shared/models/project.dart';
 import 'package:lingbi/ui_v2/components/app_scaffold.dart';
+import 'guided_wizard_page.dart';
 
-/// 引导门禁 — 自动完成引导并进入主界面
+/// 引导门禁 — 根据 OnboardingState 决定显示向导或主界面
 class OnboardingGate extends StatefulWidget {
   const OnboardingGate({
     super.key,
@@ -20,25 +23,55 @@ class OnboardingGate extends StatefulWidget {
 
   final bool isDarkMode;
   final ValueChanged<bool> onToggleTheme;
-  final ISettingsService settingsService;
+  final SettingsService settingsService;
 
   @override
   State<OnboardingGate> createState() => _OnboardingGateState();
 }
 
 class _OnboardingGateState extends State<OnboardingGate> {
+  bool _needsOnboarding = true;
+  Project? _initialProject;
+  String? _initialDocumentId;
+
   @override
   void initState() {
     super.initState();
-    // 旧版引导向导已移除，首次启动时自动标记引导完成。
-    widget.settingsService.markOnboardingComplete();
+    _needsOnboarding = widget.settingsService.onboardingState.needsOnboarding;
+    widget.settingsService.addListener(_onSettingsChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.settingsService.removeListener(_onSettingsChanged);
+    super.dispose();
+  }
+
+  void _onSettingsChanged() {
+    final needs = widget.settingsService.onboardingState.needsOnboarding;
+    if (needs != _needsOnboarding && mounted) {
+      setState(() => _needsOnboarding = needs);
+    }
+  }
+
+  void _onOnboardingComplete(Project project, String documentId) {
+    setState(() {
+      _initialProject = project;
+      _initialDocumentId = documentId;
+      _needsOnboarding = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_needsOnboarding) {
+      return GuidedWizardPage(onComplete: _onOnboardingComplete);
+    }
     return AppScaffold(
       isDarkMode: widget.isDarkMode,
       onToggleTheme: widget.onToggleTheme,
+      initialProject: _initialProject,
+      initialDocumentId: _initialDocumentId,
     );
   }
 }
