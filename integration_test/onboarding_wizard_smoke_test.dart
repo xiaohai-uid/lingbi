@@ -68,6 +68,6 @@ void main() {
 
     expect(find.text('深度填写'), findsOneWidget);
     expect(find.text('模型配置'), findsOneWidget);
-    expect(find.text('免费模型'), findsOneWidget);
+    expect(find.text('当前模型'), findsOneWidget);
   });
 }
