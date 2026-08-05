@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:lingbi/features/skill/data/skill/dynamic_prompt_skill.dart';
 import 'package:lingbi/features/skill/data/skill/skill_manifest.dart';
 import 'package:lingbi/features/skill/data/skill/skill_permission.dart';
+import 'package:lingbi/features/skill/data/skill/skill_resource_loader.dart';
 import 'package:lingbi/features/skill/data/skill_action_service.dart';
 import 'package:lingbi/features/skill/data/skill_marketplace.dart';
 
@@ -89,7 +90,8 @@ class SkillLoader {
     final manifest = SkillManifestParser.parse(content, skillId);
 
     // 检查是否有 manifest.yaml（重量 Skill）
-    final manifestFile = File('${dir.path}${Platform.pathSeparator}manifest.yaml');
+    final manifestFile =
+        File('${dir.path}${Platform.pathSeparator}manifest.yaml');
     PermissionSet permissions;
     if (await manifestFile.exists()) {
       final yamlContent = await manifestFile.readAsString();
@@ -98,9 +100,15 @@ class SkillLoader {
       permissions = PermissionSet.defaultLightweight();
     }
 
+    const resourceLoader = SkillResourceLoader();
+    final referenceFiles = await resourceLoader.listReferences(dir.path);
+
     return DynamicPromptSkill(
       manifest: manifest,
       permissions: permissions,
+      skillDir: dir.path,
+      referenceFiles: referenceFiles,
+      resourceLoader: resourceLoader,
     );
   }
 
@@ -148,7 +156,9 @@ class SkillLoader {
       }
       if (inRequires) {
         // 遇到非缩进行说明 requires 块结束
-        if (line.isNotEmpty && !line.startsWith(' ') && !line.startsWith('\t')) {
+        if (line.isNotEmpty &&
+            !line.startsWith(' ') &&
+            !line.startsWith('\t')) {
           break;
         }
         buffer.writeln(line);

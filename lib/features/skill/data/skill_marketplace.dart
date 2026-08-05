@@ -138,8 +138,8 @@ class SkillInstallMetadata {
       ),
       packageHash: json['package_hash'] as String,
       installedAt: DateTime.parse(json['installed_at'] as String).toUtc(),
-      packageState: SkillPackageState.values
-          .byName(json['package_state'] as String),
+      packageState:
+          SkillPackageState.values.byName(json['package_state'] as String),
     );
   }
 
@@ -195,19 +195,25 @@ class SkillMarketplace {
     String? installDir,
     SkillManifestVerifier? manifestVerifier,
     DateTime Function()? clock,
+    String? openWriteApiBase,
   })  : _client = client ?? http.Client(),
         _installDir = installDir,
         _manifestVerifier =
             manifestVerifier ?? const SkillManifestVerifier.production(),
-        _clock = clock ?? DateTime.now;
+        _clock = clock ?? DateTime.now,
+        _openWriteApiBase = openWriteApiBase ?? _owApiBase;
 
   final String registryUrl;
   final http.Client _client;
   final SkillManifestVerifier _manifestVerifier;
   final DateTime Function() _clock;
+  final String _openWriteApiBase;
   List<SkillEntry> _cache = [];
   Set<String> _installedIds = {};
   String? _installDir;
+
+  /// OpenWrite 镜像 API。
+  static const _owApiBase = 'http://111.170.163.42:4650/api/index.php';
 
   /// 安装/卸载事件流 — SkillLoader 监听此流实现实时刷新
   final StreamController<SkillMarketEvent> _eventController =
@@ -290,26 +296,52 @@ class SkillMarketplace {
   }
 
   /// 从 OpenWrite 镜像 API 拉取 Skill 列表（复刻竞品）。
-  static const _owApiBase = 'http://111.170.163.42:4650/api/index.php';
-
   Future<List<SkillEntry>> _fetchFromOpenWrite() async {
     try {
       final resp = await _client
-          .get(Uri.parse('$_owApiBase?action=marketplace_list&page=1&per_page=50'))
+          .get(Uri.parse(_openWriteApiBase).replace(queryParameters: {
+            'action': 'marketplace_list',
+            'page': '1',
+            'per_page': '50',
+          }))
           .timeout(const Duration(seconds: 8));
       if (resp.statusCode != 200) return [];
       final json = jsonDecode(resp.body) as Map<String, dynamic>;
-      final data = json['data'] as List? ?? [];
-      return data.map((s) => SkillEntry(
-        id: '${s['id']}',
-        name: s['skill_name'] as String? ?? s['display_name'] as String? ?? '',
-        description: s['description'] as String? ?? '',
-        author: s['uploader_nickname'] as String? ?? '',
-        version: '${s['version'] ?? '1'}',
-        category: s['skill_type'] as String? ?? 'general',
-        downloadUrl: '$_owApiBase?action=marketplace_download&id=${s['id']}',
-        downloadCount: s['download_count'] as int? ?? 0,
-      )).toList();
+      final data = json['data'];
+      List<dynamic> items;
+      if (data is List) {
+        items = data;
+      } else if (data is Map<String, dynamic>) {
+        final skills = data['skills'];
+        items = skills is List ? skills : const [];
+      } else {
+        return [];
+      }
+      return items
+          .map((s) {
+            final id = s is Map<String, dynamic> ? '${s['id']}' : '';
+            if (id.isEmpty) return null;
+            return SkillEntry(
+              id: id,
+              name: s['skill_name'] as String? ??
+                  s['display_name'] as String? ??
+                  s['name'] as String? ??
+                  '',
+              description: s['description'] as String? ?? '',
+              author: s['uploader_nickname'] as String? ??
+                  s['author'] as String? ??
+                  '',
+              version: '${s['version'] ?? '1'}',
+              category: s['skill_type'] as String? ??
+                  s['category'] as String? ??
+                  'general',
+              downloadUrl:
+                  '$_openWriteApiBase?action=marketplace_download&id=$id',
+              downloadCount: s['download_count'] as int? ?? 0,
+            );
+          })
+          .whereType<SkillEntry>()
+          .toList();
     } catch (_) {
       return [];
     }
@@ -570,7 +602,8 @@ class SkillMarketplace {
       }
       _installedIds.remove(skillId);
       _eventController.add(
-        SkillMarketEvent(type: SkillMarketEventType.uninstalled, skillId: skillId),
+        SkillMarketEvent(
+            type: SkillMarketEventType.uninstalled, skillId: skillId),
       );
       return true;
     } catch (_) {
