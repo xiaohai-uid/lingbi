@@ -19,6 +19,7 @@ void main() {
         'editor_settings_section.dart',
         'ai_model_settings_section.dart',
         'api_key_settings_section.dart',
+        'capability_settings_section.dart',
         'custom_endpoint_settings_section.dart',
         'shortcuts_settings_section.dart',
         'storage_settings_section.dart',
