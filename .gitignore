@@ -24,6 +24,7 @@ build/
 *.exe
 *.zip
 *.7z
+windows/lingbi_ffi.dll
 
 # macOS
 .DS_Store

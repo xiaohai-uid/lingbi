@@ -69,21 +69,37 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   /// 向导完成后自动打开项目并导航到写作页
-  void _openInitialProject() {
+  Future<void> _openInitialProject() async {
     final project = widget.initialProject;
     if (project == null) return;
-    ServiceLocator.instance.projectTabController.openProject(project);
-    _currentProject = project;
-    _hasProject = true;
-    _currentTab = ProjectTab.writing;
-    final docId = widget.initialDocumentId;
-    if (docId != null) {
-      _currentDocument = Document(
-        id: docId,
-        projectId: project.id,
-        title: 'chapter-1',
-        filePath: '',
-      );
+    try {
+      final session = await ServiceLocator.instance.projectSessionManager
+          .openProjectDirectory(project.directoryPath);
+      if (!mounted) return;
+      final docId = widget.initialDocumentId;
+      if (docId != null) {
+        for (final document in session.documents) {
+          if (document.id == docId) {
+            await ServiceLocator.instance.projectSessionManager
+                .selectDocument(document);
+            break;
+          }
+        }
+      }
+      ServiceLocator.instance.projectTabController.openProject(session.project);
+      setState(() {
+        _hasProject = true;
+        _currentProject = session.project;
+        _currentDocument =
+            ServiceLocator.instance.projectSessionManager.selectedDocument;
+        _currentTab = ProjectTab.writing;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('恢复项目失败: $e')),
+        );
+      }
     }
   }
 
@@ -96,19 +112,35 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   void _onTabsChanged() {
     final ctrl = ServiceLocator.instance.projectTabController;
+    final tab = ctrl.activeTab;
+    if (tab != null) {
+      ServiceLocator.instance.projectSessionManager.switchToProject(tab.id);
+    }
     setState(() {
-      _currentProject = ctrl.activeTab?.project;
+      _currentProject = tab?.project;
       _hasProject = !ctrl.isEmpty;
+      _currentDocument =
+          ServiceLocator.instance.projectSessionManager.selectedDocument;
     });
   }
 
   void _onProjectSwitch(int index) {
-    ServiceLocator.instance.projectTabController.switchTo(index);
+    final ctrl = ServiceLocator.instance.projectTabController;
+    ctrl.switchTo(index);
+    final tab = ctrl.tabs[index];
+    ServiceLocator.instance.projectSessionManager.switchToProject(tab.id);
+    setState(() {
+      _currentProject = tab.project;
+      _currentDocument =
+          ServiceLocator.instance.projectSessionManager.selectedDocument;
+    });
   }
 
   void _onCloseTab(int index) {
     final ctrl = ServiceLocator.instance.projectTabController;
+    final closing = ctrl.tabs[index];
     ctrl.closeTab(index);
+    ServiceLocator.instance.projectSessionManager.closeProject(closing.id);
     if (ctrl.isEmpty) {
       setState(() {
         _hasProject = false;
@@ -140,6 +172,8 @@ class _AppScaffoldState extends State<AppScaffold> {
             results: results,
             onSelected: (document) {
               Navigator.of(dialogContext).pop();
+              ServiceLocator.instance.projectSessionManager
+                  .selectDocument(document);
               setState(() {
                 _currentDocument = document;
                 _currentTab = ProjectTab.writing;
@@ -168,6 +202,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   /// Collapse all project tabs → back to welcome screen
   void _collapseNavigation() {
     ServiceLocator.instance.projectTabController.closeAll();
+    ServiceLocator.instance.projectSessionManager.closeAll();
     setState(() {
       _hasProject = false;
       _showingSkillMarket = false;
@@ -247,17 +282,19 @@ class _AppScaffoldState extends State<AppScaffold> {
         final projectDir =
             '${ServiceLocator.instance.settingsService.customStoragePath ?? resolveDefaultProjectRoot()}${Platform.pathSeparator}${result.title}';
 
-        final project =
-            await ServiceLocator.instance.projectService.createPortableProject(
+        final session =
+            await ServiceLocator.instance.projectSessionManager.createProject(
           directoryPath: projectDir,
           brief: result,
         );
+        final project = session.project;
 
         ServiceLocator.instance.projectTabController.openProject(project);
 
         setState(() {
           _hasProject = true;
           _currentProject = project;
+          _currentDocument = session.selectedDocument;
           _currentTab = ProjectTab.writing;
         });
       } catch (e) {
@@ -315,21 +352,16 @@ class _AppScaffoldState extends State<AppScaffold> {
           );
         }
 
-        // 将扫描到的文档同步到 ZVec
-        for (final doc in result.documents) {
-          await ServiceLocator.instance.documentService.saveDocument(
-            doc,
-            await ServiceLocator.instance.documentService
-                .readContent(doc.filePath),
-          );
-        }
+        final session = await ServiceLocator.instance.projectSessionManager
+            .openProjectDirectory(dir);
 
         ServiceLocator.instance.projectTabController
-            .openProject(result.project);
+            .openProject(session.project);
 
         setState(() {
           _hasProject = true;
-          _currentProject = result.project;
+          _currentProject = session.project;
+          _currentDocument = session.selectedDocument;
           _currentTab = ProjectTab.writing;
         });
 
@@ -337,7 +369,7 @@ class _AppScaffoldState extends State<AppScaffold> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                '项目「${result.project.name}」已打开（${result.documents.length} 个文档）',
+                '项目「${session.project.name}」已打开（${session.documents.length} 个文档）',
               ),
             ),
           );
@@ -470,6 +502,9 @@ class _AppScaffoldState extends State<AppScaffold> {
         documentService: ServiceLocator.instance.documentService,
         filePath: path,
       );
+      await ServiceLocator.instance.projectSessionManager.selectDocument(
+        document,
+      );
       if (!mounted) return;
       setState(() {
         _currentDocument = document;
@@ -526,10 +561,16 @@ class _AppScaffoldState extends State<AppScaffold> {
                 projectId: _currentProject?.id,
                 projectName: _currentProject?.name,
                 projectDirectoryPath: _currentProject?.directoryPath,
-                onDocumentSelected: (doc) =>
-                    setState(() => _currentDocument = doc),
-                onDocumentCreated: (doc) =>
-                    setState(() => _currentDocument = doc),
+                onDocumentSelected: (doc) async {
+                  await ServiceLocator.instance.projectSessionManager
+                      .selectDocument(doc);
+                  if (mounted) setState(() => _currentDocument = doc);
+                },
+                onDocumentCreated: (doc) async {
+                  await ServiceLocator.instance.projectSessionManager
+                      .selectDocument(doc);
+                  if (mounted) setState(() => _currentDocument = doc);
+                },
               ),
             editor,
             if (aiDocked)

@@ -97,8 +97,7 @@ void main() {
     expect(loaded.last.source, ProjectAssetSource.ai);
   });
 
-  test('save via MutationProtocol creates all three journal records',
-      () async {
+  test('save via MutationProtocol creates all three journal records', () async {
     final repository = buildRepository();
     final asset = (await repository.ensureOverviewAssets('project-1')).first;
 
@@ -125,6 +124,7 @@ void main() {
       zvecService: zvec,
       mutationProtocol: protocol,
     );
+    Directory('${tempDir.path}/project').deleteSync(recursive: true);
     final project = await projects.createPortableProject(
       name: '幂等项目',
       directoryPath: '${tempDir.path}/project',

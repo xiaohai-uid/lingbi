@@ -24,9 +24,9 @@ void main() {
   tearDown(() => aiService.dispose());
 
   group('Free 模式零配置路径', () {
-    test('FreeProvider 无需 API Key 即 isAvailable', () {
+    test('FreeProvider 默认不可用，未配置时不得伪装为可用模型', () {
       final provider = FreeProvider();
-      expect(provider.isAvailable, isTrue);
+      expect(provider.isAvailable, isFalse);
       expect(provider.currentModelId, isNotEmpty);
     });
 

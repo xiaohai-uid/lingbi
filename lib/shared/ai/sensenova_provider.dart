@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
+import '../errors/ai_error.dart';
 
 /// 商汤 SenseNova Provider — 免费公测 API (OpenAI 兼容格式)
 ///
@@ -9,8 +10,8 @@ import 'ai_provider.dart';
 /// 免费模型: sensenova-6.7-flash-lite, deepseek-v4-flash
 /// 限额: 每 5 小时 1500 次请求
 class SenseNovaProvider extends AIProvider {
-
-  SenseNovaProvider({String? apiKey, String? modelOverride, http.Client? client})
+  SenseNovaProvider(
+      {String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,
         _modelOverride = modelOverride,
         _client = client ?? http.Client();
@@ -35,22 +36,6 @@ class SenseNovaProvider extends AIProvider {
   // token 全部消耗在 <think> 过程文本上，可见正文为 0 字，开箱即坏。
   String get _modelId => _modelOverride ?? 'deepseek-v4-flash';
 
-  /// 将异常/状态码转换为用户友好的中文提示
-  String _friendlyError(Object e, [int? statusCode]) {
-    if (e is TimeoutException) return '网络连接超时，请检查网络后重试';
-    if (statusCode != null) {
-      switch (statusCode) {
-        case 401:
-          return 'API Key 无效，请在设置中重新配置';
-        case 429:
-          return '请求过于频繁，请稍后再试';
-        default:
-          if (statusCode >= 500) return '服务暂时不可用，请稍后再试';
-      }
-    }
-    return 'SenseNova 请求失败: $e';
-  }
-
   @override
   Stream<String> chat({
     required List<ChatMessage> messages,
@@ -58,8 +43,10 @@ class SenseNovaProvider extends AIProvider {
     int maxTokens = 4096,
   }) async* {
     if (!isAvailable) {
-      yield '请先在设置中配置 SenseNova API Key';
-      return;
+      throw const AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先在设置中配置 SenseNova API Key',
+      );
     }
 
     final body = jsonEncode({
@@ -80,12 +67,13 @@ class SenseNovaProvider extends AIProvider {
 
       final response = await _client.send(request).timeout(
             const Duration(seconds: 30),
-            onTimeout: () => throw TimeoutException('连接超时', const Duration(seconds: 30)),
+            onTimeout: () =>
+                throw TimeoutException('连接超时', const Duration(seconds: 30)),
           );
 
       if (response.statusCode != 200) {
-        yield _friendlyError(Exception('HTTP ${response.statusCode}'), response.statusCode);
-        return;
+        final errBody = await response.stream.bytesToString();
+        throw aiExceptionFromHttp(response.statusCode, errBody);
       }
 
       final stream = response.stream.transform(utf8.decoder);
@@ -125,7 +113,7 @@ class SenseNovaProvider extends AIProvider {
       }
       if (isReasoning) yield '</think>';
     } catch (e) {
-      yield _friendlyError(e);
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -135,7 +123,12 @@ class SenseNovaProvider extends AIProvider {
     double temperature = 0.7,
     int maxTokens = 4096,
   }) async {
-    if (!isAvailable) return '请先在设置中配置 SenseNova API Key';
+    if (!isAvailable) {
+      throw const AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先在设置中配置 SenseNova API Key',
+      );
+    }
 
     final body = jsonEncode({
       'model': _modelId,
@@ -168,22 +161,19 @@ class SenseNovaProvider extends AIProvider {
           }
           return content ?? '';
         } else {
-          return _friendlyError(
-            Exception('HTTP ${response.statusCode}'),
-            response.statusCode,
-          );
+          throw aiExceptionFromHttp(response.statusCode, response.body);
         }
       } on TimeoutException catch (e) {
         if (attempt == 0) continue; // 重试
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       } on http.ClientException catch (e) {
         if (attempt == 0) continue; // 网络错误重试
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       } catch (e) {
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       }
     }
-    return '请求失败，请重试';
+    throw aiExceptionFromObject(TimeoutException('请求失败，请重试'));
   }
 
   @override

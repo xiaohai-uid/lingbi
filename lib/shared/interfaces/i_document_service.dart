@@ -7,6 +7,7 @@ abstract class IDocumentService {
     required String title,
     required String directoryPath,
     String content = '',
+    String? fileName,
   });
 
   Future<String> readContent(String filePath);

@@ -15,6 +15,7 @@ import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
 import 'package:lingbi/features/canon/data/canon_service.dart';
 import 'package:lingbi/services/document_service.dart';
 import 'package:lingbi/features/skill/data/market_intel_service.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 
 import 'book_state.dart';
 import 'candidate_service.dart';
@@ -323,20 +324,19 @@ class NovelApplicationService {
     int maxTokens = 4096,
   }) async* {
     try {
+      if (!_aiService.currentProvider.isAvailable) {
+        throw const AIException(
+          type: AIExceptionType.noApiKey,
+          message: '当前体验模型需要配置 API Key\n请前往设置完成配置',
+        );
+      }
+
       // 构建 prompt
       final promptSections = context.toPromptSections();
       final systemPrompt = promptSections.values.join('\n\n');
       final userPrompt = context.userInstruction.isNotEmpty
           ? context.userInstruction
           : '请根据以上上下文续写本章内容，约${context.targetWords}字。';
-
-      // 创建空候选（流式填充）
-      final candidate = _candidateService.createCandidate(
-        chapterId: chapterId,
-        content: '',
-        model: _aiService.currentProviderName,
-        metadata: {'source_version': sourceVersion},
-      );
 
       final buffer = StringBuffer();
 
@@ -351,11 +351,32 @@ class NovelApplicationService {
         temperature: temperature,
         maxTokens: maxTokens,
       )) {
+        if (_looksLikeProviderError(chunk)) {
+          throw AIException(
+            type: AIExceptionType.unknown,
+            message: chunk,
+            retryable: true,
+          );
+        }
         buffer.write(chunk);
         yield PipelineResult.success(chunk);
       }
 
-      // 保存完整候选内容
+      final content = buffer.toString().trim();
+      if (content.isEmpty) {
+        throw const AIException(
+          type: AIExceptionType.unknown,
+          message: '模型未返回内容，请重试或切换模型',
+        );
+      }
+
+      // 只在成功完成后创建并保存候选
+      final candidate = _candidateService.createCandidate(
+        chapterId: chapterId,
+        content: content,
+        model: _aiService.currentProviderName,
+        metadata: {'source_version': sourceVersion},
+      );
       candidate.content = buffer.toString();
       candidate.status = CandidateStatus.pending;
       _saveCandidate(candidate);
@@ -373,10 +394,11 @@ class NovelApplicationService {
         action: 'candidate_generated',
       );
     } catch (e) {
-      _stateMachine.failAndRollback(e.toString());
+      final mapped = AiErrorMapper.map(e);
+      _stateMachine.failAndRollback(mapped.userHint);
       yield PipelineResult.failure(PipelineError(
         PipelineError.aiError,
-        'AI 生成失败: $e',
+        mapped.userHint,
       ));
     }
   }
@@ -390,6 +412,13 @@ class NovelApplicationService {
     int maxTokens = 4096,
   }) async {
     try {
+      if (!_aiService.currentProvider.isAvailable) {
+        throw const AIException(
+          type: AIExceptionType.noApiKey,
+          message: '当前体验模型需要配置 API Key\n请前往设置完成配置',
+        );
+      }
+
       final promptSections = context.toPromptSections();
       final systemPrompt = promptSections.values.join('\n\n');
       final userPrompt = context.userInstruction.isNotEmpty
@@ -405,6 +434,19 @@ class NovelApplicationService {
         messages: messages,
         maxTokens: maxTokens,
       );
+      if (_looksLikeProviderError(result)) {
+        throw AIException(
+          type: AIExceptionType.unknown,
+          message: result,
+          retryable: true,
+        );
+      }
+      if (result.trim().isEmpty) {
+        throw const AIException(
+          type: AIExceptionType.unknown,
+          message: '模型未返回内容，请重试或切换模型',
+        );
+      }
 
       final candidate = _candidateService.createCandidate(
         chapterId: chapterId,
@@ -429,10 +471,11 @@ class NovelApplicationService {
 
       return PipelineResult.success(candidate);
     } catch (e) {
-      _stateMachine.failAndRollback(e.toString());
+      final mapped = AiErrorMapper.map(e);
+      _stateMachine.failAndRollback(mapped.userHint);
       return PipelineResult.failure(PipelineError(
         PipelineError.aiError,
-        'AI 生成失败: $e',
+        mapped.userHint,
       ));
     }
   }
@@ -776,6 +819,21 @@ $adoptedContent''';
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final snapshotPath = '${_snapshotDir.path}/${chapterId}_$timestamp.md';
     sourceFile.copySync(snapshotPath);
+  }
+
+  bool _looksLikeProviderError(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+    final low = trimmed.toLowerCase();
+    return low.startsWith('请先') ||
+        low.startsWith('请先在设置') ||
+        low.contains('api key 无效') ||
+        low.contains('网络连接超时') ||
+        low.contains('服务暂时不可用') ||
+        low.contains('请求过于频繁') ||
+        low.startsWith('体验模型连接失败') ||
+        low.startsWith('http 4') ||
+        low.startsWith('http 5');
   }
 
   /// 保存候选（内部使用）

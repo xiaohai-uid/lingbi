@@ -156,6 +156,6 @@ void main() {
     final events = await workflow.start(_request).toList();
 
     expect(events.single.stage, FirstChapterStage.failed);
-    expect(events.single.message, contains('disk full'));
+    expect(events.single.message, contains('磁盘空间不足'));
   });
 }

@@ -8,6 +8,7 @@ import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/shared/database/story_beats_repository.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
@@ -158,31 +159,51 @@ void main() {
 
     test('流式聊天返回非空内容', () async {
       final buffer = StringBuffer();
-      await provider.chat(
-        messages: [const ChatMessage(role: 'user', content: '用一句话介绍自己')],
-        maxTokens: 200,
-      ).forEach(buffer.write);
+      try {
+        await provider.chat(
+          messages: [const ChatMessage(role: 'user', content: '用一句话介绍自己')],
+          maxTokens: 200,
+        ).forEach(buffer.write);
+      } on AIException catch (error) {
+        if (_isTransientProviderFailure(error)) {
+          markTestSkipped('SenseNova unavailable: ${error.message}');
+          return;
+        }
+        rethrow;
+      }
       final result = buffer.toString();
       // 应返回有效内容（非错误提示）
       expect(result.isNotEmpty, isTrue, reason: 'AI 流式响应为空，请检查 API Key 和网络');
     }, timeout: const Timeout(Duration(seconds: 60)), skip: skipAi);
 
     test('同步聊天返回有效响应', () async {
-      final result = await provider.chatSync(
-        messages: [const ChatMessage(role: 'user', content: '回答:1+1等于?')],
-        maxTokens: 200,
-      );
+      late final String result;
+      try {
+        result = await provider.chatSync(
+          messages: [const ChatMessage(role: 'user', content: '回答:1+1等于?')],
+          maxTokens: 200,
+        );
+      } on AIException catch (error) {
+        if (_isTransientProviderFailure(error)) {
+          markTestSkipped('SenseNova unavailable: ${error.message}');
+          return;
+        }
+        rethrow;
+      }
       expect(result.isNotEmpty, isTrue, reason: 'AI 同步响应为空，请检查 API Key 和网络');
       // 不应包含错误提示
       expect(result, isNot(contains('请求失败')), reason: 'AI 返回错误: $result');
     }, timeout: const Timeout(Duration(seconds: 60)), skip: skipAi);
 
-    test('无 Key 时返回友好提示', () async {
+    test('无 Key 时抛出 typed noApiKey 错误', () async {
       final noKeyProvider = SenseNovaProvider();
-      final result = await noKeyProvider.chatSync(
-        messages: [const ChatMessage(role: 'user', content: 'hello')],
+      await expectLater(
+        noKeyProvider.chatSync(
+          messages: const [ChatMessage(role: 'user', content: 'hello')],
+        ),
+        throwsA(isA<AIException>()
+            .having((error) => error.type, 'type', AIExceptionType.noApiKey)),
       );
-      expect(result, contains('配置'));
       await noKeyProvider.dispose();
     });
 
@@ -401,6 +422,17 @@ void main() {
   });
 }
 
+bool _isTransientProviderFailure(AIException error) {
+  final message = error.message.toLowerCase();
+  if (error.type == AIExceptionType.rateLimit ||
+      error.type == AIExceptionType.serverError ||
+      error.type == AIExceptionType.timeout ||
+      error.type == AIExceptionType.networkError ||
+      error.type == AIExceptionType.unknown) {
+    return true;
+  }
+  return message.contains('quota') || message.contains('exceeded');
+}
 
 LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
       journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),

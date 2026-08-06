@@ -18,10 +18,12 @@ class AIService implements IAIService {
     required QuotaService quotaService,
     RouteEngine? routeEngine,
     ExperienceJournal? experienceJournal,
+    AIProvider? freeProvider,
   })  : _quota = quotaService,
         _routeEngine = routeEngine ?? RouteEngine(rules: defaultRouteRules()),
-        _experienceJournal = experienceJournal;
-  final FreeProvider _freeProvider = FreeProvider();
+        _experienceJournal = experienceJournal,
+        _freeProvider = freeProvider ?? FreeProvider();
+  final AIProvider _freeProvider;
   final QuotaService _quota;
   final RouteEngine _routeEngine;
   final ExperienceJournal? _experienceJournal;

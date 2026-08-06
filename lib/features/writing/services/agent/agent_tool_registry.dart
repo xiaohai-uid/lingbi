@@ -20,7 +20,6 @@ import 'package:lingbi/services/atomic_file_store.dart';
 import 'package:lingbi/features/skill/data/ranking_api_client.dart';
 import 'package:lingbi/features/review/data/version_history_service.dart';
 import 'package:lingbi/shared/interfaces/mutation_protocol.dart';
-import 'package:lingbi/shared/interfaces/process_runner.dart';
 
 /// 单个工具的执行结果。
 class ToolResult {
@@ -41,13 +40,12 @@ class ToolResult {
 }
 
 /// 写入确认回调：返回 true 表示允许落盘。null 表示不需确认（自动批准）。
-typedef WriteConfirm = Future<bool> Function(String relativePath, String content);
-
-/// 命令确认回调：返回 true 表示允许执行。null 表示无确认能力（非白名单命令被拒绝）。
-typedef CommandConfirm = Future<bool> Function(String command);
+typedef WriteConfirm = Future<bool> Function(
+    String relativePath, String content);
 
 /// 向用户提问回调（ask_user）。返回用户选择/输入的文本。
-typedef AskUser = Future<String> Function(String question, List<String> options);
+typedef AskUser = Future<String> Function(
+    String question, List<String> options);
 
 /// Skill 查找回调：返回匹配 Skill 的 SKILL.md 正文，未找到返回 null。
 typedef SkillLookup = Future<String?> Function(String nameOrId);
@@ -61,14 +59,12 @@ class AgentToolRegistry {
     required this.projectDir,
     AtomicFileStore? store,
     this.confirmWrite,
-    this.confirmCommand,
     this.askUser,
     this.skillLookup,
     this.onToolEvent,
     this.readCapChars = 8000,
     this.versionHistoryService,
     required this.mutationProtocol,
-    this.processRunner,
   }) : store = store ?? AtomicFileStore();
 
   /// 沙箱根目录（所有文件操作限定在此目录内）。
@@ -77,9 +73,6 @@ class AgentToolRegistry {
 
   /// 写操作确认回调；为 null 时自动批准（供无人值守测试）。
   final WriteConfirm? confirmWrite;
-
-  /// 命令执行确认回调；为 null 时非白名单命令被拒绝。
-  final CommandConfirm? confirmCommand;
 
   final AskUser? askUser;
   final SkillLookup? skillLookup;
@@ -95,10 +88,6 @@ class AgentToolRegistry {
   /// 必需注入；缺失时 fail-closed 拒绝写入（Task D1）。
   final MutationProtocol mutationProtocol;
 
-  /// 进程容器：system_command 经由此接口执行（Task D2）。
-  /// 为 null 时走旧路径（cmd /c，向后兼容）。
-  final ProcessRunner? processRunner;
-
   /// 工具规格列表 —— 传给 [AIProvider.chatWithTools] 的模型。
   ///
   /// question / skill_lookup 仅在提供了对应回调时才暴露。
@@ -106,13 +95,15 @@ class AgentToolRegistry {
     final list = <ToolSpec>[
       const ToolSpec(
         name: 'file_read',
-        description:
-            '读取当前项目内的文件，或列出目录内容。path 为相对项目根目录的路径。'
+        description: '读取当前项目内的文件，或列出目录内容。path 为相对项目根目录的路径。'
             'mode="read" 读取文件正文，mode="list" 列出目录条目。',
         parameters: {
           'type': 'object',
           'properties': {
-            'path': {'type': 'string', 'description': '相对项目根目录的路径，如 "小说资料/人物库.md"'},
+            'path': {
+              'type': 'string',
+              'description': '相对项目根目录的路径，如 "小说资料/人物库.md"'
+            },
             'mode': {
               'type': 'string',
               'enum': ['read', 'list'],
@@ -124,8 +115,7 @@ class AgentToolRegistry {
       ),
       const ToolSpec(
         name: 'file_write',
-        description:
-            '写入/覆盖当前项目内的文件（先展示后保存，需用户确认）。'
+        description: '写入/覆盖当前项目内的文件（先展示后保存，需用户确认）。'
             '用于保存章节正文到 "章节内容/第X章.md" 或更新 "小说资料/*.md" 维护文档。',
         parameters: {
           'type': 'object',
@@ -178,26 +168,10 @@ class AgentToolRegistry {
         },
       ));
     }
-    // Phase 3: system_command 工具（复刻 OpenWrite）
-    list.add(const ToolSpec(
-      name: 'system_command',
-      description:
-          '执行系统命令（仅 Windows 桌面）。命令在 shell 中运行，返回 stdout/stderr。'
-          '使用 workdir 参数切换目录。危险命令需用户确认，交互式命令被阻止。',
-      parameters: {
-        'type': 'object',
-        'properties': {
-          'command': {'type': 'string', 'description': '要执行的命令'},
-          'workdir': {'type': 'string', 'description': '工作目录（可选，默认项目根目录）'},
-        },
-        'required': ['command'],
-      },
-    ));
     // Phase 4.3: novel_ranking 工具（复刻 OpenWrite 扫榜）
     list.add(const ToolSpec(
       name: 'novel_ranking',
-      description:
-          '查询网文排行数据（番茄/起点）。可查榜单列表、书籍详情、分类统计。'
+      description: '查询网文排行数据（番茄/起点）。可查榜单列表、书籍详情、分类统计。'
           'endpoint 可选：top, books, stats, categories, ranks, rank_top, rank_count。',
       parameters: {
         'type': 'object',
@@ -225,8 +199,6 @@ class AgentToolRegistry {
         return _question(args);
       case 'skill_lookup':
         return _skillLookup(args);
-      case 'system_command':
-        return _systemCommand(args);
       case 'novel_ranking':
         return _novelRanking(args);
       default:
@@ -265,7 +237,8 @@ class AgentToolRegistry {
     }
     onToolEvent?.call('file_read', '读取 $rawPath');
     return ToolResult(
-      content: truncated ? '$content\n\n[内容过长已截断，共 $readCapChars+ 字符]' : content,
+      content:
+          truncated ? '$content\n\n[内容过长已截断，共 $readCapChars+ 字符]' : content,
       display: '读取 $rawPath',
     );
   }
@@ -466,129 +439,6 @@ class AgentToolRegistry {
     return ToolResult(content: body, display: '加载 Skill $name');
   }
 
-  // ─── Phase 3: system_command 三层安全 ────────────────────
-
-  /// 白名单命令前缀（自动执行，无需确认）。
-  static const _cmdWhitelist = [
-    'echo', 'dir', 'ls', 'type', 'cat', 'pwd', 'cd',
-    'git status', 'git log', 'git diff', 'git branch',
-    'flutter', 'dart', 'python', 'python3', 'node', 'npm list',
-    'where', 'which', 'ver', 'hostname', 'whoami',
-  ];
-
-  /// 黑名单正则（直接拒绝，不可执行）。
-  static final _cmdBlacklist = RegExp(
-    r'(curl|wget|nc|netcat|bash\s+-i|powershell\s+-enc|certutil'
-    r'|rundll32|reg\s+add|reg\s+delete|schtasks|wmic|bitsadmin'
-    r'|scp|rsync|rm\s+-rf|del\s+/[sfq]|format\s+[a-z]:|mklink'
-    r'|net\s+user|net\s+localgroup|takeown|icacls|nslookup|ping\s+-t)',
-    caseSensitive: false,
-  );
-
-  Future<ToolResult> _systemCommand(Map<String, dynamic> args) async {
-    final command = (args['command'] as String?) ?? '';
-    final workdir = (args['workdir'] as String?) ?? projectDir;
-
-    if (command.trim().isEmpty) {
-      return const ToolResult(
-        content: '命令为空，已忽略。',
-        isError: true,
-        display: '空命令',
-      );
-    }
-
-    // 第一层：黑名单检查
-    if (_cmdBlacklist.hasMatch(command)) {
-      return ToolResult(
-        content: '安全策略阻止：命令 "$command" 匹配黑名单，禁止执行。',
-        isError: true,
-        display: '黑名单拒绝: $command',
-      );
-    }
-
-    // 第二层：白名单检查
-    final cmdLower = command.trim().toLowerCase();
-    final isWhitelisted = _cmdWhitelist.any((w) => cmdLower.startsWith(w));
-
-    // 第三层：非白名单需确认
-    if (!isWhitelisted) {
-      final confirm = confirmCommand;
-      if (confirm == null) {
-        return ToolResult(
-          content: '命令 "$command" 不在白名单中，且无确认回调，已拒绝执行。',
-          isError: true,
-          display: '未授权命令: $command',
-        );
-      }
-      final approved = await confirm(command);
-      if (!approved) {
-        return ToolResult(
-          content: '用户拒绝执行命令 "$command"。',
-          isError: true,
-          display: '用户拒绝: $command',
-        );
-      }
-    }
-
-    // 执行命令（Task D2: 优先经 ProcessRunner 容器）
-    final runner = processRunner;
-    if (runner != null) {
-      final spec = ProcessSpec(
-        executableId: command.split(' ').first,
-        arguments: command.split(' ').skip(1).toList(),
-        workingDirectory: workdir,
-        timeoutSeconds: 60,
-      );
-      final result = await runner.run(spec);
-      return result.when(
-        success: (pr) {
-          final output = StringBuffer();
-          if (pr.stdout.isNotEmpty) output.writeln(pr.stdout);
-          if (pr.stderr.isNotEmpty) output.writeln(pr.stderr);
-          final text = output.toString().trim();
-          onToolEvent?.call('system_command', '执行: $command');
-          return ToolResult(
-            content: text.isEmpty
-                ? '(无输出，exit code ${pr.exitCode})'
-                : text,
-            display: '执行: $command (exit ${pr.exitCode})',
-          );
-        },
-        failure: (e) => ToolResult(
-          content: '命令执行失败：$e',
-          isError: true,
-          display: '执行失败: $command',
-        ),
-      );
-    }
-
-    // 旧路径（无 ProcessRunner 时回退到 cmd /c）
-    try {
-      final result = await Process.run(
-        'cmd',
-        ['/c', command],
-        workingDirectory: workdir,
-      ).timeout(const Duration(seconds: 60));
-
-      final output = StringBuffer();
-      if ((result.stdout as String).isNotEmpty) output.writeln(result.stdout);
-      if ((result.stderr as String).isNotEmpty) output.writeln(result.stderr);
-      final text = output.toString().trim();
-
-      onToolEvent?.call('system_command', '执行: $command');
-      return ToolResult(
-        content: text.isEmpty ? '(无输出，exit code ${result.exitCode})' : text,
-        display: '执行: $command (exit ${result.exitCode})',
-      );
-    } catch (e) {
-      return ToolResult(
-        content: '命令执行失败：$e',
-        isError: true,
-        display: '执行失败: $command',
-      );
-    }
-  }
-
   /// Phase 4.3: novel_ranking 工具实现
   final RankingApiClient _rankingClient = RankingApiClient();
 
@@ -615,7 +465,9 @@ class AgentToolRegistry {
   /// 再校验结果仍在 [projectDir] 之下。
   String? _resolveInside(String rawPath) {
     final root = _normalize(projectDir);
-    final joined = _isAbsolute(rawPath) ? _normalize(rawPath) : _normalize('$projectDir/$rawPath');
+    final joined = _isAbsolute(rawPath)
+        ? _normalize(rawPath)
+        : _normalize('$projectDir/$rawPath');
     if (joined == root) return _toNative(joined);
     if (joined.startsWith('$root/')) return _toNative(joined);
     return null;

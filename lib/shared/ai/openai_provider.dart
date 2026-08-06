@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'ai_provider.dart';
+import '../errors/ai_error.dart';
 
 class OpenAIProvider extends AIProvider {
-
   OpenAIProvider({String? apiKey, String? modelOverride, http.Client? client})
       : _apiKey = apiKey,
         _modelOverride = modelOverride,
@@ -29,21 +29,6 @@ class OpenAIProvider extends AIProvider {
 
   String get _modelId => _modelOverride ?? 'gpt-4o-mini';
 
-  String _friendlyError(Object e, [int? statusCode]) {
-    if (e is TimeoutException) return '网络连接超时，请检查网络后重试';
-    if (statusCode != null) {
-      switch (statusCode) {
-        case 401:
-          return 'API Key 无效，请在设置中重新配置';
-        case 429:
-          return '请求过于频繁，请稍后再试';
-        default:
-          if (statusCode >= 500) return '服务暂时不可用，请稍后再试';
-      }
-    }
-    return 'OpenAI 请求失败: $e';
-  }
-
   @override
   Stream<String> chat({
     required List<ChatMessage> messages,
@@ -51,8 +36,10 @@ class OpenAIProvider extends AIProvider {
     int maxTokens = 2048,
   }) async* {
     if (!isAvailable) {
-      yield 'Please configure OpenAI API Key in settings';
-      return;
+      throw const AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先在设置中配置 OpenAI API Key',
+      );
     }
     final body = jsonEncode({
       'model': _modelId,
@@ -71,27 +58,30 @@ class OpenAIProvider extends AIProvider {
       request.body = body;
       final streamedResponse = await _client.send(request).timeout(
             const Duration(seconds: 30),
-            onTimeout: () => throw TimeoutException('连接超时', const Duration(seconds: 30)),
+            onTimeout: () =>
+                throw TimeoutException('连接超时', const Duration(seconds: 30)),
           );
       if (streamedResponse.statusCode != 200) {
-        yield _friendlyError(Exception('HTTP ${streamedResponse.statusCode}'), streamedResponse.statusCode);
-        return;
+        final errBody = await streamedResponse.stream.bytesToString();
+        throw aiExceptionFromHttp(streamedResponse.statusCode, errBody);
       }
-      await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
+      await for (final chunk
+          in streamedResponse.stream.transform(utf8.decoder)) {
         for (final line in chunk.split('\n')) {
           if (line.startsWith('data: ')) {
             final data = line.substring(6);
             if (data == '[DONE]') return;
             try {
               final jsonData = jsonDecode(data);
-              final content = jsonData['choices']?[0]?['delta']?['content'] ?? '';
+              final content =
+                  jsonData['choices']?[0]?['delta']?['content'] ?? '';
               if (content.isNotEmpty) yield content;
             } catch (_) {}
           }
         }
       }
     } catch (e) {
-      yield _friendlyError(e);
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -101,39 +91,46 @@ class OpenAIProvider extends AIProvider {
     double temperature = 0.7,
     int maxTokens = 2048,
   }) async {
-    if (!isAvailable) return '请先在设置中配置 OpenAI API Key';
+    if (!isAvailable) {
+      throw const AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先在设置中配置 OpenAI API Key',
+      );
+    }
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        final response = await _client.post(
-          Uri.parse(_baseUrl),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_apiKey',
-          },
-          body: jsonEncode({
-            'model': _modelId,
-            'messages': messages.map((m) => m.toJson()).toList(),
-            'temperature': temperature,
-            'max_tokens': maxTokens,
-            'stream': false,
-          }),
-        ).timeout(const Duration(seconds: 120));
+        final response = await _client
+            .post(
+              Uri.parse(_baseUrl),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $_apiKey',
+              },
+              body: jsonEncode({
+                'model': _modelId,
+                'messages': messages.map((m) => m.toJson()).toList(),
+                'temperature': temperature,
+                'max_tokens': maxTokens,
+                'stream': false,
+              }),
+            )
+            .timeout(const Duration(seconds: 120));
         if (response.statusCode == 200) {
           final jsonData = jsonDecode(response.body);
           return jsonData['choices']?[0]?['message']?['content'] ?? '';
         }
-        return _friendlyError(Exception('HTTP ${response.statusCode}'), response.statusCode);
+        throw aiExceptionFromHttp(response.statusCode, response.body);
       } on TimeoutException catch (e) {
         if (attempt == 0) continue;
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       } on http.ClientException catch (e) {
         if (attempt == 0) continue;
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       } catch (e) {
-        return _friendlyError(e);
+        throw aiExceptionFromObject(e);
       }
     }
-    return '请求失败，请重试';
+    throw aiExceptionFromObject(TimeoutException('请求失败，请重试'));
   }
 
   @override

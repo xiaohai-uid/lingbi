@@ -1,5 +1,91 @@
 import 'app_error.dart';
 
+/// AI Provider 的 typed failure。
+///
+/// Provider 不得把错误文本当作正文返回；必须通过异常上抛，
+/// 由管线统一映射为用户可理解的 UI 错误。
+enum AIExceptionType {
+  noApiKey,
+  authFailed,
+  timeout,
+  networkError,
+  rateLimit,
+  serverError,
+  unknown,
+}
+
+class AIException implements Exception {
+  const AIException({
+    required this.type,
+    required this.message,
+    this.retryable = false,
+  });
+
+  final AIExceptionType type;
+  final String message;
+  final bool retryable;
+
+  @override
+  String toString() => message;
+}
+
+AIException aiExceptionFromHttp(int statusCode, [String message = '']) {
+  final detail = message.trim();
+  return switch (statusCode) {
+    401 || 403 => AIException(
+        type: AIExceptionType.authFailed,
+        message: detail.isEmpty ? 'API Key 无效或权限不足' : detail,
+      ),
+    404 => AIException(
+        type: AIExceptionType.unknown,
+        message: detail.isEmpty ? '模型或端点不存在' : detail,
+      ),
+    429 => AIException(
+        type: AIExceptionType.rateLimit,
+        message: detail.isEmpty ? '请求过于频繁，请稍后重试' : detail,
+        retryable: true,
+      ),
+    _ when statusCode >= 500 => AIException(
+        type: AIExceptionType.serverError,
+        message: detail.isEmpty ? 'AI 服务暂时不可用' : detail,
+        retryable: true,
+      ),
+    _ => AIException(
+        type: AIExceptionType.unknown,
+        message: detail.isEmpty ? 'AI 请求失败 ($statusCode)' : detail,
+        retryable: true,
+      ),
+  };
+}
+
+AIException aiExceptionFromObject(Object error) {
+  if (error is AIException) return error;
+  final message = error.toString().toLowerCase();
+  if (message.contains('timeout') || message.contains('timed out')) {
+    return const AIException(
+      type: AIExceptionType.timeout,
+      message: '网络请求超时，请检查网络后重试',
+      retryable: true,
+    );
+  }
+  if (message.contains('socket') ||
+      message.contains('connection') ||
+      message.contains('network') ||
+      message.contains('dns') ||
+      message.contains('handshake')) {
+    return const AIException(
+      type: AIExceptionType.networkError,
+      message: '网络连接失败，请检查网络后重试',
+      retryable: true,
+    );
+  }
+  return AIException(
+    type: AIExceptionType.unknown,
+    message: error.toString(),
+    retryable: true,
+  );
+}
+
 /// AI 服务细化错误层次
 ///
 /// 每种错误类型对应用户可理解的提示信息和恢复建议。
@@ -41,6 +127,19 @@ enum RecoveryAction {
 
   /// 无法自动恢复，需用户介入
   manualIntervention,
+}
+
+/// 尚未配置可用模型或 API Key
+class AIMissingApiKeyError extends AIServiceError {
+  AIMissingApiKeyError({
+    String message = '当前体验模型需要配置 API Key',
+    super.cause,
+  }) : super(
+          message,
+          code: 'AI_NO_API_KEY',
+          userHint: '$message\n请前往设置完成配置',
+          recoveryAction: RecoveryAction.checkApiKey,
+        );
 }
 
 /// API Key 无效或认证失败 (HTTP 401/403)
@@ -159,8 +258,7 @@ class AIQuotaError extends AIServiceError {
   }) : super(
           message,
           code: 'AI_QUOTA',
-          userHint:
-              '今日免费额度已用完（$dailyLimit 次/天）。请配置自己的 API Key 或明天再试。',
+          userHint: '今日免费额度已用完（$dailyLimit 次/天）。请配置自己的 API Key 或明天再试。',
           recoveryAction: RecoveryAction.checkApiKey,
         );
 }
@@ -178,19 +276,44 @@ class AiErrorMapper {
   /// 将任意异常转换为对应的 AIServiceError
   static AIServiceError map(Object error, {String provider = ''}) {
     if (error is AIServiceError) return error;
+    if (error is AIException) {
+      return switch (error.type) {
+        AIExceptionType.noApiKey =>
+          AIMissingApiKeyError(message: error.message, cause: error),
+        AIExceptionType.authFailed =>
+          AIAuthError(message: error.message, cause: error, provider: provider),
+        AIExceptionType.timeout ||
+        AIExceptionType.networkError =>
+          AINetworkError(message: error.message, cause: error),
+        AIExceptionType.rateLimit =>
+          AIRateLimitError(message: error.message, cause: error),
+        AIExceptionType.serverError =>
+          AIModelError(message: error.message, httpStatus: 500, cause: error),
+        AIExceptionType.unknown =>
+          AIModelError(message: error.message, cause: error),
+      };
+    }
 
     final msg = error.toString().toLowerCase();
 
     // HTTP 状态码检测
-    if (msg.contains('401') || msg.contains('403') || msg.contains('unauthorized') || msg.contains('invalid api key')) {
+    if (msg.contains('401') ||
+        msg.contains('403') ||
+        msg.contains('unauthorized') ||
+        msg.contains('invalid api key')) {
       return AIAuthError(provider: provider, cause: error);
     }
-    if (msg.contains('429') || msg.contains('rate limit') || msg.contains('too many requests')) {
+    if (msg.contains('429') ||
+        msg.contains('rate limit') ||
+        msg.contains('too many requests')) {
       final match = RegExp(r'retry.?after[:\s]*(\d+)').firstMatch(msg);
       final seconds = match != null ? int.tryParse(match.group(1) ?? '') : null;
       return AIRateLimitError(retryAfterSeconds: seconds, cause: error);
     }
-    if (msg.contains('500') || msg.contains('502') || msg.contains('503') || msg.contains('internal server error')) {
+    if (msg.contains('500') ||
+        msg.contains('502') ||
+        msg.contains('503') ||
+        msg.contains('internal server error')) {
       return AIModelError(httpStatus: 500, cause: error);
     }
 
@@ -205,10 +328,15 @@ class AiErrorMapper {
     }
 
     // 存储错误检测
-    if (msg.contains('no space') || msg.contains('disk full') || msg.contains('enospc')) {
+    if (msg.contains('no space') ||
+        msg.contains('disk full') ||
+        msg.contains('enospc')) {
       return AIStorageError(isDiskFull: true, cause: error);
     }
-    if (msg.contains('read-only') || msg.contains('readonly') || msg.contains('eperm') || msg.contains('access denied')) {
+    if (msg.contains('read-only') ||
+        msg.contains('readonly') ||
+        msg.contains('eperm') ||
+        msg.contains('access denied')) {
       return AIStorageError(isReadOnly: true, cause: error);
     }
 
@@ -232,6 +360,7 @@ class AiErrorMapper {
 
   static String _titleFor(AIServiceError error) {
     return switch (error) {
+      AIMissingApiKeyError() => '需要配置模型',
       AIAuthError() => 'API Key 无效',
       AIRateLimitError() => '请求过于频繁',
       AINetworkError() => '网络连接中断',
