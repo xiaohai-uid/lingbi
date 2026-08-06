@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `parse_uuid`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`
 
 Future<RustProjectSession> openProject({required String root}) =>
@@ -14,15 +15,43 @@ Future<RustProjectSession> openProject({required String root}) =>
 Future<int> projectV2SchemaVersion() =>
     RustLib.instance.api.crateApiProjectProjectV2SchemaVersion();
 
+Future<List<RustDocument>> listDocuments({required String root}) =>
+    RustLib.instance.api.crateApiProjectListDocuments(root: root);
+
+Future<String> readDocument(
+        {required String root, required String documentId}) =>
+    RustLib.instance.api
+        .crateApiProjectReadDocument(root: root, documentId: documentId);
+
+Future<RustDocument> createDocument(
+        {required String root,
+        required String projectId,
+        required String title,
+        required String content}) =>
+    RustLib.instance.api.crateApiProjectCreateDocument(
+        root: root, projectId: projectId, title: title, content: content);
+
+Future<RustDocument> saveDocument(
+        {required String root,
+        required String documentId,
+        required int expectedRevision,
+        required String content}) =>
+    RustLib.instance.api.crateApiProjectSaveDocument(
+        root: root,
+        documentId: documentId,
+        expectedRevision: expectedRevision,
+        content: content);
+
 class RustAppError implements FrbException {
+  final String code;
+  final String message;
+  final bool retryable;
+
   const RustAppError({
     required this.code,
     required this.message,
     required this.retryable,
   });
-  final String code;
-  final String message;
-  final bool retryable;
 
   @override
   int get hashCode => code.hashCode ^ message.hashCode ^ retryable.hashCode;
@@ -38,6 +67,15 @@ class RustAppError implements FrbException {
 }
 
 class RustDocument {
+  final String id;
+  final String projectId;
+  final String title;
+  final int order;
+  final int revision;
+  final String contentHash;
+  final String createdAt;
+  final String updatedAt;
+
   const RustDocument({
     required this.id,
     required this.projectId,
@@ -48,14 +86,6 @@ class RustDocument {
     required this.createdAt,
     required this.updatedAt,
   });
-  final String id;
-  final String projectId;
-  final String title;
-  final int order;
-  final int revision;
-  final String contentHash;
-  final String createdAt;
-  final String updatedAt;
 
   @override
   int get hashCode =>
@@ -84,6 +114,12 @@ class RustDocument {
 }
 
 class RustProject {
+  final String id;
+  final String name;
+  final int schemaVersion;
+  final String createdAt;
+  final String updatedAt;
+
   const RustProject({
     required this.id,
     required this.name,
@@ -91,11 +127,6 @@ class RustProject {
     required this.createdAt,
     required this.updatedAt,
   });
-  final String id;
-  final String name;
-  final int schemaVersion;
-  final String createdAt;
-  final String updatedAt;
 
   @override
   int get hashCode =>
@@ -118,14 +149,15 @@ class RustProject {
 }
 
 class RustProjectSession {
+  final RustProject project;
+  final RustDocument currentDocument;
+  final bool dirty;
+
   const RustProjectSession({
     required this.project,
     required this.currentDocument,
     required this.dirty,
   });
-  final RustProject project;
-  final RustDocument currentDocument;
-  final bool dirty;
 
   @override
   int get hashCode =>

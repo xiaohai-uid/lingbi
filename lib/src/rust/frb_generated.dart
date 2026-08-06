@@ -13,9 +13,10 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 /// Main entrypoint of the Rust API
 class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
-  RustLib._();
   @internal
   static final instance = RustLib._();
+
+  RustLib._();
 
   /// Initialize flutter_rust_bridge
   static Future<void> init({
@@ -67,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -2008427796;
+  int get rustContentHash => -396972118;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -80,9 +81,27 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<RustDocument> crateApiProjectCreateDocument(
+      {required String root,
+      required String projectId,
+      required String title,
+      required String content});
+
+  Future<List<RustDocument>> crateApiProjectListDocuments(
+      {required String root});
+
   Future<RustProjectSession> crateApiProjectOpenProject({required String root});
 
   Future<int> crateApiProjectProjectV2SchemaVersion();
+
+  Future<String> crateApiProjectReadDocument(
+      {required String root, required String documentId});
+
+  Future<RustDocument> crateApiProjectSaveDocument(
+      {required String root,
+      required String documentId,
+      required int expectedRevision,
+      required String content});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -94,6 +113,64 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<RustDocument> crateApiProjectCreateDocument(
+      {required String root,
+      required String projectId,
+      required String title,
+      required String content}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(root, serializer);
+        sse_encode_String(projectId, serializer);
+        sse_encode_String(title, serializer);
+        sse_encode_String(content, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 1, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_rust_document,
+        decodeErrorData: sse_decode_rust_app_error,
+      ),
+      constMeta: kCrateApiProjectCreateDocumentConstMeta,
+      argValues: [root, projectId, title, content],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiProjectCreateDocumentConstMeta =>
+      const TaskConstMeta(
+        debugName: "create_document",
+        argNames: ["root", "projectId", "title", "content"],
+      );
+
+  @override
+  Future<List<RustDocument>> crateApiProjectListDocuments(
+      {required String root}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(root, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 2, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_list_rust_document,
+        decodeErrorData: sse_decode_rust_app_error,
+      ),
+      constMeta: kCrateApiProjectListDocumentsConstMeta,
+      argValues: [root],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiProjectListDocumentsConstMeta =>
+      const TaskConstMeta(
+        debugName: "list_documents",
+        argNames: ["root"],
+      );
+
+  @override
   Future<RustProjectSession> crateApiProjectOpenProject(
       {required String root}) {
     return handler.executeNormal(NormalTask(
@@ -101,7 +178,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_String(root, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 1, port: port_);
+            funcId: 3, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_rust_project_session,
@@ -114,8 +191,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   TaskConstMeta get kCrateApiProjectOpenProjectConstMeta => const TaskConstMeta(
-        debugName: 'open_project',
-        argNames: ['root'],
+        debugName: "open_project",
+        argNames: ["root"],
       );
 
   @override
@@ -124,7 +201,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
-            funcId: 2, port: port_);
+            funcId: 4, port: port_);
       },
       codec: SseCodec(
         decodeSuccessData: sse_decode_u_32,
@@ -138,8 +215,67 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiProjectProjectV2SchemaVersionConstMeta =>
       const TaskConstMeta(
-        debugName: 'project_v2_schema_version',
+        debugName: "project_v2_schema_version",
         argNames: [],
+      );
+
+  @override
+  Future<String> crateApiProjectReadDocument(
+      {required String root, required String documentId}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(root, serializer);
+        sse_encode_String(documentId, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 5, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_String,
+        decodeErrorData: sse_decode_rust_app_error,
+      ),
+      constMeta: kCrateApiProjectReadDocumentConstMeta,
+      argValues: [root, documentId],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiProjectReadDocumentConstMeta =>
+      const TaskConstMeta(
+        debugName: "read_document",
+        argNames: ["root", "documentId"],
+      );
+
+  @override
+  Future<RustDocument> crateApiProjectSaveDocument(
+      {required String root,
+      required String documentId,
+      required int expectedRevision,
+      required String content}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        final serializer = SseSerializer(generalizedFrbRustBinding);
+        sse_encode_String(root, serializer);
+        sse_encode_String(documentId, serializer);
+        sse_encode_CastedPrimitive_u_64(expectedRevision, serializer);
+        sse_encode_String(content, serializer);
+        pdeCallFfi(generalizedFrbRustBinding, serializer,
+            funcId: 6, port: port_);
+      },
+      codec: SseCodec(
+        decodeSuccessData: sse_decode_rust_document,
+        decodeErrorData: sse_decode_rust_app_error,
+      ),
+      constMeta: kCrateApiProjectSaveDocumentConstMeta,
+      argValues: [root, documentId, expectedRevision, content],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiProjectSaveDocumentConstMeta =>
+      const TaskConstMeta(
+        debugName: "save_document",
+        argNames: ["root", "documentId", "expectedRevision", "content"],
       );
 
   @protected
@@ -178,6 +314,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint8List;
+  }
+
+  @protected
+  List<RustDocument> dco_decode_list_rust_document(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_rust_document).toList();
   }
 
   @protected
@@ -266,21 +408,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   int sse_decode_CastedPrimitive_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_i_64(deserializer);
+    var inner = sse_decode_i_64(deserializer);
     return inner.toInt();
   }
 
   @protected
   int sse_decode_CastedPrimitive_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_u_64(deserializer);
+    var inner = sse_decode_u_64(deserializer);
     return inner.toInt();
   }
 
   @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final inner = sse_decode_list_prim_u_8_strict(deserializer);
+    var inner = sse_decode_list_prim_u_8_strict(deserializer);
     return utf8.decoder.convert(inner);
   }
 
@@ -299,16 +441,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final len_ = sse_decode_i_32(deserializer);
+    var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<RustDocument> sse_decode_list_rust_document(
+      SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <RustDocument>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_rust_document(deserializer));
+    }
+    return ans_;
   }
 
   @protected
   RustAppError sse_decode_rust_app_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_code = sse_decode_String(deserializer);
-    final var_message = sse_decode_String(deserializer);
-    final var_retryable = sse_decode_bool(deserializer);
+    var var_code = sse_decode_String(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_retryable = sse_decode_bool(deserializer);
     return RustAppError(
         code: var_code, message: var_message, retryable: var_retryable);
   }
@@ -316,14 +471,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RustDocument sse_decode_rust_document(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_id = sse_decode_String(deserializer);
-    final var_projectId = sse_decode_String(deserializer);
-    final var_title = sse_decode_String(deserializer);
-    final var_order = sse_decode_CastedPrimitive_i_64(deserializer);
-    final var_revision = sse_decode_CastedPrimitive_u_64(deserializer);
-    final var_contentHash = sse_decode_String(deserializer);
-    final var_createdAt = sse_decode_String(deserializer);
-    final var_updatedAt = sse_decode_String(deserializer);
+    var var_id = sse_decode_String(deserializer);
+    var var_projectId = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_order = sse_decode_CastedPrimitive_i_64(deserializer);
+    var var_revision = sse_decode_CastedPrimitive_u_64(deserializer);
+    var var_contentHash = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
     return RustDocument(
         id: var_id,
         projectId: var_projectId,
@@ -338,11 +493,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RustProject sse_decode_rust_project(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_id = sse_decode_String(deserializer);
-    final var_name = sse_decode_String(deserializer);
-    final var_schemaVersion = sse_decode_u_32(deserializer);
-    final var_createdAt = sse_decode_String(deserializer);
-    final var_updatedAt = sse_decode_String(deserializer);
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_schemaVersion = sse_decode_u_32(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
     return RustProject(
         id: var_id,
         name: var_name,
@@ -355,9 +510,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustProjectSession sse_decode_rust_project_session(
       SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    final var_project = sse_decode_rust_project(deserializer);
-    final var_currentDocument = sse_decode_rust_document(deserializer);
-    final var_dirty = sse_decode_bool(deserializer);
+    var var_project = sse_decode_rust_project(deserializer);
+    var var_currentDocument = sse_decode_rust_document(deserializer);
+    var var_dirty = sse_decode_bool(deserializer);
     return RustProjectSession(
         project: var_project,
         currentDocument: var_currentDocument,
@@ -429,6 +584,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_list_rust_document(
+      List<RustDocument> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_rust_document(item, serializer);
+    }
   }
 
   @protected

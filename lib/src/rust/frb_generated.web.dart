@@ -39,6 +39,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<RustDocument> dco_decode_list_rust_document(dynamic raw);
+
+  @protected
   RustAppError dco_decode_rust_app_error(dynamic raw);
 
   @protected
@@ -79,6 +82,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  List<RustDocument> sse_decode_list_rust_document(
+      SseDeserializer deserializer);
 
   @protected
   RustAppError sse_decode_rust_app_error(SseDeserializer deserializer);
@@ -128,6 +135,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       Uint8List self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_rust_document(
+      List<RustDocument> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_rust_app_error(RustAppError self, SseSerializer serializer);
 
   @protected
@@ -159,7 +170,7 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 // Section: wire_class
 
 class RustLibWire implements BaseWire {
-  RustLibWire.fromExternalLibrary();
+  RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 }
 
 @JS('wasm_bindgen')

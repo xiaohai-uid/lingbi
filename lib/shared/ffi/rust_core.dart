@@ -34,4 +34,53 @@ class RustCore {
     await ensureInitialized(libraryPath: libraryPath);
     return rust_project.projectV2SchemaVersion();
   }
+
+  static Future<List<rust_project.RustDocument>> listDocuments(
+    String root, {
+    String? libraryPath,
+  }) async {
+    await ensureInitialized(libraryPath: libraryPath);
+    return rust_project.listDocuments(root: root);
+  }
+
+  static Future<String> readDocument(
+    String root,
+    String documentId, {
+    String? libraryPath,
+  }) async {
+    await ensureInitialized(libraryPath: libraryPath);
+    return rust_project.readDocument(root: root, documentId: documentId);
+  }
+
+  static Future<rust_project.RustDocument> createDocument(
+    String root,
+    String projectId,
+    String title,
+    String content, {
+    String? libraryPath,
+  }) async {
+    await ensureInitialized(libraryPath: libraryPath);
+    return rust_project.createDocument(
+      root: root,
+      projectId: projectId,
+      title: title,
+      content: content,
+    );
+  }
+
+  static Future<rust_project.RustDocument> saveDocument(
+    String root,
+    String documentId,
+    int expectedRevision,
+    String content, {
+    String? libraryPath,
+  }) async {
+    await ensureInitialized(libraryPath: libraryPath);
+    return rust_project.saveDocument(
+      root: root,
+      documentId: documentId,
+      expectedRevision: expectedRevision,
+      content: content,
+    );
+  }
 }
