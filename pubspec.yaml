@@ -30,6 +30,10 @@ dependencies:
   yaml: ^3.1.2
   # 安全存储
   flutter_secure_storage: ^9.2.0
+  # Rust Core bridge
+  flutter_rust_bridge: 2.12.0
+  lingbi_ffi:
+    path: rust_builder
 
 dev_dependencies:
   flutter_test:

@@ -5,6 +5,7 @@ analyzer:
     - lingbi_server/**
     - services/**
     - launcher/**
+    - lib/src/rust/**
 
 linter:
   rules:
