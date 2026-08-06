@@ -71,6 +71,7 @@ class ProjectSessionManager extends ChangeNotifier {
   ProjectSessionScope? _activeScope;
   ProjectSessionSnapshot? _activeSession;
   final Map<String, ProjectSessionScope> _openScopes = {};
+  final Map<String, ProjectSessionSnapshot> _sessions = {};
 
   ProjectSessionScope? get activeScope => _activeScope;
   ProjectSessionSnapshot? get activeSession => _activeSession;
@@ -88,7 +89,9 @@ class ProjectSessionManager extends ChangeNotifier {
       directoryPath: directoryPath,
       brief: brief,
     );
-    return _activate(project: project, documents: const []);
+    await _activate(project: project, documents: const []);
+    await openFirstChapter();
+    return _activeSession!;
   }
 
   Future<ProjectSessionSnapshot> openProjectDirectory(
@@ -102,18 +105,32 @@ class ProjectSessionManager extends ChangeNotifier {
     }
     final restoredDocument = await _readSelectedDocument(opened.project);
     final documents = [...opened.documents];
+    for (final document in documents) {
+      await _documentService.saveDocument(
+        document,
+        await _documentService.readContent(document.filePath),
+      );
+    }
     if (restoredDocument != null) {
+      await _documentService.saveDocument(
+        restoredDocument,
+        await _documentService.readContent(restoredDocument.filePath),
+      );
       final restoredPath = _normalPath(restoredDocument.filePath);
       documents.removeWhere(
         (document) => _normalPath(document.filePath) == restoredPath,
       );
       documents.insert(0, restoredDocument);
     }
-    return _activate(
+    await _activate(
       project: opened.project,
       documents: documents,
       selectedDocument: restoredDocument,
     );
+    if (_activeSession?.selectedDocument == null) {
+      await openFirstChapter();
+    }
+    return _activeSession!;
   }
 
   Future<ProjectSessionSnapshot?> resumeRecentProject() async {
@@ -147,7 +164,8 @@ class ProjectSessionManager extends ChangeNotifier {
 
     Document? chapter;
     for (final document in session.documents) {
-      if (document.title == '第一章') {
+      final fileName = document.filePath.split('/').last.toLowerCase();
+      if (document.title == '第一章' || fileName == 'chapter-1.md') {
         chapter = document;
         break;
       }
@@ -156,6 +174,7 @@ class ProjectSessionManager extends ChangeNotifier {
       projectId: session.project.id,
       title: '第一章',
       directoryPath: '${session.project.directoryPath}/chapters',
+      fileName: 'chapter-1',
     );
 
     final documents = [...session.documents];
@@ -182,6 +201,7 @@ class ProjectSessionManager extends ChangeNotifier {
       documents: documents,
       selectedDocument: document,
     );
+    _sessions[session.project.id] = _activeSession!;
     await _persistActiveSession();
     notifyListeners();
   }
@@ -218,6 +238,7 @@ class ProjectSessionManager extends ChangeNotifier {
     if (scope == null) return null;
     _activeScope?.unbindChapter();
     _activeScope = scope;
+    _activeSession = _sessions[projectId] ?? _activeSession;
     notifyListeners();
     return scope;
   }
@@ -231,6 +252,7 @@ class ProjectSessionManager extends ChangeNotifier {
     }
     scope.dispose();
     _openScopes.remove(projectId);
+    _sessions.remove(projectId);
     notifyListeners();
   }
 
@@ -239,6 +261,7 @@ class ProjectSessionManager extends ChangeNotifier {
       scope.dispose();
     }
     _openScopes.clear();
+    _sessions.clear();
     _activeScope = null;
     _activeSession = null;
     notifyListeners();
@@ -268,6 +291,7 @@ class ProjectSessionManager extends ChangeNotifier {
       selectedDocument: selectedDocument,
     );
     _activeSession = snapshot;
+    _sessions[project.id] = snapshot;
     await _rememberProject(project.directoryPath);
     await _persistActiveSession();
     notifyListeners();

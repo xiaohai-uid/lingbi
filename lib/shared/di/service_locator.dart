@@ -21,6 +21,7 @@ import '../../features/onboarding/data/onboarding_di_adapters.dart';
 import '../../features/project/data/project_service.dart';
 import '../../features/project/data/project_root_resolver.dart';
 import '../../features/project/data/project_tab_controller.dart';
+import '../../ui_v2/controllers/project_session_manager.dart';
 import '../../shared/interfaces/i_project_service.dart';
 import '../../shared/interfaces/mutation_protocol.dart';
 import '../../shared/interfaces/project_root_resolver.dart';
@@ -130,6 +131,7 @@ class ServiceLocator {
   late final ExportService exportService;
   late final VersionHistoryService versionHistoryService;
   late final ProjectTabController projectTabController;
+  late final ProjectSessionManager projectSessionManager;
 
   /// ——— 项目元数据 + 引导流程 ———
   late final ProjectMetaRepository projectMetaRepository;
@@ -383,6 +385,14 @@ class ServiceLocator {
         },
       );
       locator.projectTabController = ProjectTabController();
+      locator.projectSessionManager = ProjectSessionManager(
+        documentService: locator.documentService,
+        canonService: locator.canonService,
+        aiService: locator.aiService,
+        projectService: locator.projectService,
+        recentStateFilePath: '${docsDir.path}/lingbi_data/recent_projects.json',
+        mutationProtocol: locator.mutationProtocol,
+      );
 
       // 层级 7: 市场情报 + 云同步
       final cacheDir =

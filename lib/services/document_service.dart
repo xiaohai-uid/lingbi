@@ -29,8 +29,9 @@ class DocumentService implements IDocumentService {
     required String title,
     required String directoryPath,
     String content = '',
+    String? fileName,
   }) async {
-    final safeTitle = _sanitizeFileName(title);
+    final safeTitle = _sanitizeFileName(fileName ?? title);
     final filePath = '$directoryPath/$safeTitle.md'.replaceAll(r'\', '/');
     if (await File(filePath).exists()) {
       throw FileError('文档已存在: $filePath', code: 'DOCUMENT_ALREADY_EXISTS');
