@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:lingbi/shared/interfaces/i_document_service.dart';
 import 'package:lingbi/shared/models/document.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
+import 'package:lingbi/shared/errors/app_error.dart';
 import 'package:lingbi/shared/file_system/file_service.dart';
 import 'atomic_file_store.dart';
 
@@ -31,6 +32,9 @@ class DocumentService implements IDocumentService {
   }) async {
     final safeTitle = _sanitizeFileName(title);
     final filePath = '$directoryPath/$safeTitle.md'.replaceAll(r'\', '/');
+    if (await File(filePath).exists()) {
+      throw FileError('文档已存在: $filePath', code: 'DOCUMENT_ALREADY_EXISTS');
+    }
     await _atomicStore.writeString(
       filePath,
       content.isEmpty ? '# $title\n\n' : content,
