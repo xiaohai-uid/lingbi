@@ -30,19 +30,26 @@ class Project {
       id: json['id'] as String,
       name: (brief['title'] ?? json['name']) as String,
       description: json['description'] as String? ?? '',
-      directoryPath: json['directoryPath'] as String,
+      directoryPath: json['directoryPath'] as String? ?? '',
       targetPlatform:
-          (brief['targetPlatform'] ?? json['targetPlatform']) as String? ?? '',
+          (brief['targetPlatform'] ??
+                  json['targetPlatform'] ??
+                  json['target_platform']) as String? ??
+              '',
       genre: (brief['genreId'] ?? json['genre']) as String? ?? '',
       audience: (brief['audience'] ?? json['audience']) as String? ?? '',
       templateId: brief['templateId'] as String? ?? '',
       targetLength: brief['targetLength'] as int?,
-      premise:
-          brief['premise'] as String? ?? json['description'] as String? ?? '',
-      briefRevision: brief['revision'] as int? ?? 0,
+      premise: brief['premise'] as String? ??
+          json['premise'] as String? ??
+          json['description'] as String? ??
+          '',
+      briefRevision: (brief['revision'] ?? json['briefRevision']) as int? ?? 0,
       provenance: json['provenance'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: DateTime.parse(
+          (json['createdAt'] ?? json['created_at']) as String),
+      updatedAt: DateTime.parse(
+          (json['updatedAt'] ?? json['updated_at']) as String),
     );
   }
   final String id;

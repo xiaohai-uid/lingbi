@@ -337,7 +337,37 @@ class ProjectService implements IProjectService {
     String directoryPath,
     String projectId,
   ) async {
+    final v2 = await _readV2Documents(directoryPath, projectId);
+    if (v2 != null) return v2;
     return _fileService.scanMarkdownDocuments(directoryPath, projectId);
+  }
+
+  Future<List<Document>?> _readV2Documents(
+    String directoryPath,
+    String projectId,
+  ) async {
+    final file = File('$directoryPath/.lingbi/documents.json');
+    if (!await file.exists()) return null;
+    try {
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! List) return null;
+      final documents = decoded
+          .whereType<Map<String, dynamic>>()
+          .map((json) => Document.fromJson(json))
+          .toList();
+      for (final document in documents) {
+        document.projectId = projectId;
+        if (document.filePath.isEmpty) {
+          document.filePath =
+              '$directoryPath/chapters/${document.id}.md';
+        }
+      }
+      return documents;
+    } on FormatException {
+      return null;
+    } on TypeError {
+      return null;
+    }
   }
 
   /// Finds portable projects directly on disk, including projects that have
