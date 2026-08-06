@@ -39,10 +39,21 @@ jobs:
           flutter-version: '3.44.6'
           channel: 'stable'
 
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Checkout Rust core
+        uses: actions/checkout@v4
+        with:
+          repository: xiaohai-uid/lingbi-next
+          path: lingbi-next
+          ref: 225d8550f19c7cefcdfa8200a0fdca3acba04e4e
+
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
       - name: Build Windows
+        env:
+          LINGBI_RUST_CRATE_DIR: ${{ github.workspace }}/lingbi-next/crates/lingbi-ffi
         run: flutter build windows --release
 
       - name: Package release with checksums and provenance
