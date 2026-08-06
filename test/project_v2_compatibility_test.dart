@@ -16,11 +16,10 @@ void main() {
     expect(document.title, '第一章');
     expect(document.revision, 0);
     expect(document.order, 0);
-    expect(document.filePath, endsWith('chapters/22222222-2222-4222-8222-222222222222.md'));
+    expect(document.filePath,
+        endsWith('chapters/22222222-2222-4222-8222-222222222222.md'));
     expect(File(document.filePath).existsSync(), isTrue);
-    expect(
-      await File(document.filePath).readAsString(),
-      '# 第一章\n\nV2 fixture content.\n',
-    );
+    final content = await File(document.filePath).readAsString();
+    expect(content.replaceAll('\r\n', '\n'), '# 第一章\n\nV2 fixture content.\n');
   });
 }
