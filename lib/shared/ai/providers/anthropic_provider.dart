@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../ai_provider.dart';
 import '../models/endpoint_config.dart';
+import '../../errors/ai_error.dart';
 
 /// Anthropic 协议 Provider
 ///
@@ -42,10 +43,12 @@ class AnthropicProvider extends AIProvider {
 
   /// 转换消息格式（Anthropic 不支持 system 角色，需单独提取）
   List<Map<String, dynamic>> _convertMessages(List<ChatMessage> messages) {
-    return messages.map((m) => {
-      'role': m.role,
-      'content': m.content,
-    }).toList();
+    return messages
+        .map((m) => {
+              'role': m.role,
+              'content': m.content,
+            })
+        .toList();
   }
 
   @override
@@ -55,8 +58,10 @@ class AnthropicProvider extends AIProvider {
     int maxTokens = 2048,
   }) async* {
     if (!isAvailable) {
-      yield '请先配置 $_config.name API Key';
-      return;
+      throw AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先配置 ${_config.name} API Key',
+      );
     }
 
     final systemMsg = messages
@@ -82,7 +87,11 @@ class AnthropicProvider extends AIProvider {
               'temperature': temperature,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(
+            const Duration(seconds: 120),
+            onTimeout: () =>
+                throw TimeoutException('请求超时', const Duration(seconds: 120)),
+          );
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
@@ -95,12 +104,16 @@ class AnthropicProvider extends AIProvider {
           }
         }
       } else {
-        yield _friendlyHttpError(response.statusCode, response.body);
+        throw aiExceptionFromHttp(response.statusCode, response.body);
       }
+    } on AIException {
+      rethrow;
     } on TimeoutException {
-      yield '请求超时，请检查网络连接';
+      throw aiExceptionFromObject(
+        TimeoutException('请求超时，请检查网络连接'),
+      );
     } catch (e) {
-      yield '$_config.name API 错误: $e';
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -111,7 +124,10 @@ class AnthropicProvider extends AIProvider {
     int maxTokens = 2048,
   }) async {
     if (!isAvailable) {
-      return '请先配置 $_config.name API Key';
+      throw AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先配置 ${_config.name} API Key',
+      );
     }
 
     final buffer = StringBuffer();
@@ -139,17 +155,5 @@ class AnthropicProvider extends AIProvider {
   @override
   Future<void> dispose() async {
     _client.close();
-  }
-
-  /// 将 HTTP 状态码转换为用户友好的中文提示
-  String _friendlyHttpError(int statusCode, String body) {
-    return switch (statusCode) {
-      401 => 'API Key 无效，请检查是否复制完整',
-      403 => '权限不足，请检查账户状态',
-      404 => 'API 端点不存在，请检查 Base URL 配置',
-      429 => '请求过于频繁，请稍后重试',
-      _ when statusCode >= 500 => '服务端错误，请稍后重试',
-      _ => '$_config.name API 错误: $statusCode $body',
-    };
   }
 }

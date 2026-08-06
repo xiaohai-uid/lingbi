@@ -1,4 +1,5 @@
 import 'package:lingbi/features/writing/data/pipeline/novel_application_service.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 import 'first_chapter_event.dart';
 import 'first_chapter_state_store.dart';
 
@@ -127,6 +128,7 @@ class FirstChapterWorkflowController implements FirstChapterWorkflow {
         candidateId: candidate.id,
       );
     } catch (error) {
+      final mapped = AiErrorMapper.map(error);
       final failed = (_state ??
               FirstChapterState(
                 projectId: request.projectId,
@@ -135,14 +137,14 @@ class FirstChapterWorkflowController implements FirstChapterWorkflow {
                 stage: FirstChapterStage.failed,
                 updatedAt: DateTime.now().toUtc(),
               ))
-          .copyWith(stage: FirstChapterStage.failed, error: error.toString());
+          .copyWith(stage: FirstChapterStage.failed, error: mapped.userHint);
       _state = failed;
       try {
         await _stateStore.write(failed);
       } catch (_) {}
       yield FirstChapterEvent(
         stage: FirstChapterStage.failed,
-        message: error.toString(),
+        message: mapped.userHint,
       );
     }
   }

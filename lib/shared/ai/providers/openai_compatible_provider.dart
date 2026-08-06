@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../ai_provider.dart';
 import '../models/endpoint_config.dart';
+import '../../errors/ai_error.dart';
 
 /// OpenAI 兼容协议 Provider
 ///
@@ -102,8 +103,10 @@ class OpenAICompatibleProvider extends AIProvider {
     int maxTokens = 2048,
   }) async* {
     if (!isAvailable) {
-      yield '请先配置 $_config.name API Key';
-      return;
+      throw AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先配置 ${_config.name} API Key',
+      );
     }
 
     final body = _buildRequestBody(
@@ -123,18 +126,27 @@ class OpenAICompatibleProvider extends AIProvider {
       request.body = jsonEncode(body);
 
       final streamedResponse = await _client.send(request).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () => throw TimeoutException('连接超时'),
-      );
+            const Duration(seconds: 15),
+            onTimeout: () =>
+                throw TimeoutException('连接超时', const Duration(seconds: 15)),
+          );
 
       if (streamedResponse.statusCode != 200) {
-        yield _friendlyHttpError(streamedResponse.statusCode);
-        return;
+        final errBody = await streamedResponse.stream.bytesToString();
+        throw aiExceptionFromHttp(streamedResponse.statusCode, errBody);
       }
 
       bool isReasoning = false;
       await for (final chunk
-          in streamedResponse.stream.transform(utf8.decoder)) {
+          in streamedResponse.stream.transform(utf8.decoder).timeout(
+                const Duration(seconds: 120),
+                onTimeout: (eventSink) => eventSink.addError(
+                  TimeoutException(
+                    '请求超时',
+                    const Duration(seconds: 120),
+                  ),
+                ),
+              )) {
         for (final line in chunk.split('\n')) {
           final parsed = _parseSseChunk(line);
           if (parsed != null) {
@@ -156,10 +168,14 @@ class OpenAICompatibleProvider extends AIProvider {
         }
       }
       if (isReasoning) yield '</think>';
+    } on AIException {
+      rethrow;
     } on TimeoutException {
-      yield '请求超时，请检查网络连接';
+      throw aiExceptionFromObject(
+        TimeoutException('请求超时，请检查网络连接'),
+      );
     } catch (e) {
-      yield '$_config.name API 错误: $e';
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -170,7 +186,10 @@ class OpenAICompatibleProvider extends AIProvider {
     int maxTokens = 2048,
   }) async {
     if (!isAvailable) {
-      return '请先配置 $_config.name API Key';
+      throw AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先配置 ${_config.name} API Key',
+      );
     }
 
     final body = _buildRequestBody(
@@ -195,16 +214,22 @@ class OpenAICompatibleProvider extends AIProvider {
         final json = jsonDecode(response.body);
         final message = json['choices']?[0]?['message'];
         final content = message?['content'] as String? ?? '';
-        final reasoning = (message?['reasoning'] ?? message?['reasoning_content']) as String? ?? '';
+        final reasoning = (message?['reasoning'] ??
+                message?['reasoning_content']) as String? ??
+            '';
         if (content.isNotEmpty) return content;
         if (reasoning.isNotEmpty) return '<think>$reasoning</think>';
         return '';
       }
-      return _friendlyHttpError(response.statusCode);
+      throw aiExceptionFromHttp(response.statusCode, response.body);
+    } on AIException {
+      rethrow;
     } on TimeoutException {
-      return '请求超时，请检查网络连接';
+      throw aiExceptionFromObject(
+        TimeoutException('请求超时，请检查网络连接'),
+      );
     } catch (e) {
-      return '$_config.name API 错误: $e';
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -222,7 +247,10 @@ class OpenAICompatibleProvider extends AIProvider {
     int maxTokens = 2048,
   }) async {
     if (!isAvailable) {
-      return ToolTurn(content: '请先配置 ${_config.name} API Key');
+      throw AIException(
+        type: AIExceptionType.noApiKey,
+        message: '请先配置 ${_config.name} API Key',
+      );
     }
 
     final body = <String, dynamic>{
@@ -248,7 +276,7 @@ class OpenAICompatibleProvider extends AIProvider {
           .timeout(const Duration(seconds: 120));
 
       if (response.statusCode != 200) {
-        return ToolTurn(content: _friendlyHttpError(response.statusCode));
+        throw aiExceptionFromHttp(response.statusCode, response.body);
       }
 
       // 用 bodyBytes + utf8 解码，避免中文乱码。
@@ -277,10 +305,14 @@ class OpenAICompatibleProvider extends AIProvider {
         toolCalls: toolCalls,
         finishReason: finishReason,
       );
+    } on AIException {
+      rethrow;
     } on TimeoutException {
-      return const ToolTurn(content: '请求超时，请检查网络连接');
+      throw aiExceptionFromObject(
+        TimeoutException('请求超时，请检查网络连接'),
+      );
     } catch (e) {
-      return ToolTurn(content: '${_config.name} API 错误: $e');
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -312,17 +344,5 @@ class OpenAICompatibleProvider extends AIProvider {
   @override
   Future<void> dispose() async {
     _client.close();
-  }
-
-  /// 将 HTTP 状态码转换为用户友好的中文提示
-  String _friendlyHttpError(int statusCode) {
-    return switch (statusCode) {
-      401 => 'API Key 无效，请检查是否复制完整',
-      403 => '权限不足，请检查账户状态',
-      404 => 'API 端点不存在，请检查 Base URL 配置',
-      429 => '请求过于频繁，请稍后重试',
-      _ when statusCode >= 500 => '服务端错误，请稍后重试',
-      _ => 'HTTP 错误: $statusCode',
-    };
   }
 }

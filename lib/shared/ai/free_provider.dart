@@ -1,29 +1,33 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:lingbi/shared/ai/ai_provider.dart';
 
-/// Free Provider — 内置体验模型，新用户零配置即可使用。
+import 'package:http/http.dart' as http;
+
+import 'package:lingbi/shared/ai/ai_provider.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
+
+/// Free Provider - 只在存在合法匿名能力时提供体验模型。
 ///
-/// 对标 OpenWrite 的"公益模型"：默认连接免费 API 端点，
-/// 用户无需配置任何 API Key 就能体验核心写作功能。
-/// 想用更好的模型时，在设置中切换到自定义 Provider。
-///
-/// 端点策略（复刻 OpenWrite）：
-/// - 主端点：opencode.ai/zen/v1（免费，无需 Key）
-/// - 备用端点：SenseNova（需环境变量 SENSENOVA_API_KEY）
+/// 当前默认不假设 OpenCode Zen 或任何第三方端点免 Key 可用。
+/// 没有匿名能力时，所有生成和连接测试都必须明确失败，
+/// 并提示用户前往设置配置 API Key。
 class FreeProvider extends AIProvider {
-  FreeProvider({http.Client? client})
-      : _client = client ?? http.Client();
+  FreeProvider({
+    http.Client? client,
+    this.anonymousCapability = false,
+  }) : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  // ─── 内置端点配置（复刻 OpenWrite 公益模型） ───
+  /// 是否存在经过确认的合法匿名能力。
+  ///
+  /// 生产默认 false；接入经过授权的免费端点时显式打开。
+  final bool anonymousCapability;
+
   static const _baseUrl = 'https://opencode.ai/zen/v1/chat/completions';
   static const _model = 'deepseek-v4-flash-free';
-
-  /// 免费端点不需要 API Key。
-  static const _apiKey = '';
+  static const _connectTimeout = Duration(seconds: 15);
+  static const _requestTimeout = Duration(seconds: 120);
 
   @override
   String get name => 'free';
@@ -32,17 +36,23 @@ class FreeProvider extends AIProvider {
   String get displayName => '体验模型（免费）';
 
   @override
-  bool get isAvailable => true;
+  bool get isAvailable => hasAnonymousCapability;
+
+  bool get hasAnonymousCapability => anonymousCapability;
 
   @override
-  bool get supportsTools => true;
+  bool get supportsTools => hasAnonymousCapability;
 
   @override
   String get currentModelId => _model;
 
-  Map<String, String> get _headers => {
+  AIException _missingKeyError() => const AIException(
+        type: AIExceptionType.noApiKey,
+        message: '当前体验模型需要配置 API Key\n请前往设置完成配置',
+      );
+
+  Map<String, String> get _headers => const {
         'Content-Type': 'application/json',
-        if (_apiKey.isNotEmpty) 'Authorization': 'Bearer $_apiKey',
       };
 
   @override
@@ -51,6 +61,8 @@ class FreeProvider extends AIProvider {
     double temperature = 0.7,
     int maxTokens = 4096,
   }) async* {
+    if (!isAvailable) throw _missingKeyError();
+
     final body = jsonEncode({
       'model': _model,
       'messages': messages.map((m) => m.toJson()).toList(),
@@ -59,29 +71,45 @@ class FreeProvider extends AIProvider {
       'stream': true,
     });
 
-    final request = http.Request('POST', Uri.parse(_baseUrl))
-      ..headers.addAll(_headers)
-      ..body = body;
+    try {
+      final request = http.Request('POST', Uri.parse(_baseUrl))
+        ..headers.addAll(_headers)
+        ..body = body;
 
-    final response = await _client.send(request);
-    if (response.statusCode != 200) {
-      final errBody = await response.stream.bytesToString();
-      yield '体验模型连接失败 (${response.statusCode})，请在设置中配置自己的 API。\n$errBody';
-      return;
-    }
+      final response = await _client.send(request).timeout(
+            _connectTimeout,
+            onTimeout: () => throw TimeoutException('连接超时', _connectTimeout),
+          );
+      if (response.statusCode != 200) {
+        final errBody = await response.stream.bytesToString();
+        throw aiExceptionFromHttp(response.statusCode, errBody);
+      }
 
-    await for (final chunk in response.stream
-        .transform(utf8.decoder)
-        .transform(const LineSplitter())) {
-      if (!chunk.startsWith('data: ')) continue;
-      final data = chunk.substring(6).trim();
-      if (data == '[DONE]') break;
-      try {
-        final json = jsonDecode(data) as Map<String, dynamic>;
-        final delta = json['choices']?[0]?['delta'] as Map?;
-        final content = delta?['content'] as String?;
-        if (content != null && content.isNotEmpty) yield content;
-      } catch (_) {}
+      final lines = response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())
+          .timeout(
+            _requestTimeout,
+            onTimeout: (eventSink) => eventSink.addError(
+              TimeoutException('请求超时', _requestTimeout),
+            ),
+          );
+
+      await for (final chunk in lines) {
+        if (!chunk.startsWith('data: ')) continue;
+        final data = chunk.substring(6).trim();
+        if (data == '[DONE]') break;
+        try {
+          final json = jsonDecode(data) as Map<String, dynamic>;
+          final delta = json['choices']?[0]?['delta'] as Map?;
+          final content = delta?['content'] as String?;
+          if (content != null && content.isNotEmpty) yield content;
+        } catch (_) {}
+      }
+    } on AIException {
+      rethrow;
+    } catch (e) {
+      throw aiExceptionFromObject(e);
     }
   }
 
@@ -91,6 +119,8 @@ class FreeProvider extends AIProvider {
     double temperature = 0.7,
     int maxTokens = 4096,
   }) async {
+    if (!isAvailable) throw _missingKeyError();
+
     final body = jsonEncode({
       'model': _model,
       'messages': messages.map((m) => m.toJson()).toList(),
@@ -98,15 +128,24 @@ class FreeProvider extends AIProvider {
       'max_tokens': maxTokens,
     });
 
-    final resp = await _client
-        .post(Uri.parse(_baseUrl), headers: _headers, body: body)
-        .timeout(const Duration(seconds: 120));
+    try {
+      final resp = await _client
+          .post(Uri.parse(_baseUrl), headers: _headers, body: body)
+          .timeout(
+            _requestTimeout,
+            onTimeout: () => throw TimeoutException('请求超时', _requestTimeout),
+          );
 
-    if (resp.statusCode != 200) {
-      return '体验模型连接失败 (${resp.statusCode})，请在设置中配置自己的 API。';
+      if (resp.statusCode != 200) {
+        throw aiExceptionFromHttp(resp.statusCode, resp.body);
+      }
+      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      return json['choices']?[0]?['message']?['content'] as String? ?? '';
+    } on AIException {
+      rethrow;
+    } catch (e) {
+      throw aiExceptionFromObject(e);
     }
-    final json = jsonDecode(resp.body) as Map<String, dynamic>;
-    return json['choices']?[0]?['message']?['content'] as String? ?? '';
   }
 
   @override
@@ -116,6 +155,8 @@ class FreeProvider extends AIProvider {
     double temperature = 0.7,
     int maxTokens = 4096,
   }) async {
+    if (!isAvailable) throw _missingKeyError();
+
     final body = jsonEncode({
       'model': _model,
       'messages': messages.map((m) => m.toJson()).toList(),
@@ -124,39 +165,61 @@ class FreeProvider extends AIProvider {
       'tools': tools.map((t) => t.toOpenAiJson()).toList(),
     });
 
-    final resp = await _client
-        .post(Uri.parse(_baseUrl), headers: _headers, body: body)
-        .timeout(const Duration(seconds: 120));
+    try {
+      final resp = await _client
+          .post(Uri.parse(_baseUrl), headers: _headers, body: body)
+          .timeout(
+            _requestTimeout,
+            onTimeout: () => throw TimeoutException('请求超时', _requestTimeout),
+          );
 
-    if (resp.statusCode != 200) {
-      throw UnsupportedError(
-          '体验模型不支持工具调用 (${resp.statusCode})');
+      if (resp.statusCode != 200) {
+        throw aiExceptionFromHttp(resp.statusCode, resp.body);
+      }
+      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      final choice = json['choices']?[0] as Map? ?? {};
+      final message = choice['message'] as Map? ?? {};
+      final content = message['content'] as String? ?? '';
+      final rawToolCalls = message['tool_calls'] as List?;
+
+      if (rawToolCalls == null || rawToolCalls.isEmpty) {
+        return ToolTurn(content: content);
+      }
+
+      final toolCalls = rawToolCalls.map((tc) {
+        final fn = tc['function'] as Map? ?? {};
+        return ToolCall(
+          id: tc['id'] as String? ?? '',
+          name: fn['name'] as String? ?? '',
+          argumentsJson: fn['arguments'] as String? ?? '{}',
+        );
+      }).toList();
+
+      return ToolTurn(content: content, toolCalls: toolCalls);
+    } on AIException {
+      rethrow;
+    } catch (e) {
+      throw aiExceptionFromObject(e);
     }
-    final json = jsonDecode(resp.body) as Map<String, dynamic>;
-    final choice = json['choices']?[0] as Map? ?? {};
-    final message = choice['message'] as Map? ?? {};
-    final content = message['content'] as String? ?? '';
-    final rawToolCalls = message['tool_calls'] as List?;
+  }
 
-    if (rawToolCalls == null || rawToolCalls.isEmpty) {
-      return ToolTurn(content: content);
-    }
-
-    final toolCalls = rawToolCalls.map((tc) {
-      final fn = tc['function'] as Map? ?? {};
-      return ToolCall(
-        id: tc['id'] as String? ?? '',
-        name: fn['name'] as String? ?? '',
-        argumentsJson: fn['arguments'] as String? ?? '{}',
+  @override
+  Future<ConnectionTestResult> testConnection() async {
+    if (!isAvailable) {
+      return ConnectionTestResult(
+        success: false,
+        latencyMs: 0,
+        modelId: currentModelId,
+        providerId: name,
+        message: _missingKeyError().message,
+        errorCategory: 'NO_API_KEY',
       );
-    }).toList();
-
-    return ToolTurn(content: content, toolCalls: toolCalls);
+    }
+    return super.testConnection();
   }
 
   @override
   Future<List<double>> embed(String text) async {
-    // 体验模型不提供嵌入，返回空向量
     return List.filled(128, 0);
   }
 

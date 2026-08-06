@@ -8,6 +8,7 @@ import 'package:lingbi/services/mutation/local_mutation_journal.dart';
 import 'package:lingbi/services/mutation/local_mutation_protocol.dart';
 import 'package:lingbi/shared/ai/ai_provider.dart';
 import 'package:lingbi/shared/ai/sensenova_provider.dart';
+import 'package:lingbi/shared/errors/ai_error.dart';
 import 'package:lingbi/shared/database/story_beats_repository.dart';
 import 'package:lingbi/shared/database/zvec_service.dart';
 import 'package:lingbi/shared/di/service_locator.dart';
@@ -177,12 +178,15 @@ void main() {
       expect(result, isNot(contains('请求失败')), reason: 'AI 返回错误: $result');
     }, timeout: const Timeout(Duration(seconds: 60)), skip: skipAi);
 
-    test('无 Key 时返回友好提示', () async {
+    test('无 Key 时抛出 typed noApiKey 错误', () async {
       final noKeyProvider = SenseNovaProvider();
-      final result = await noKeyProvider.chatSync(
-        messages: [const ChatMessage(role: 'user', content: 'hello')],
+      await expectLater(
+        noKeyProvider.chatSync(
+          messages: const [ChatMessage(role: 'user', content: 'hello')],
+        ),
+        throwsA(isA<AIException>()
+            .having((error) => error.type, 'type', AIExceptionType.noApiKey)),
       );
-      expect(result, contains('配置'));
       await noKeyProvider.dispose();
     });
 
@@ -400,7 +404,6 @@ void main() {
     });
   });
 }
-
 
 LocalMutationProtocol _proto(String root) => LocalMutationProtocol(
       journal: LocalMutationJournal(basePath: '$root/.lingbi/test-journal'),
