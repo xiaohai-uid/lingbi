@@ -46,7 +46,7 @@ jobs:
         with:
           repository: xiaohai-uid/lingbi-next
           path: lingbi-next
-          ref: 225d8550f19c7cefcdfa8200a0fdca3acba04e4e
+          ref: 994889a97c2c742cde8cc23b541583fc6cc0b1ca
 
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
