@@ -90,20 +90,11 @@ class ProjectService implements IProjectService {
       premise: requestedBrief.premise ?? '',
       briefRevision: 1,
     );
+    final existingType = await FileSystemEntity.type(directoryPath);
+    if (existingType != FileSystemEntityType.notFound) {
+      throw FileError('项目目录已存在: $directoryPath', code: 'PROJECT_PATH_EXISTS');
+    }
     await Directory(directoryPath).create(recursive: true);
-    // R3 修复：项目状态按目录寻址，同名新建会复用旧目录。
-    // 创建新项目时清理残留的 project_meta/（引导状态 / 对话历史 / 设定资产）
-    // 与 .lingbi/（旧项目元数据，避免 brief revision 冲突），
-    // 使"同名新建"成为一个干净的新项目，不继承任何旧状态。
-    final sep = Platform.pathSeparator;
-    final staleMetaDir = Directory('$directoryPath${sep}project_meta');
-    if (await staleMetaDir.exists()) {
-      await staleMetaDir.delete(recursive: true);
-    }
-    final staleLingbiDir = Directory('$directoryPath$sep.lingbi');
-    if (await staleLingbiDir.exists()) {
-      await staleLingbiDir.delete(recursive: true);
-    }
     final lingbiDir = Directory('$directoryPath/.lingbi');
     await lingbiDir.create();
     final zvec = _zvec;
