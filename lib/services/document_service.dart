@@ -123,6 +123,21 @@ class DocumentService implements IDocumentService {
     final dir = lastSlash >= 0 ? normalPath.substring(0, lastSlash) : '';
     final safeTitle = _sanitizeFileName(newTitle);
     final newPath = '$dir/$safeTitle.md';
+    if (newPath.replaceAll(r'\', '/') ==
+        doc.filePath.replaceAll(r'\', '/')) {
+      // Same path: title-only change, nothing to protect.
+      doc.title = newTitle;
+      doc.updatedAt = DateTime.now();
+      await _zvec?.upsert('documents', doc.id, doc.toJson());
+      return;
+    }
+    final target = File(newPath);
+    if (await target.exists()) {
+      throw FileError(
+        '已有同名章节，无法重命名: $newTitle',
+        code: 'RENAME_COLLISION',
+      );
+    }
     await _file.renameDocument(doc.filePath, newPath);
     doc.filePath = newPath;
     doc.title = newTitle;

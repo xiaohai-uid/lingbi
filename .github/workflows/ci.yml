@@ -75,3 +75,66 @@ jobs:
           name: lingbi-windows-${{ github.sha }}
           path: ${{ env.LINGBI_PACKAGE_DIR }}/
           if-no-files-found: error
+
+  # Windows Flutter ↔ Rust FFI Gate (Task 16):
+  #   checkout lingbi + pinned lingbi-next → build lingbi-ffi Windows DLL →
+  #   set LINGBI_FFI_DLL → run Flutter FFI tests EXPLICITLY.
+  # Requirement: FFI passed > 0, failed = 0, skipped = 0.
+  # A skip here (LINGBI_FFI_DLL 未设置) is a hard FAIL, never a pass.
+  ffi-gate:
+    name: Windows Flutter↔Rust FFI Gate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.6'
+          channel: 'stable'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Checkout pinned Rust core
+        uses: actions/checkout@v4
+        with:
+          repository: xiaohai-uid/lingbi-next
+          path: lingbi-next
+          ref: 994889a97c2c742cde8cc23b541583fc6cc0b1ca
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build lingbi-ffi Windows DLL
+        shell: pwsh
+        run: |
+          # lingbi-ffi is a workspace member; artifacts land in the
+          # workspace target dir at the repo root.
+          cargo build --release -p lingbi-ffi --manifest-path lingbi-next/Cargo.toml
+          $dll = Join-Path (Get-Location) 'lingbi-next/target/release/lingbi_ffi.dll'
+          if (-not (Test-Path $dll)) {
+            Write-Host "lingbi_ffi.dll was not produced at $dll"
+            exit 1
+          }
+          "LINGBI_FFI_DLL=$dll" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Run Flutter FFI tests (explicit, never skipped)
+        shell: pwsh
+        run: |
+          if (-not $env:LINGBI_FFI_DLL) {
+            Write-Host "FFI Gate = FAIL: LINGBI_FFI_DLL not set"
+            exit 1
+          }
+          $output = flutter test test/rust_ffi_project_parser_test.dart test/rust_ffi_document_storage_test.dart --dart-define=LINGBI_FFI_DLL=$env:LINGBI_FFI_DLL 2>&1
+          $output | Select-Object -Last 50
+          $summary = ($output | Select-String 'All tests passed!|Some tests failed.' | Select-Object -Last 1).Line
+          Write-Host "FFI summary: $summary"
+          $passed = 0; $failed = 0; $skipped = 0
+          if ($summary -match '\+(\d+)') { $passed = [int]$matches[1] }
+          if ($summary -match '~(\d+)') { $skipped = [int]$matches[1] }
+          if ($summary -match '-(\d+)') { $failed = [int]$matches[1] }
+          Write-Host "FFI passed=$passed failed=$failed skipped=$skipped"
+          if ($passed -lt 1 -or $failed -ne 0 -or $skipped -ne 0) {
+            Write-Host "FFI Gate = FAIL (need passed > 0, failed = 0, skipped = 0)"
+            exit 1
+          }
+          Write-Host "FFI Gate = PASS"

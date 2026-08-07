@@ -185,9 +185,42 @@ class PortableProjectPackageService {
   static bool _isTransient(String path) =>
       path.endsWith('.tmp') || path.endsWith('.bak') || path == manifestName;
 
+  /// Reject any path that could escape the import destination or point
+  /// outside it on Windows:
+  /// - `..` segments (both `/` and `\` separators, and mixed)
+  /// - absolute paths (`/`, `\`, `C:` / `C:\`, UNC `\\server\share`)
+  /// - NUL and control characters
   static void _validateRelativePath(String value) {
+    if (value.isEmpty) {
+      throw const FormatException('Empty package path');
+    }
+    if (value.contains('\u0000') || value.codeUnits.any((unit) => unit < 32)) {
+      throw FormatException('Control characters in package path: $value');
+    }
+    // Mixed separators are rejected outright: they are a classic
+    // Windows traversal smuggling vector (e.g. `..\evil`).
+    if (value.contains('/') && value.contains('\\')) {
+      throw FormatException('Mixed separators in package path: $value');
+    }
+    // Absolute / drive-qualified / UNC paths.
+    if (value.startsWith('/') ||
+        value.startsWith('\\') ||
+        value.contains(':/') ||
+        value.contains(':\\')) {
+      throw FormatException('Absolute package path: $value');
+    }
+    final segments = value.split(RegExp(r'[/\\]'));
+    if (segments.any((segment) => segment == '..')) {
+      throw FormatException('Traversal in package path: $value');
+    }
+    // Drive-qualified relative paths such as `C:evil` or `C:../x`.
+    if (segments.any((segment) =>
+        segment.length >= 2 &&
+        RegExp(r'^[A-Za-z]:').hasMatch(segment))) {
+      throw FormatException('Drive-qualified package path: $value');
+    }
     final normalized = p.posix.normalize(value);
-    if (p.posix.isAbsolute(value) ||
+    if (p.posix.isAbsolute(normalized) ||
         normalized == '..' ||
         normalized.startsWith('../')) {
       throw FormatException('Unsafe package path: $value');

@@ -105,17 +105,10 @@ class ProjectSessionManager extends ChangeNotifier {
     }
     final restoredDocument = await _readSelectedDocument(opened.project);
     final documents = [...opened.documents];
-    for (final document in documents) {
-      await _documentService.saveDocument(
-        document,
-        await _documentService.readContent(document.filePath),
-      );
-    }
+    // IMPORTANT: opening a project must never rewrite chapter bodies.
+    // Files on disk are the source of truth; a blind rewrite would
+    // clobber external edits and touch every file's mtime on open.
     if (restoredDocument != null) {
-      await _documentService.saveDocument(
-        restoredDocument,
-        await _documentService.readContent(restoredDocument.filePath),
-      );
       final restoredPath = _normalPath(restoredDocument.filePath);
       documents.removeWhere(
         (document) => _normalPath(document.filePath) == restoredPath,
