@@ -821,20 +821,7 @@ $adoptedContent''';
     sourceFile.copySync(snapshotPath);
   }
 
-  bool _looksLikeProviderError(String text) {
-    final trimmed = text.trim();
-    if (trimmed.isEmpty) return false;
-    final low = trimmed.toLowerCase();
-    return low.startsWith('请先') ||
-        low.startsWith('请先在设置') ||
-        low.contains('api key 无效') ||
-        low.contains('网络连接超时') ||
-        low.contains('服务暂时不可用') ||
-        low.contains('请求过于频繁') ||
-        low.startsWith('体验模型连接失败') ||
-        low.startsWith('http 4') ||
-        low.startsWith('http 5');
-  }
+  bool _looksLikeProviderError(String text) => looksLikeProviderError(text);
 
   /// 保存候选（内部使用）
   void _saveCandidate(CandidateEntry entry) {
@@ -885,4 +872,64 @@ $adoptedContent''';
     }
     return null;
   }
+}
+
+/// Detect AI provider error surfaces (auth / rate limit / network /
+/// server / timeout / quota) so they are never persisted as manuscript
+/// content. The check is deliberately broad: real providers surface
+/// errors in many shapes (status codes, error keys, human messages).
+/// Top-level so it can be unit-tested directly.
+bool looksLikeProviderError(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return false;
+  if (trimmed.length > 300) return false;
+  final low = trimmed.toLowerCase();
+  // Status codes and structured error bodies.
+  if (RegExp(r'^\s*(http\s*)?[45]\d{2}\b').hasMatch(low) ||
+      RegExp(r'"error"\s*:').hasMatch(low) ||
+      RegExp(r'\bstatus\s*[=:]\s*[45]\d{2}\b').hasMatch(low)) {
+    return true;
+  }
+  const needles = [
+    '请先',
+    '请先在设置',
+    'api key 无效',
+    '网络连接超时',
+    '服务暂时不可用',
+    '请求过于频繁',
+    '体验模型连接失败',
+    // English / provider-native surfaces.
+    'unauthorized',
+    'invalid api key',
+    'authentication failed',
+    'permission denied',
+    'forbidden',
+    'rate limit',
+    'too many requests',
+    'insufficient_quota',
+    'insufficient quota',
+    'connection refused',
+    'connection error',
+    'connection timed out',
+    'network error',
+    'request timed out',
+    'timeout',
+    'server error',
+    'internal server error',
+    'service unavailable',
+    'bad gateway',
+    'gateway timeout',
+    'invalid_request_error',
+    'authentication_error',
+    'rate_limit_error',
+    'api_error',
+    'overloaded',
+    'providererror',
+    'invalidresponse',
+    'noreply',
+  ];
+  for (final needle in needles) {
+    if (low.contains(needle)) return true;
+  }
+  return false;
 }

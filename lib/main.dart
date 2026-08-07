@@ -152,7 +152,15 @@ class _LocalModeHomeState extends State<_LocalModeHome> {
   void _newChapter() {
     final name =
         _titleController.text.trim().replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-    final fileName = name.isEmpty ? '新章节' : name;
+    final baseName = name.isEmpty ? '新章节' : name;
+    // Never overwrite an existing chapter with the same name: append a
+    // numeric suffix until the path is free (same policy as the desktop).
+    var fileName = baseName;
+    var index = 2;
+    while (File('$_workDir/$fileName.md').existsSync()) {
+      fileName = '$baseName-$index';
+      index += 1;
+    }
     final path = '$_workDir/$fileName.md'.replaceAll(r'\', '/');
     File(path).writeAsStringSync('# $fileName\n\n');
     _refreshFilesSync();
