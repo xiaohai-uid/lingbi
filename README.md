@@ -6,8 +6,9 @@
 
 仓库版本为 **1.2.0**，当前 GitHub `main` 已进入正式可用状态。Windows 黄金路径、首章生成与采纳、恢复中心、便携项目、导入导出、模型配置、技能市场与实验标签均已通过本机 Release 构建和 Windows integration test 验证。
 
-- 安装版：`Lingbi-Setup-1.2.0.exe`
-- 便携版：`Lingbi-Windows-Portable-1.2.0.zip`
+- [Windows 安装版（v1.2.0）](https://github.com/xiaohai-uid/lingbi/releases/download/v1.2.0/Lingbi-Setup-1.2.0.exe)
+- [Windows 便携版（v1.2.0）](https://github.com/xiaohai-uid/lingbi/releases/download/v1.2.0/Lingbi-Windows-Portable-1.2.0.zip)，解压后运行。
+- [同版本 SHA-256 校验清单](https://github.com/xiaohai-uid/lingbi/releases/download/v1.2.0/SHA256SUMS.txt)
 - 系统要求：Windows 10/11 x64
 - 下载入口：[GitHub Releases](https://github.com/xiaohai-uid/lingbi/releases/latest)
 
